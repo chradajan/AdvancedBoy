@@ -6,6 +6,8 @@
 #include <GBA/include/Cartridge/GamePak.hpp>
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <GBA/include/Keypad/Keypad.hpp>
+#include <GBA/include/Memory/EWRAM.hpp>
+#include <GBA/include/Memory/IWRAM.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
@@ -20,12 +22,13 @@ private:
     friend class GameBoyAdvance;
 
     audio::APU apu_;
-    bios::BIOSManager biosMgr_;
+    BIOSManager biosMgr_;
     std::unique_ptr<cartridge::GamePak> gamePak_;
-    cartridge::GamePak gamePak_;
     dma::DmaManager dmaMgr_;
-    controller::Keypad keyPad_;
+    Keypad keyPad_;
+    EWRAM ewram_;
+    IWRAM iwram_;
     graphics::PPU ppu_;
-    system::SystemControl systemControl_;
+    SystemControl systemControl_;
     timers::TimerManager timerMgr_;
 };

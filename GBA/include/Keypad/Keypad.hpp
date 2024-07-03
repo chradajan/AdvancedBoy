@@ -5,21 +5,16 @@
 #include <GBA/include/Memory/RegisterComponentBase.hpp>
 #include <GBA/include/Types.hpp>
 
-namespace controller
-{
 /// @brief GBA controller manager.
 class Keypad : public RegisterComponentBase
 {
 public:
-    MemReadData8 ReadReg8(Address addr) override;
-    MemReadData16 ReadReg16(Address addr) override;
-    MemReadData32 ReadReg32(Address addr) override;
+    /// @brief Read a Keypad register.
+    MemReadData ReadReg(Address addr, AccessSize length) override;
 
-    CpuCycles WriteReg8(Address addr, u8 val) override;
-    CpuCycles WriteReg16(Address addr, u16 val) override;
-    CpuCycles WriteReg32(Address addr, u32 val) override;
+    /// @brief Write a Keypad register.
+    CpuCycles WriteReg(Address addr, u32 val, AccessSize length) override;
 
 private:
     std::array<std::byte, 0x04> registers_;
 };
-}  // namespace controller

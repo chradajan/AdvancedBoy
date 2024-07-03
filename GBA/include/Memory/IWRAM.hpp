@@ -1,23 +1,20 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
-#include <vector>
 #include <GBA/include/Memory/MemoryComponentBase.hpp>
 #include <GBA/include/Types.hpp>
 
-namespace cartridge
-{
-/// @brief Manager of GamePak ROM and backup memory.
-class GamePak : public MemoryComponentBase
+/// @brief External (slow) WRAM.
+class IWRAM : public MemoryComponentBase
 {
 public:
-    /// @brief Read GamePak memory.
+    /// @brief Read IWRAM memory.
     MemReadData ReadMem(Address addr, AccessSize length) override;
 
-    /// @brief Write GamePak memory.
+    /// @brief Write IWRAM memory.
     CpuCycles WriteMem(Address addr, u32 val, AccessSize length) override;
 
 private:
-    std::vector<std::byte> ROM_;
+    std::array<std::byte, 32 * KiB> wram_;
 };
-}  // namespace cartridge

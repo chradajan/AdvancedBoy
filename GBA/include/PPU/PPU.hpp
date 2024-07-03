@@ -12,21 +12,17 @@ namespace graphics
 class PPU : public MemoryComponentBase, public RegisterComponentBase
 {
 public:
-    MemReadData8 Read8(Address addr) override;
-    MemReadData16 Read16(Address addr) override;
-    MemReadData32 Read32(Address addr) override;
+    /// @brief Read PPU memory.
+    MemReadData ReadMem(Address addr, AccessSize length) override;
 
-    CpuCycles Write8(Address addr, u8 val) override;
-    CpuCycles Write16(Address addr, u16 val) override;
-    CpuCycles Write32(Address addr, u32 val) override;
+    /// @brief Write PPU memory.
+    CpuCycles WriteMem(Address addr, u32 val, AccessSize length) override;
 
-    MemReadData8 ReadReg8(Address addr) override;
-    MemReadData16 ReadReg16(Address addr) override;
-    MemReadData32 ReadReg32(Address addr) override;
+    /// @brief Read a PPU register.
+    MemReadData ReadReg(Address addr, AccessSize length) override;
 
-    CpuCycles WriteReg8(Address addr, u8 val) override;
-    CpuCycles WriteReg16(Address addr, u16 val) override;
-    CpuCycles WriteReg32(Address addr, u32 val) override;
+    /// @brief Write a PPU register.
+    CpuCycles WriteReg(Address addr, u32 val, AccessSize length) override;
 
 private:
     // Memory

@@ -11,13 +11,11 @@ namespace audio
 class APU : public RegisterComponentBase
 {
 public:
-    MemReadData8 ReadReg8(Address addr) override;
-    MemReadData16 ReadReg16(Address addr) override;
-    MemReadData32 ReadReg32(Address addr) override;
+    /// @brief Read an APU register.
+    MemReadData ReadReg(Address addr, AccessSize length) override;
 
-    CpuCycles WriteReg8(Address addr, u8 val) override;
-    CpuCycles WriteReg16(Address addr, u16 val) override;
-    CpuCycles WriteReg32(Address addr, u32 val) override;
+    /// @brief Write an APU register.
+    CpuCycles WriteReg(Address addr, u32 val, AccessSize length) override;
 
 private:
     std::array<std::byte, 0x48> registers_;

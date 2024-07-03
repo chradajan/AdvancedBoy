@@ -6,13 +6,20 @@
 class RegisterComponentBase
 {
 public:
+    /// @brief Virtual destructor.
     virtual ~RegisterComponentBase() = default;
 
-    virtual MemReadData8 ReadReg8(Address addr) = 0;
-    virtual MemReadData16 ReadReg16(Address addr) = 0;
-    virtual MemReadData32 ReadReg32(Address addr) = 0;
+    /// @brief Read a memory-mapped register.
+    /// @param addr Address of register to read.
+    /// @param length Memory access size of the read.
+    /// @return Read data structure containing how many cycles the read took, the value returned from the read, and whether the read
+    ///         operation resulted in an open-bus read.
+    virtual MemReadData ReadReg(Address addr, AccessSize length) = 0;
 
-    virtual CpuCycles WriteReg8(Address addr, u8 val) = 0;
-    virtual CpuCycles WriteReg16(Address addr, u16 val) = 0;
-    virtual CpuCycles WriteReg32(Address addr, u32 val) = 0;
+    /// @brief Write to a memory-mapped register.
+    /// @param addr Address of register to read.
+    /// @param val Value to write to the register.
+    /// @param length Memory access size of the write.
+    /// @return Number of CPU cycles taken to perform the write operation.
+    virtual CpuCycles WriteReg(Address addr, u32 val, AccessSize length) = 0;
 };

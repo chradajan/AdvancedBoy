@@ -6,13 +6,20 @@
 class MemoryComponentBase
 {
 public:
+    /// @brief Virtual destructor.
     virtual ~MemoryComponentBase() = default;
 
-    virtual MemReadData8 Read8(Address addr) = 0;
-    virtual MemReadData16 Read16(Address addr) = 0;
-    virtual MemReadData32 Read32(Address addr) = 0;
+    /// @brief Read an address connected to the bus.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Read data structure containing how many cycles the read took, the value returned from the read, and whether the read
+    ///         operation resulted in an open-bus read.
+    virtual MemReadData ReadMem(Address addr, AccessSize length) = 0;
 
-    virtual CpuCycles Write8(Address addr, u8 val) = 0;
-    virtual CpuCycles Write16(Address addr, u16 val) = 0;
-    virtual CpuCycles Write32(Address addr, u32 val) = 0;
+    /// @brief Write to an address connected to the bus.
+    /// @param addr Address to write to.
+    /// @param val Value to write into memory.
+    /// @param length Memory access size of the write.
+    /// @return Number of CPU cycles taken to perform the write operation.
+    virtual CpuCycles WriteMem(Address addr, u32 val, AccessSize length) = 0;
 };

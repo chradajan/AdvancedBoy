@@ -14,4 +14,5 @@ public:
 private:
     cpu::ARM7TDMI cpu_;
     Bus bus_;
+    EventScheduler scheduler_;
 };

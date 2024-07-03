@@ -23,25 +23,19 @@ using i64 = std::int64_t;
 // System types
 
 enum class Address : u32;
-enum class CpuCycles : i32;
 
+enum class CpuCycles : i32;
 constexpr CpuCycles ONE_CYCLE = CpuCycles{1};
 
-struct MemReadData8
+enum class AccessSize : u8
 {
-    CpuCycles Cycles;
-    u8 Value;
-    bool OpenBus;
+    BYTE = 1,
+    HALFWORD = 2,
+    WORD = 4,
+    INVALID = 0xFF
 };
 
-struct MemReadData16
-{
-    CpuCycles Cycles;
-    u16 Value;
-    bool OpenBus;
-};
-
-struct MemReadData32
+struct MemReadData
 {
     CpuCycles Cycles;
     u32 Value;
