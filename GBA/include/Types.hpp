@@ -57,4 +57,4 @@ constexpr u64 U64_MAX = std::numeric_limits<u64>::max();
 constexpr u8 U8_MSB = 0x01 << (std::numeric_limits<u8>::digits - 1);
 constexpr u16 U16_MSB = 0x01 << (std::numeric_limits<u16>::digits - 1);
 constexpr u32 U32_MSB = 0x01 << (std::numeric_limits<u32>::digits - 1);
-constexpr u64 U64_MSB = 0x01 << (std::numeric_limits<u64>::digits - 1);
+constexpr u64 U64_MSB = u64{0x01} << (std::numeric_limits<u64>::digits - 1);

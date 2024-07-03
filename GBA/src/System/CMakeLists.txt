@@ -1,5 +1,6 @@
 project(AdvancedBoy)
 
 target_sources(${PROJECT_NAME} PRIVATE
-    main.cpp
+    EventScheduler.cpp
+    SystemControl.cpp
 )
