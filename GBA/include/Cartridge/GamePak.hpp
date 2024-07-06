@@ -2,20 +2,26 @@
 
 #include <cstddef>
 #include <vector>
-#include <GBA/include/Memory/MemoryComponentBase.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace cartridge
 {
 /// @brief Manager of GamePak ROM and backup memory.
-class GamePak : public MemoryComponentBase
+class GamePak
 {
 public:
-    /// @brief Read GamePak memory.
-    MemReadData ReadMem(Address addr, AccessSize length) override;
+    /// @brief Read an address in GamePak memory.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
+    MemReadData ReadMem(Address addr, AccessSize length);
 
-    /// @brief Write GamePak memory.
-    CpuCycles WriteMem(Address addr, u32 val, AccessSize length) override;
+    /// @brief Write to an address in GamePak memory.
+    /// @param addr Address to write to.
+    /// @param val Value to write.
+    /// @param length Memory access size of the write.
+    /// @return Number of cycles taken to write.
+    CpuCycles WriteMem(Address addr, u32 val, AccessSize length);
 
 private:
     std::vector<std::byte> ROM_;

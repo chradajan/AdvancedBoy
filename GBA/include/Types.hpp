@@ -22,7 +22,7 @@ using i64 = std::int64_t;
 
 // System types
 
-enum class Address : u32;
+using Address = u32;
 
 enum class CpuCycles : i32;
 constexpr CpuCycles ONE_CYCLE = CpuCycles{1};
