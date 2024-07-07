@@ -14,18 +14,18 @@ TimerManager::TimerManager(EventScheduler& scheduler, SystemControl& systemContr
     registers_.fill(std::byte{0});
 }
 
-MemReadData TimerManager::ReadReg(Address addr, AccessSize length)
+MemReadData TimerManager::ReadReg(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles TimerManager::WriteReg(Address addr, u32 val, AccessSize length)
+int TimerManager::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }
 }  // namespace timers

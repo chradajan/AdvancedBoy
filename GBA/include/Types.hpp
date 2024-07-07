@@ -22,11 +22,6 @@ using i64 = std::int64_t;
 
 // System types
 
-using Address = u32;
-
-enum class CpuCycles : i32;
-constexpr CpuCycles ONE_CYCLE = CpuCycles{1};
-
 enum class AccessSize : u8
 {
     BYTE = 1,
@@ -37,7 +32,7 @@ enum class AccessSize : u8
 
 struct MemReadData
 {
-    CpuCycles Cycles;
+    int Cycles;
     u32 Value;
     bool OpenBus;
 };

@@ -14,8 +14,8 @@ namespace dma
 /// @brief DMA channel manager.
 class DmaManager
 {
-    using ReadMemCallback = MemberFunctor<std::pair<u32, CpuCycles> (GameBoyAdvance::*)(Address, AccessSize)>;
-    using WriteMemCallback = MemberFunctor<CpuCycles (GameBoyAdvance::*)(Address, u32, AccessSize)>;
+    using ReadMemCallback = MemberFunctor<std::pair<u32, int> (GameBoyAdvance::*)(u32, AccessSize)>;
+    using WriteMemCallback = MemberFunctor<int (GameBoyAdvance::*)(u32, u32, AccessSize)>;
 
 public:
     DmaManager() = delete;
@@ -34,14 +34,14 @@ public:
     /// @param addr Address of DMA register(s).
     /// @param length Memory access size of the read.
     /// @return Number of cycles taken to read, value of the requested register(s), and whether it was an open-bus read.
-    MemReadData ReadReg(Address addr, AccessSize length);
+    MemReadData ReadReg(u32 addr, AccessSize length);
 
     /// @brief Write to an address mapped to DMA registers.
     /// @param addr Address of DMA register(s).
     /// @param val Value to write to register(s).
     /// @param length Memory access size of the write.
     /// @return Number of cycles taken to write.
-    CpuCycles WriteReg(Address addr, u32 val, AccessSize length);
+    int WriteReg(u32 addr, u32 val, AccessSize length);
 
 private:
     ReadMemCallback ReadMemory;

@@ -11,8 +11,8 @@ namespace cpu
 /// @brief ARM7TDMI CPU.
 class ARM7TDMI
 {
-    using ReadMemCallback = MemberFunctor<std::pair<u32, CpuCycles> (GameBoyAdvance::*)(Address, AccessSize)>;
-    using WriteMemCallback = MemberFunctor<CpuCycles (GameBoyAdvance::*)(Address, u32, AccessSize)>;
+    using ReadMemCallback = MemberFunctor<std::pair<u32, int> (GameBoyAdvance::*)(u32, AccessSize)>;
+    using WriteMemCallback = MemberFunctor<int (GameBoyAdvance::*)(u32, u32, AccessSize)>;
 
 public:
     ARM7TDMI() = delete;

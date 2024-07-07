@@ -3,22 +3,22 @@
 
 namespace cartridge
 {
-MemReadData GamePak::ReadMem(Address addr, AccessSize length)
+MemReadData GamePak::ReadMem(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles GamePak::WriteMem(Address addr, u32 val, AccessSize length)
+int GamePak::WriteMem(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)length;
     (void)val;
-    return ONE_CYCLE;
+    return 1;
 }
 
-MemReadData GamePak::ReadUnloadedGamePakMem(Address addr, AccessSize length)
+MemReadData GamePak::ReadUnloadedGamePakMem(u32 addr, AccessSize length)
 {
     u32 val = 0;
     size_t count = static_cast<size_t>(length);
@@ -31,6 +31,6 @@ MemReadData GamePak::ReadUnloadedGamePakMem(Address addr, AccessSize length)
         --count;
     }
 
-    return {ONE_CYCLE, val, false};
+    return {1, val, false};
 }
 }  // namespace cartridge

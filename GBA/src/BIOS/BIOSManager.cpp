@@ -8,17 +8,17 @@ BIOSManager::BIOSManager(fs::path biosPath, GetPCCallback getPC) : GetPC(getPC)
     (void)biosPath;
 }
 
-MemReadData BIOSManager::ReadMem(Address addr, AccessSize length)
+MemReadData BIOSManager::ReadMem(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles BIOSManager::WriteMem(Address addr, u32 val, AccessSize length)
+int BIOSManager::WriteMem(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)length;
     (void)val;
-    return ONE_CYCLE;
+    return 1;
 }

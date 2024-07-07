@@ -10,7 +10,7 @@
 /// @param baseAddr Base address of block of memory being read from.
 /// @param length Memory access size of the read.
 /// @return Value at the specified location in the provided span.
-u32 ReadMemoryBlock(std::span<const std::byte> memory, Address readAddr, Address baseAddr, AccessSize length);
+u32 ReadMemoryBlock(std::span<const std::byte> memory, u32 readAddr, u32 baseAddr, AccessSize length);
 
 /// @brief Write a byte, halfword, or word to an arbitrary block of memory.
 /// @param memory Span of bytes to write into.
@@ -18,4 +18,4 @@ u32 ReadMemoryBlock(std::span<const std::byte> memory, Address readAddr, Address
 /// @param baseAddr Base address of block of memory to write to.
 /// @param val Value to write into memory.
 /// @param length Memory access size of the write.
-void WriteMemoryBlock(std::span<std::byte> memory, Address writeAddr, Address baseAddr, u32 val, AccessSize length);
+void WriteMemoryBlock(std::span<std::byte> memory, u32 writeAddr, u32 baseAddr, u32 val, AccessSize length);

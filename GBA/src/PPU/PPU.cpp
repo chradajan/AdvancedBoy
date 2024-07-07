@@ -15,63 +15,63 @@ PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(s
     registers_.fill(std::byte{0});
 }
 
-MemReadData PPU::ReadPRAM(Address addr, AccessSize length)
+MemReadData PPU::ReadPRAM(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles PPU::WritePRAM(Address addr, u32 val, AccessSize length)
+int PPU::WritePRAM(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)length;
     (void)val;
-    return ONE_CYCLE;
+    return 1;
 }
 
-MemReadData PPU::ReadOAM(Address addr, AccessSize length)
+MemReadData PPU::ReadOAM(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles PPU::WriteOAM(Address addr, u32 val, AccessSize length)
-{
-    (void)addr;
-    (void)length;
-    (void)val;
-    return ONE_CYCLE;
-}
-
-MemReadData PPU::ReadVRAM(Address addr, AccessSize length)
-{
-    (void)addr;
-    (void)length;
-    return {ONE_CYCLE, 0, false};
-}
-
-CpuCycles PPU::WriteVRAM(Address addr, u32 val, AccessSize length)
+int PPU::WriteOAM(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)length;
     (void)val;
-    return ONE_CYCLE;
+    return 1;
 }
 
-MemReadData PPU::ReadReg(Address addr, AccessSize length)
+MemReadData PPU::ReadVRAM(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles PPU::WriteReg(Address addr, u32 val, AccessSize length)
+int PPU::WriteVRAM(u32 addr, u32 val, AccessSize length)
+{
+    (void)addr;
+    (void)length;
+    (void)val;
+    return 1;
+}
+
+MemReadData PPU::ReadReg(u32 addr, AccessSize length)
+{
+    (void)addr;
+    (void)length;
+    return {1, 0, false};
+}
+
+int PPU::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }
 }  // namespace graphics

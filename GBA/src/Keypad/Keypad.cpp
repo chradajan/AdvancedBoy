@@ -9,17 +9,17 @@ Keypad::Keypad(SystemControl& systemControl) : systemControl_(systemControl)
     registers_.fill(std::byte{0});
 }
 
-MemReadData Keypad::ReadReg(Address addr, AccessSize length)
+MemReadData Keypad::ReadReg(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles Keypad::WriteReg(Address addr, u32 val, AccessSize length)
+int Keypad::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }

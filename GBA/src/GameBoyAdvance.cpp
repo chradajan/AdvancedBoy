@@ -19,7 +19,7 @@
 
 namespace
 {
-Address ForceAlignAddress(Address addr, AccessSize length)
+u32 ForceAlignAddress(u32 addr, AccessSize length)
 {
     u32 alignment = static_cast<u32>(length) - 1;
 
@@ -45,7 +45,7 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
     IWRAM_.fill(std::byte{0});
 }
 
-std::pair<u32, CpuCycles> GameBoyAdvance::ReadMem(Address addr, AccessSize length)
+std::pair<u32, int> GameBoyAdvance::ReadMem(u32 addr, AccessSize length)
 {
     addr = ForceAlignAddress(addr, length);
     auto page = Page::INVALID;
@@ -87,7 +87,7 @@ std::pair<u32, CpuCycles> GameBoyAdvance::ReadMem(Address addr, AccessSize lengt
             break;
         case Page::INVALID:
         default:
-            readData = {ONE_CYCLE, 0, true};
+            readData = {1, 0, true};
             break;
     }
 
@@ -95,19 +95,19 @@ std::pair<u32, CpuCycles> GameBoyAdvance::ReadMem(Address addr, AccessSize lengt
     {
         // TODO
         readData.Value = 0;
-        readData.Cycles = ONE_CYCLE;
+        readData.Cycles = 1;
     }
 
     return {readData.Value, readData.Cycles};
 }
 
-CpuCycles GameBoyAdvance::WriteMem(Address addr, u32 val, AccessSize length)
+int GameBoyAdvance::WriteMem(u32 addr, u32 val, AccessSize length)
 {
     (void)val;
 
     addr = ForceAlignAddress(addr, length);
     auto page = Page::INVALID;
-    CpuCycles cycles = ONE_CYCLE;
+    int cycles = 1;
 
     if (addr < 0x1000'0000)
     {
@@ -141,58 +141,58 @@ CpuCycles GameBoyAdvance::WriteMem(Address addr, u32 val, AccessSize length)
             cycles = ppu_.WriteOAM(addr, val, length);
             break;
         case Page::GAMEPAK_MIN ... Page::GAMEPAK_MAX:
-            cycles = gamePak_ ? gamePak_->WriteMem(addr, val, length) : ONE_CYCLE;
+            cycles = gamePak_ ? gamePak_->WriteMem(addr, val, length) : 1;
             break;
         case Page::INVALID:
         default:
-            cycles = ONE_CYCLE;
+            cycles = 1;
             break;
     }
 
     return cycles;
 }
 
-MemReadData GameBoyAdvance::ReadEWRAM(Address addr, AccessSize length)
+MemReadData GameBoyAdvance::ReadEWRAM(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles GameBoyAdvance::WriteEWRAM(Address addr, u32 val, AccessSize length)
+int GameBoyAdvance::WriteEWRAM(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }
 
-MemReadData GameBoyAdvance::ReadIWRAM(Address addr, AccessSize length)
+MemReadData GameBoyAdvance::ReadIWRAM(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles GameBoyAdvance::WriteIWRAM(Address addr, u32 val, AccessSize length)
-{
-    (void)addr;
-    (void)val;
-    (void)length;
-    return ONE_CYCLE;
-}
-
-MemReadData GameBoyAdvance::ReadIO(Address addr, AccessSize length)
-{
-    (void)addr;
-    (void)length;
-    return {ONE_CYCLE, 0, false};
-}
-
-CpuCycles GameBoyAdvance::WriteIO(Address addr, u32 val, AccessSize length)
+int GameBoyAdvance::WriteIWRAM(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
+}
+
+MemReadData GameBoyAdvance::ReadIO(u32 addr, AccessSize length)
+{
+    (void)addr;
+    (void)length;
+    return {1, 0, false};
+}
+
+int GameBoyAdvance::WriteIO(u32 addr, u32 val, AccessSize length)
+{
+    (void)addr;
+    (void)val;
+    (void)length;
+    return 1;
 }

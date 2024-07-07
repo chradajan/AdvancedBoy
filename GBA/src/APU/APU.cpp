@@ -11,18 +11,18 @@ APU::APU(EventScheduler& scheduler) : scheduler_(scheduler)
     registers_.fill(std::byte{0});
 }
 
-MemReadData APU::ReadReg(Address addr, AccessSize length)
+MemReadData APU::ReadReg(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles APU::WriteReg(Address addr, u32 val, AccessSize length)
+int APU::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }
 }  // namespace audio

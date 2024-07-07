@@ -20,14 +20,14 @@ public:
     /// @param addr Address of system control register(s).
     /// @param length Memory access size of the read.
     /// @return Number of cycles taken to read, value of the requested register(s), and whether it was an open-bus read.
-    MemReadData ReadReg(Address addr, AccessSize length);
+    MemReadData ReadReg(u32 addr, AccessSize length);
 
     /// @brief Write to an address mapped to system control registers.
     /// @param addr Address of system control register(s).
     /// @param val Value to write to register(s).
     /// @param length Memory access size of the write.
     /// @return Number of cycles taken to write.
-    CpuCycles WriteReg(Address addr, u32 val, AccessSize length);
+    int WriteReg(u32 addr, u32 val, AccessSize length);
 
 private:
     std::array<std::byte, 0x0C> interruptAndWaitcntRegisters_;

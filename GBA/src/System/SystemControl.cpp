@@ -11,17 +11,17 @@ SystemControl::SystemControl()
     memoryControlRegisters_.fill(std::byte{0});
 }
 
-MemReadData SystemControl::ReadReg(Address addr, AccessSize length)
+MemReadData SystemControl::ReadReg(u32 addr, AccessSize length)
 {
     (void)addr;
     (void)length;
-    return {ONE_CYCLE, 0, false};
+    return {1, 0, false};
 }
 
-CpuCycles SystemControl::WriteReg(Address addr, u32 val, AccessSize length)
+int SystemControl::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     (void)addr;
     (void)val;
     (void)length;
-    return ONE_CYCLE;
+    return 1;
 }
