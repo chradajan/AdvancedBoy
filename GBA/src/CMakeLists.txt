@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 add_subdirectory(APU)
 add_subdirectory(BIOS)
 add_subdirectory(Cartridge)
+add_subdirectory(CPU)
 add_subdirectory(DMA)
 add_subdirectory(Keypad)
 add_subdirectory(Memory)

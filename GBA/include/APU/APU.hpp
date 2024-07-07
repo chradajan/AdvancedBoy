@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace audio
@@ -10,6 +11,16 @@ namespace audio
 class APU
 {
 public:
+    APU() = delete;
+    APU(APU const&) = delete;
+    APU& operator=(APU const&) = delete;
+    APU(APU&&) = delete;
+    APU& operator=(APU&&) = delete;
+
+    /// @brief Initialize the APU.
+    /// @param scheduler Reference to event scheduler to post audio events to.
+    explicit APU(EventScheduler& scheduler);
+
     /// @brief Read an address mapped to APU registers.
     /// @param addr Address of APU register(s).
     /// @param length Memory access size of the read.
@@ -25,5 +36,8 @@ public:
 
 private:
     std::array<std::byte, 0x48> registers_;
+
+    // External components
+    EventScheduler& scheduler_;
 };
 }  // namespace audio

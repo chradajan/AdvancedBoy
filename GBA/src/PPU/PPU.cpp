@@ -1,8 +1,20 @@
 #include <GBA/include/PPU/PPU.hpp>
+#include <array>
+#include <cstddef>
+#include <GBA/include/System/EventScheduler.hpp>
+#include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace graphics
 {
+PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(scheduler), systemControl_(systemControl)
+{
+    PRAM_.fill(std::byte{0});
+    OAM_.fill(std::byte{0});
+    VRAM_.fill(std::byte{0});
+    registers_.fill(std::byte{0});
+}
+
 MemReadData PPU::ReadPRAM(Address addr, AccessSize length)
 {
     (void)addr;

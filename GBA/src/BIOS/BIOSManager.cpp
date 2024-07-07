@@ -1,5 +1,12 @@
+#include <filesystem>
 #include <GBA/include/BIOS/BIOSManager.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/Functor.hpp>
+
+BIOSManager::BIOSManager(fs::path biosPath, GetPCCallback getPC) : GetPC(getPC)
+{
+    (void)biosPath;
+}
 
 MemReadData BIOSManager::ReadMem(Address addr, AccessSize length)
 {

@@ -8,6 +8,14 @@
 class SystemControl
 {
 public:
+    /// @brief Initialize the system control registers.
+    SystemControl();
+
+    SystemControl(SystemControl const&) = delete;
+    SystemControl& operator=(SystemControl const&) = delete;
+    SystemControl(SystemControl&&) = delete;
+    SystemControl& operator=(SystemControl&&) = delete;
+
     /// @brief Read an address mapped to system control registers.
     /// @param addr Address of system control register(s).
     /// @param length Memory access size of the read.

@@ -1,4 +1,7 @@
 #include <GBA/include/GameBoyAdvance.hpp>
+#include <array>
+#include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
@@ -26,6 +29,19 @@ Address ForceAlignAddress(Address addr, AccessSize length)
 
     return addr;
 }
+}
+
+GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
+    apu_(scheduler_),
+    biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
+    cpu_({&ReadMem, *this}, {&WriteMem, *this}),
+    dmaMgr_({&ReadMem, *this}, {&WriteMem, *this}, systemControl_),
+    keypad_(systemControl_),
+    ppu_(scheduler_, systemControl_),
+    timerMgr_(scheduler_, systemControl_)
+{
+    EWRAM_.fill(std::byte{0});
+    IWRAM_.fill(std::byte{0});
 }
 
 std::pair<u32, CpuCycles> GameBoyAdvance::ReadMem(Address addr, AccessSize length)

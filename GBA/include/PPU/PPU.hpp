@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstddef>
+#include <GBA/include/System/EventScheduler.hpp>
+#include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace graphics
@@ -10,6 +12,17 @@ namespace graphics
 class PPU
 {
 public:
+    PPU() = delete;
+    PPU(PPU const&) = delete;
+    PPU& operator=(PPU const&) = delete;
+    PPU(PPU&&) = delete;
+    PPU& operator=(PPU&&) = delete;
+
+    /// @brief Initialize the PPU.
+    /// @param scheduler Reference to event scheduler to post PPU state change events to.
+    /// @param systemControl Reference to system control to post PPU interrupts to.
+    explicit PPU(EventScheduler& scheduler, SystemControl& systemControl);
+
     /// @brief Read an address in PRAM.
     /// @param addr Address to read from.
     /// @param length Memory access size of the read.
@@ -70,5 +83,9 @@ private:
 
     // Registers
     std::array<std::byte, 0x58> registers_;
+
+    // External components
+    EventScheduler& scheduler_;
+    SystemControl& systemControl_;
 };
 }  // namespace graphics

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
@@ -15,10 +16,17 @@
 #include <GBA/include/Timers/TimerManager.hpp>
 #include <GBA/include/Types.hpp>
 
+namespace fs = std::filesystem;
+
 /// @brief Represents a single GBA.
 class GameBoyAdvance
 {
 public:
+    GameBoyAdvance() = delete;
+
+    /// @brief Initialize the GBA.
+    /// @param biosPath Path to BIOS ROM file..
+    explicit GameBoyAdvance(fs::path biosPath);
 
 private:
     /// @brief Route a memory read to the correct component.
@@ -36,6 +44,7 @@ private:
 
     // Non-components
     EventScheduler scheduler_;
+    SystemControl systemControl_;
 
     // Components
     audio::APU apu_;
@@ -44,7 +53,6 @@ private:
     dma::DmaManager dmaMgr_;
     Keypad keypad_;
     graphics::PPU ppu_;
-    SystemControl systemControl_;
     timers::TimerManager timerMgr_;
 
     // Optional components
