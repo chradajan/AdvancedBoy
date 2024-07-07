@@ -154,45 +154,133 @@ int GameBoyAdvance::WriteMem(u32 addr, u32 val, AccessSize length)
 
 MemReadData GameBoyAdvance::ReadEWRAM(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (addr > EWRAM_ADDR_MAX)
+    {
+        addr = (addr % EWRAM_.size()) + EWRAM_ADDR_MIN;
+    }
+
+    u32 val = ReadMemoryBlock(EWRAM_, addr, EWRAM_ADDR_MIN, length);
+    int cycles = (length == AccessSize::WORD) ? 6 : 3;
+    return {cycles, val, false};
 }
 
 int GameBoyAdvance::WriteEWRAM(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)val;
-    (void)length;
-    return 1;
+    if (addr > EWRAM_ADDR_MAX)
+    {
+        addr = (addr % EWRAM_.size()) + EWRAM_ADDR_MIN;
+    }
+
+    WriteMemoryBlock(EWRAM_, addr, EWRAM_ADDR_MIN, val, length);
+    return (length == AccessSize::WORD) ? 6 : 3;
 }
 
 MemReadData GameBoyAdvance::ReadIWRAM(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (addr > IWRAM_ADDR_MAX)
+    {
+        addr = (addr % IWRAM_.size()) + IWRAM_ADDR_MIN;
+    }
+
+    u32 val = ReadMemoryBlock(IWRAM_, addr, IWRAM_ADDR_MIN, length);
+    return {1, val, false};
 }
 
 int GameBoyAdvance::WriteIWRAM(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)val;
-    (void)length;
+    if (addr > IWRAM_ADDR_MAX)
+    {
+        addr = (addr % EWRAM_.size()) + IWRAM_ADDR_MIN;
+    }
+
+    WriteMemoryBlock(IWRAM_, addr, IWRAM_ADDR_MIN, val, length);
     return 1;
 }
 
 MemReadData GameBoyAdvance::ReadIO(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if ((addr > SYSTEM_CONTROL_IO_ADDR_MAX) && (((addr - 0x0400'0800) % (64 * KiB)) < 4))
+    {
+        // I/O registers are not mirrored, with the exception of 4000800h repeating every 64K.
+        addr = 0x0400'0800 + ((addr - 0x0400'0800) % (64 * KiB));
+    }
+
+    MemReadData readData;
+
+    switch (addr)
+    {
+        case LCD_IO_ADDR_MIN ... LCD_IO_ADDR_MAX:
+            readData = ppu_.ReadReg(addr, length);
+            break;
+        case SOUND_IO_ADDR_MIN ... SOUND_IO_ADDR_MAX:
+            readData = apu_.ReadReg(addr, length);
+            break;
+        case DMA_IO_ADDR_MIN ... DMA_IO_ADDR_MAX:
+            readData = dmaMgr_.ReadReg(addr, length);
+            break;
+        case TIMER_IO_ADDR_MIN ... TIMER_IO_ADDR_MAX:
+            readData = timerMgr_.ReadReg(addr, length);
+            break;
+        case SERIAL_IO_1_ADDR_MIN ... SERIAL_IO_1_ADDR_MAX:
+            readData = {1, 0, false};
+            break;
+        case KEYPAD_IO_ADDR_MIN ... KEYPAD_IO_ADDR_MAX:
+            readData = keypad_.ReadReg(addr, length);
+            break;
+        case SERIAL_IO_2_ADDR_MIN ... SERIAL_IO_2_ADDR_MAX:
+            readData = {1, 0, false};
+            break;
+        case SYSTEM_CONTROL_IO_ADDR_MIN ... SYSTEM_CONTROL_IO_ADDR_MAX:
+            readData = systemControl_.ReadReg(addr, length);
+            break;
+        default:
+            readData = {1, 0, true};
+            break;
+    }
+
+    return readData;
 }
 
 int GameBoyAdvance::WriteIO(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)val;
-    (void)length;
-    return 1;
+    if ((addr > SYSTEM_CONTROL_IO_ADDR_MAX) && (((addr - 0x0400'0800) % (64 * KiB)) < 4))
+    {
+        // I/O registers are not mirrored, with the exception of 4000800h repeating every 64K.
+        addr = 0x0400'0800 + ((addr - 0x0400'0800) % (64 * KiB));
+    }
+
+    int cycles;
+
+    switch (addr)
+    {
+        case LCD_IO_ADDR_MIN ... LCD_IO_ADDR_MAX:
+            cycles = ppu_.WriteReg(addr, val, length);
+            break;
+        case SOUND_IO_ADDR_MIN ... SOUND_IO_ADDR_MAX:
+            cycles = apu_.WriteReg(addr, val, length);
+            break;
+        case DMA_IO_ADDR_MIN ... DMA_IO_ADDR_MAX:
+            cycles = dmaMgr_.WriteReg(addr, val, length);
+            break;
+        case TIMER_IO_ADDR_MIN ... TIMER_IO_ADDR_MAX:
+            cycles = timerMgr_.WriteReg(addr, val, length);
+            break;
+        case SERIAL_IO_1_ADDR_MIN ... SERIAL_IO_1_ADDR_MAX:
+            cycles = 1;
+            break;
+        case KEYPAD_IO_ADDR_MIN ... KEYPAD_IO_ADDR_MAX:
+            cycles = keypad_.WriteReg(addr, val, length);
+            break;
+        case SERIAL_IO_2_ADDR_MIN ... SERIAL_IO_2_ADDR_MAX:
+            cycles = 1;
+            break;
+        case SYSTEM_CONTROL_IO_ADDR_MIN ... SYSTEM_CONTROL_IO_ADDR_MAX:
+            cycles = systemControl_.WriteReg(addr, val, length);
+            break;
+        default:
+            cycles = 1;
+            break;
+    }
+
+    return cycles;
 }

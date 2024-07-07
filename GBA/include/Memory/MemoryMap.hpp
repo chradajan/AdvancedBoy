@@ -16,6 +16,8 @@ enum class Page : u8
     INVALID     = 0xFF,
 };
 
+// Memory page bounds
+
 constexpr u32 BIOS_ADDR_MIN = 0x0000'0000;
 constexpr u32 BIOS_ADDR_MAX = 0x0000'3FFF;
 
@@ -42,3 +44,29 @@ constexpr u32 GAMEPAK_ROM_ADDR_MAX = 0x0DFF'FFFF;
 
 constexpr u32 GAMEPAK_SRAM_ADDR_MIN = 0x0E00'0000;
 constexpr u32 GAMEPAK_SRAM_ADDR_MAX = 0x0E00'FFFF;
+
+// IO region bounds
+
+constexpr u32 LCD_IO_ADDR_MIN = 0x0400'0000;
+constexpr u32 LCD_IO_ADDR_MAX = 0x0400'0057;
+
+constexpr u32 SOUND_IO_ADDR_MIN = 0x0400'0060;
+constexpr u32 SOUND_IO_ADDR_MAX = 0x0400'00A7;
+
+constexpr u32 DMA_IO_ADDR_MIN = 0x0400'00B0;
+constexpr u32 DMA_IO_ADDR_MAX = 0x0400'00DF;
+
+constexpr u32 TIMER_IO_ADDR_MIN = 0x0400'0100;
+constexpr u32 TIMER_IO_ADDR_MAX = 0x0400'010F;
+
+constexpr u32 SERIAL_IO_1_ADDR_MIN = 0x0400'0120;
+constexpr u32 SERIAL_IO_1_ADDR_MAX = 0x0400'012B;
+
+constexpr u32 KEYPAD_IO_ADDR_MIN = 0x0400'0130;
+constexpr u32 KEYPAD_IO_ADDR_MAX = 0x0400'0133;
+
+constexpr u32 SERIAL_IO_2_ADDR_MIN = 0x0400'0134;
+constexpr u32 SERIAL_IO_2_ADDR_MAX = 0x0400'015B;
+
+constexpr u32 SYSTEM_CONTROL_IO_ADDR_MIN = 0x0400'0200;
+constexpr u32 SYSTEM_CONTROL_IO_ADDR_MAX = 0x0400'0803;
