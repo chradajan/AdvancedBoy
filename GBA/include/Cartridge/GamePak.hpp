@@ -23,6 +23,12 @@ public:
     /// @return Number of cycles taken to write.
     CpuCycles WriteMem(Address addr, u32 val, AccessSize length);
 
+    /// @brief Read an address in GamePak memory when no GamePak is currently loaded.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
+    static MemReadData ReadUnloadedGamePakMem(Address addr, AccessSize length);
+
 private:
     std::vector<std::byte> ROM_;
 };

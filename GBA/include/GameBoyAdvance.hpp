@@ -42,6 +42,45 @@ private:
     /// @return Number of cycles taken to write.
     CpuCycles WriteMem(Address addr, u32 val, AccessSize length);
 
+    /// @brief Read an address in EWRAM.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
+    MemReadData ReadEWRAM(Address addr, AccessSize length);
+
+    /// @brief Write to an address in EWRAM.
+    /// @param addr Address to write to.
+    /// @param val Value to write.
+    /// @param length Memory access size of the write.
+    /// @return Number of cycles taken to write.
+    CpuCycles WriteEWRAM(Address addr, u32 val, AccessSize length);
+
+    /// @brief Read an address in IWRAM.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
+    MemReadData ReadIWRAM(Address addr, AccessSize length);
+
+    /// @brief Write to an address in IWRAM.
+    /// @param addr Address to write to.
+    /// @param val Value to write.
+    /// @param length Memory access size of the write.
+    /// @return Number of cycles taken to write.
+    CpuCycles WriteIWRAM(Address addr, u32 val, AccessSize length);
+
+    /// @brief Read an address corresponding to an IO register.
+    /// @param addr Address to read from.
+    /// @param length Memory access size of the read.
+    /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
+    MemReadData ReadIO(Address addr, AccessSize length);
+
+    /// @brief Write to an address corresponding to an IO register.
+    /// @param addr Address to write to.
+    /// @param val Value to write.
+    /// @param length Memory access size of the write.
+    /// @return Number of cycles taken to write.
+    CpuCycles WriteIO(Address addr, u32 val, AccessSize length);
+
     // Non-components
     EventScheduler scheduler_;
     SystemControl systemControl_;
