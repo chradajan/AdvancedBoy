@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstddef>
+#include <cstring>
+#include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
@@ -76,6 +78,45 @@ public:
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
 private:
+    /// @brief Get the current value of the LCD Control register.
+    /// @return Current DISPCNT value.
+    DISPCNT GetDISPCNT() const { DISPCNT reg; std::memcpy(&reg, &registers_[DISPCNT::INDEX], sizeof(DISPCNT)); return reg; }
+
+    /// @brief Get the current value of the LCD Status register.
+    /// @return Current DISPSTAT value.
+    DISPSTAT GetDISPSTAT() const { DISPSTAT reg; std::memcpy(&reg, &registers_[DISPSTAT::INDEX], sizeof(DISPSTAT)); return reg; }
+
+    /// @brief Update the value of the DISPSTAT register.
+    /// @param reg New value of DISPSTAT.
+    void SetDISPSTAT(DISPSTAT reg) { std::memcpy(&registers_[DISPSTAT::INDEX], &reg, sizeof(DISPSTAT)); }
+
+    /// @brief Set internal register corresponding to BG2X.
+    void SetBG2RefX();
+
+    /// @brief Set internal register corresponding to BG2Y.
+    void SetBG2RefY();
+
+    /// @brief Set internal register corresponding to BG3X.
+    void SetBG3RefX();
+
+    /// @brief Set internal register corresponding to BG3Y.
+    void SetBG3RefY();
+
+    /// @brief Handle writes to the DISPSTAT and VCOUNT registers to avoid writing to read only bits.
+    /// @param addr Address of register(s) being written.
+    /// @param val Value to write to register(s).
+    /// @param length Memory access size of the write.
+    void WriteDispstatVcount(u32 addr, u32 val, AccessSize length);
+
+    /// @brief Check for a VCOUNTER match. Update DISPSTAT and request interrupt upon match.
+    void CheckVCountSetting();
+
+    // Affine BG internal reference registers
+    i32 bg2RefX_;
+    i32 bg2RefY_;
+    i32 bg3RefX_;
+    i32 bg3RefY_;
+
     // Memory
     std::array<std::byte,  1 * KiB> PRAM_;
     std::array<std::byte,  1 * KiB> OAM_;

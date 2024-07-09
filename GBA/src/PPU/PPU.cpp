@@ -1,14 +1,23 @@
 #include <GBA/include/PPU/PPU.hpp>
 #include <array>
 #include <cstddef>
+#include <cstring>
+#include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace graphics
 {
 PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(scheduler), systemControl_(systemControl)
 {
+    bg2RefX_ = 0;
+    bg2RefY_ = 0;
+    bg3RefX_ = 0;
+    bg3RefY_ = 0;
+
     PRAM_.fill(std::byte{0});
     OAM_.fill(std::byte{0});
     VRAM_.fill(std::byte{0});
@@ -17,61 +26,227 @@ PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(s
 
 MemReadData PPU::ReadPRAM(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (addr > PRAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, PRAM_ADDR_MIN, PRAM_ADDR_MAX);
+    }
+
+    u32 val = ReadMemoryBlock(PRAM_, addr, PRAM_ADDR_MIN, length);
+    int cycles = (length == AccessSize::WORD) ? 2 : 1;
+    return {cycles, val, false};
 }
 
 int PPU::WritePRAM(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    (void)val;
-    return 1;
+    if (length == AccessSize::BYTE)
+    {
+        length = AccessSize::HALFWORD;
+        addr &= ~0x01;
+        val = (val & U8_MAX) * 0x0101;
+    }
+
+    if (addr > PRAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, PRAM_ADDR_MIN, PRAM_ADDR_MAX);
+    }
+
+    WriteMemoryBlock(PRAM_, addr, PRAM_ADDR_MIN, val, length);
+    return (length == AccessSize::WORD) ? 2 : 1;
 }
 
 MemReadData PPU::ReadOAM(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (addr > OAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, OAM_ADDR_MIN, OAM_ADDR_MAX);
+    }
+
+    u32 val = ReadMemoryBlock(OAM_, addr, OAM_ADDR_MIN, length);
+    return {1, val, false};
 }
 
 int PPU::WriteOAM(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    (void)val;
+    if (length == AccessSize::BYTE)
+    {
+        return 1;
+    }
+
+    if (addr > OAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, OAM_ADDR_MIN, OAM_ADDR_MAX);
+    }
+
+    WriteMemoryBlock(OAM_, addr, OAM_ADDR_MIN, val, length);
     return 1;
 }
 
 MemReadData PPU::ReadVRAM(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (addr > VRAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, VRAM_ADDR_MIN, VRAM_ADDR_MAX + (32 * KiB));
+
+        if (addr > VRAM_ADDR_MAX)
+        {
+            addr -= (32 * KiB);
+        }
+    }
+
+    u32 val = ReadMemoryBlock(VRAM_, addr, VRAM_ADDR_MIN, length);
+    int cycles = (length == AccessSize::WORD) ? 2 : 1;
+    return {cycles, val, false};
 }
 
 int PPU::WriteVRAM(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    (void)val;
-    return 1;
+    if (addr > VRAM_ADDR_MAX)
+    {
+        addr = StandardMirroredAddress(addr, VRAM_ADDR_MIN, VRAM_ADDR_MAX + (32 * KiB));
+
+        if (addr > VRAM_ADDR_MAX)
+        {
+            addr -= (32 * KiB);
+        }
+    }
+
+    if (length == AccessSize::BYTE)
+    {
+        DISPCNT dispcnt = GetDISPCNT();
+
+        if ((addr > 0x0601'4000) || ((addr > 0x0601'0000) && (dispcnt.bgMode < 3)))
+        {
+            // Ignore byte writes to OBJ tiles.
+            return 1;
+        }
+
+        length = AccessSize::HALFWORD;
+        addr &= ~0x01;
+        val = (val & U8_MAX) * 0x0101;
+    }
+
+    WriteMemoryBlock(VRAM_, addr, VRAM_ADDR_MIN, val, length);
+    return (length == AccessSize::WORD) ? 2 : 1;
 }
 
 MemReadData PPU::ReadReg(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    if (((0x0400'0010 <= addr) && (addr < 0x0400'0048)) ||
+        ((0x0400'004C <= addr) && (addr < 0x0400'0050)) ||
+        (addr >= 0x0400'0054))
+    {
+        // Attempting to read unused or write-only registers.
+        return {1, 0, true};
+    }
+
+    u32 val = ReadMemoryBlock(registers_, addr, LCD_IO_ADDR_MIN, length);
+    return {1, val, false};
 }
 
 int PPU::WriteReg(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)val;
-    (void)length;
+    if ((0x0400'0004 <= addr) && (addr < 0x0400'0008))
+    {
+        WriteDispstatVcount(addr, val, length);
+        return 1;
+    }
+
+    WriteMemoryBlock(registers_, addr, LCD_IO_ADDR_MIN, val, length);
+
+    if ((0x0400'0028 <= addr) && (addr < 0x0400'002C))
+    {
+        SetBG2RefX();
+    }
+    else if ((0x0400'002C <= addr) && (addr < 0x0400'0030))
+    {
+        SetBG2RefY();
+    }
+    else if ((0x0400'0038 <= addr) && (addr < 0x0400'003C))
+    {
+        SetBG3RefX();
+    }
+    else if ((0x0400'003C <= addr) && (addr < 0x0400'0040))
+    {
+        SetBG3RefY();
+    }
+
     return 1;
+}
+
+void PPU::SetBG2RefX()
+{
+    std::memcpy(&bg2RefX_, &registers_[0x28], sizeof(bg2RefX_));
+    bg2RefX_ = SignExtend<i32, 27>(bg2RefX_);
+}
+
+void PPU::SetBG2RefY()
+{
+    std::memcpy(&bg2RefY_, &registers_[0x28], sizeof(bg2RefY_));
+    bg2RefY_ = SignExtend<i32, 27>(bg2RefY_);
+}
+
+void PPU::SetBG3RefX()
+{
+    std::memcpy(&bg3RefX_, &registers_[0x28], sizeof(bg3RefX_));
+    bg3RefX_ = SignExtend<i32, 27>(bg3RefX_);
+}
+
+void PPU::SetBG3RefY()
+{
+    std::memcpy(&bg3RefY_, &registers_[0x28], sizeof(bg3RefY_));
+    bg3RefY_ = SignExtend<i32, 27>(bg3RefY_);
+}
+
+void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
+{
+    // Ignore BYTE or HALFWORD writes to VCOUNT
+    if (addr < 0x0400'0006)
+    {
+        DISPSTAT prevDispStat = GetDISPSTAT();
+        DISPSTAT newDispStat;
+        std::memcpy(&newDispStat, &val, sizeof(DISPSTAT));
+
+        if (length != AccessSize::BYTE)
+        {
+            // Write to both bytes of DISPSTAT, restore all read only fields
+            newDispStat.vBlank = prevDispStat.vBlank;
+            newDispStat.hBlank = prevDispStat.hBlank;
+            newDispStat.vCounter = prevDispStat.vCounter;
+            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
+        }
+        else if (addr == 0x0400'0004)
+        {
+            // Write to lower byte of DISPSTAT, restore all read only fields and upper byte
+            newDispStat.vBlank = prevDispStat.vBlank;
+            newDispStat.hBlank = prevDispStat.hBlank;
+            newDispStat.vCounter = prevDispStat.vCounter;
+            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
+            newDispStat.vCountSetting = prevDispStat.vCountSetting;
+        }
+        else
+        {
+            // Write to upper byte of DISPSTAT, restore all fields in the lower byte
+            newDispStat.vBlank = prevDispStat.vBlank;
+            newDispStat.hBlank = prevDispStat.hBlank;
+            newDispStat.vCounter = prevDispStat.vCounter;
+            newDispStat.vBlankIrqEnable = prevDispStat.vBlankIrqEnable;
+            newDispStat.hBlankIrqEnable = prevDispStat.hBlankIrqEnable;
+            newDispStat.vCounterIrqEnable = prevDispStat.vCounterIrqEnable;
+            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
+            newDispStat.unusedReadWrite = prevDispStat.unusedReadWrite;
+        }
+
+        SetDISPSTAT(newDispStat);
+
+        if (prevDispStat.vCountSetting != newDispStat.vCountSetting)
+        {
+            CheckVCountSetting();
+        }
+    }
+}
+
+void PPU::CheckVCountSetting()
+{
+    // TODO
 }
 }  // namespace graphics

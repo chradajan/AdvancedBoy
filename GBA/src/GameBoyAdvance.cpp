@@ -156,7 +156,7 @@ MemReadData GameBoyAdvance::ReadEWRAM(u32 addr, AccessSize length)
 {
     if (addr > EWRAM_ADDR_MAX)
     {
-        addr = (addr % EWRAM_.size()) + EWRAM_ADDR_MIN;
+        addr = StandardMirroredAddress(addr, EWRAM_ADDR_MIN, EWRAM_ADDR_MAX);
     }
 
     u32 val = ReadMemoryBlock(EWRAM_, addr, EWRAM_ADDR_MIN, length);
@@ -168,7 +168,7 @@ int GameBoyAdvance::WriteEWRAM(u32 addr, u32 val, AccessSize length)
 {
     if (addr > EWRAM_ADDR_MAX)
     {
-        addr = (addr % EWRAM_.size()) + EWRAM_ADDR_MIN;
+        addr = StandardMirroredAddress(addr, EWRAM_ADDR_MIN, EWRAM_ADDR_MAX);
     }
 
     WriteMemoryBlock(EWRAM_, addr, EWRAM_ADDR_MIN, val, length);
@@ -179,7 +179,7 @@ MemReadData GameBoyAdvance::ReadIWRAM(u32 addr, AccessSize length)
 {
     if (addr > IWRAM_ADDR_MAX)
     {
-        addr = (addr % IWRAM_.size()) + IWRAM_ADDR_MIN;
+        addr = StandardMirroredAddress(addr, IWRAM_ADDR_MIN, IWRAM_ADDR_MAX);
     }
 
     u32 val = ReadMemoryBlock(IWRAM_, addr, IWRAM_ADDR_MIN, length);
@@ -190,7 +190,7 @@ int GameBoyAdvance::WriteIWRAM(u32 addr, u32 val, AccessSize length)
 {
     if (addr > IWRAM_ADDR_MAX)
     {
-        addr = (addr % EWRAM_.size()) + IWRAM_ADDR_MIN;
+        addr = StandardMirroredAddress(addr, IWRAM_ADDR_MIN, IWRAM_ADDR_MAX);
     }
 
     WriteMemoryBlock(IWRAM_, addr, IWRAM_ADDR_MIN, val, length);

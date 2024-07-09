@@ -32,3 +32,11 @@ void WriteMemoryBlock(std::span<std::byte> memory, u32 writeAddr, u32 baseAddr, 
 
     std::memcpy(&memory[index], &val, count);
 }
+
+u32 StandardMirroredAddress(u32 addr, u32 min, u32 max)
+{
+    u32 exclusiveMax = max + 1;
+    u32 regionSize = exclusiveMax - min;
+    addr = ((addr - exclusiveMax) % regionSize) + min;
+    return addr;
+}
