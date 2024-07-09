@@ -25,6 +25,7 @@ PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(s
     registers_.fill(std::byte{0});
 
     scheduler_.RegisterEvent(EventType::VDraw, std::bind(&PPU::HBlank, this, std::placeholders::_1));
+    scheduler_.ScheduleEvent(EventType::HBlank, 960 + 46);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
