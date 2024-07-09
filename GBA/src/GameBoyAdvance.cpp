@@ -36,8 +36,8 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
-    cpu_({&ReadMem, *this}, {&WriteMem, *this}),
-    dmaMgr_({&ReadMem, *this}, {&WriteMem, *this}, systemControl_),
+    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}),
+    dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
     timerMgr_(scheduler_, systemControl_)
@@ -45,8 +45,8 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
     EWRAM_.fill(std::byte{0});
     IWRAM_.fill(std::byte{0});
 
-    scheduler_.RegisterEvent(EventType::HBlank, std::bind(&HBlank, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::VBlank, std::bind(&VBlank, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::HBlank, std::bind(&GameBoyAdvance::HBlank, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::VBlank, std::bind(&GameBoyAdvance::VBlank, this, std::placeholders::_1));
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -111,8 +111,6 @@ std::pair<u32, int> GameBoyAdvance::ReadMem(u32 addr, AccessSize length)
 
 int GameBoyAdvance::WriteMem(u32 addr, u32 val, AccessSize length)
 {
-    (void)val;
-
     addr = ForceAlignAddress(addr, length);
     auto page = Page::INVALID;
     int cycles = 1;

@@ -27,7 +27,7 @@ MemReadData GamePak::ReadUnloadedGamePakMem(u32 addr, AccessSize length)
     while (count > 0)
     {
         val <<= 8;
-        val |= ((currAddr / 2) && 0x0000'FFFF);
+        val |= ((currAddr / 2) & 0x0000'FFFF);
         --count;
     }
 
