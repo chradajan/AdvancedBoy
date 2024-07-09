@@ -29,6 +29,10 @@ public:
     explicit GameBoyAdvance(fs::path biosPath);
 
 private:
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Bus functionality
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     /// @brief Route a memory read to the correct component.
     /// @param addr Address to read from.
     /// @param length Memory access size of the read.
@@ -80,6 +84,22 @@ private:
     /// @param length Memory access size of the write.
     /// @return Number of cycles taken to write.
     int WriteIO(u32 addr, u32 val, AccessSize length);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Event handling
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief HBlank event handler.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void HBlank(int extraCycles);
+
+    /// @brief VBlank event handler.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void VBlank(int extraCycles);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Member data
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Non-components
     EventScheduler scheduler_;

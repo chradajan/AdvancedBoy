@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
@@ -43,7 +44,14 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
 {
     EWRAM_.fill(std::byte{0});
     IWRAM_.fill(std::byte{0});
+
+    scheduler_.RegisterEvent(EventType::HBlank, std::bind(&HBlank, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::VBlank, std::bind(&VBlank, this, std::placeholders::_1));
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Bus functionality
+///---------------------------------------------------------------------------------------------------------------------------------
 
 std::pair<u32, int> GameBoyAdvance::ReadMem(u32 addr, AccessSize length)
 {
@@ -283,4 +291,22 @@ int GameBoyAdvance::WriteIO(u32 addr, u32 val, AccessSize length)
     }
 
     return cycles;
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Event handling
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void GameBoyAdvance::HBlank(int extraCycles)
+{
+    ppu_.HBlank(extraCycles);
+
+    // TODO: Check DMA HBlank timed channels
+}
+
+void GameBoyAdvance::VBlank(int extraCycles)
+{
+    ppu_.VBlank(extraCycles);
+
+    // TODO: Check DMA VBlank timed channels
 }

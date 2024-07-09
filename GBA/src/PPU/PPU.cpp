@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -22,7 +23,13 @@ PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(s
     OAM_.fill(std::byte{0});
     VRAM_.fill(std::byte{0});
     registers_.fill(std::byte{0});
+
+    scheduler_.RegisterEvent(EventType::VDraw, std::bind(&HBlank, this, std::placeholders::_1));
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Bus functionality
+///---------------------------------------------------------------------------------------------------------------------------------
 
 MemReadData PPU::ReadPRAM(u32 addr, AccessSize length)
 {
@@ -173,6 +180,10 @@ int PPU::WriteReg(u32 addr, u32 val, AccessSize length)
     return 1;
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Register access/updates
+///---------------------------------------------------------------------------------------------------------------------------------
+
 void PPU::SetBG2RefX()
 {
     std::memcpy(&bg2RefX_, &registers_[0x28], sizeof(bg2RefX_));
@@ -246,6 +257,121 @@ void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
 }
 
 void PPU::CheckVCountSetting()
+{
+    u8 currentScanline = GetVCOUNT();
+    auto dispstat = GetDISPSTAT();
+
+    if (currentScanline == dispstat.vCountSetting)
+    {
+        dispstat.vCounter = 1;
+
+        if (dispstat.vCounterIrqEnable)
+        {
+            // TODO: Request VCOUNT IRQ
+        }
+    }
+    else
+    {
+        dispstat.vCounter = 0;
+    }
+
+    SetDISPSTAT(dispstat);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Event Handlers
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void PPU::HBlank(int extraCycles)
+{
+    // Register updates
+    auto dispstat = GetDISPSTAT();
+    dispstat.hBlank = 1;
+
+    if (dispstat.hBlankIrqEnable)
+    {
+        // TODO: Request HBlank IRQ
+    }
+
+    SetDISPSTAT(dispstat);
+
+    // Schedule next PPU event
+    u8 scanline = GetVCOUNT();
+    int cyclesUntilEvent = (272 - 46) - extraCycles;
+    EventType event = ((scanline < 159) || (scanline == 227)) ? EventType::VDraw : EventType::VBlank;
+    scheduler_.ScheduleEvent(event, cyclesUntilEvent);
+
+    // Render the current scanline
+    if (scanline < 160)
+    {
+        EvaluateScanline();
+    }
+}
+
+void PPU::VBlank(int extraCycles)
+{
+    // Register updates
+    auto dispstat = GetDISPSTAT();
+    u8 scanline = GetVCOUNT() + 1;
+
+    dispstat.hBlank = 0;
+
+    if (scanline == 160)
+    {
+        dispstat.vBlank = 1;
+
+        if (dispstat.vBlankIrqEnable)
+        {
+            // TODO: Request VBlank IRQ
+        }
+
+        SetBG2RefX();
+        SetBG2RefY();
+        SetBG3RefX();
+        SetBG3RefY();
+    }
+    else if (scanline == 227)
+    {
+        dispstat.vBlank = 0;
+    }
+
+    SetDISPSTAT(dispstat);
+    SetVCOUNT(scanline);
+    CheckVCountSetting();
+
+    // Schedule next PPU event
+    int cyclesUntilEvent = (960 + 46) - extraCycles;
+    scheduler_.ScheduleEvent(EventType::HBlank, cyclesUntilEvent);
+}
+
+void PPU::VDraw(int extraCycles)
+{
+    // Register updates
+    auto dispstat = GetDISPSTAT();
+    u8 scanline = GetVCOUNT() + 1;
+
+    if (scanline == 228)
+    {
+        scanline = 0;
+    }
+
+    dispstat.vBlank = 0;
+    dispstat.hBlank = 0;
+
+    SetDISPSTAT(dispstat);
+    SetVCOUNT(scanline);
+    CheckVCountSetting();
+
+    // Schedule next PPU event
+    int cyclesUntilEvent = (960 + 46) - extraCycles;
+    scheduler_.ScheduleEvent(EventType::HBlank, cyclesUntilEvent);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Rendering
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void PPU::EvaluateScanline()
 {
     // TODO
 }

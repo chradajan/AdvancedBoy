@@ -42,4 +42,14 @@ struct DISPSTAT
 };
 
 static_assert(sizeof(DISPSTAT) == sizeof(u16), "DISPSTAT must be 2 bytes");
+
+struct VCOUNT
+{
+    static constexpr size_t INDEX = 6;
+
+    u16 ly : 8;
+    u16 : 8;
+};
+
+static_assert(sizeof(VCOUNT) == sizeof(u16), "VCOUNT must be 2 bytes");
 }  // namespace graphics

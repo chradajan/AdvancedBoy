@@ -25,6 +25,10 @@ public:
     /// @param systemControl Reference to system control to post PPU interrupts to.
     explicit PPU(EventScheduler& scheduler, SystemControl& systemControl);
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Bus functionality
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     /// @brief Read an address in PRAM.
     /// @param addr Address to read from.
     /// @param length Memory access size of the read.
@@ -77,7 +81,23 @@ public:
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Event Handlers
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief HBlank event handler.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void HBlank(int extraCycles);
+
+    /// @brief VBlank event handler.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void VBlank(int extraCycles);
+
 private:
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Register access/updates
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     /// @brief Get the current value of the LCD Control register.
     /// @return Current DISPCNT value.
     DISPCNT GetDISPCNT() const { DISPCNT reg; std::memcpy(&reg, &registers_[DISPCNT::INDEX], sizeof(DISPCNT)); return reg; }
@@ -89,6 +109,14 @@ private:
     /// @brief Update the value of the DISPSTAT register.
     /// @param reg New value of DISPSTAT.
     void SetDISPSTAT(DISPSTAT reg) { std::memcpy(&registers_[DISPSTAT::INDEX], &reg, sizeof(DISPSTAT)); }
+
+    /// @brief Get the current value of VCOUNT.
+    /// @return Current scanline.
+    u8 GetVCOUNT() const { u8 reg; std::memcpy(&reg, &registers_[VCOUNT::INDEX], sizeof(u8)); return reg; }
+
+    /// @brief Update the value of the VCOUNT register.
+    /// @param reg New value of VCOUNT.
+    void SetVCOUNT(u8 reg) { std::memcpy(&registers_[VCOUNT::INDEX], &reg, sizeof(u8)); }
 
     /// @brief Set internal register corresponding to BG2X.
     void SetBG2RefX();
@@ -110,6 +138,25 @@ private:
 
     /// @brief Check for a VCOUNTER match. Update DISPSTAT and request interrupt upon match.
     void CheckVCountSetting();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Event Handlers
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief VDraw event handler.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void VDraw(int extraCycles);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Rendering
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Evaluate sprites, window, and background layers on the current scanline.
+    void EvaluateScanline();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Member data
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Affine BG internal reference registers
     i32 bg2RefX_;
