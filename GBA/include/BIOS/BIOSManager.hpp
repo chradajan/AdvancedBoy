@@ -32,14 +32,16 @@ public:
     /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
     MemReadData ReadMem(u32 addr, AccessSize length);
 
-    /// @brief Write to an address in BIOS memory.
-    /// @param addr Address to write to.
-    /// @param val Value to write.
-    /// @param length Memory access size of the write.
-    /// @return Number of cycles taken to write.
-    int WriteMem(u32 addr, u32 val, AccessSize length);
+    /// @brief Write to an address in BIOS memory. Has no effect.
+    int WriteMem(u32, u32, AccessSize) const { return 1; }
 
 private:
+    /// @brief Load the BIOS ROM file into memory.
+    /// @param biosPath Path to BIOS.
+    /// @return Whether BIOS was able to load be successfully loaded.
+    bool Load(fs::path biosPath);
+
     GetPCCallback GetPC;
     std::array<std::byte, 16 * KiB> biosROM_;
+    u32 lastSuccessfulFetch_;
 };
