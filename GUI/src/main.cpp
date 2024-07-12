@@ -2,6 +2,6 @@
 
 int main()
 {
-    GameBoyAdvance gba("");
+    GameBoyAdvance gba("", "");
     return 0;
 }

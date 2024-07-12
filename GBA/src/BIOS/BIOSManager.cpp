@@ -8,8 +8,30 @@
 
 BIOSManager::BIOSManager(fs::path biosPath, GetPCCallback getPC) : GetPC(getPC)
 {
-    Load(biosPath);
     lastSuccessfulFetch_ = 0;
+    biosLoaded_ = false;
+
+    if (biosPath.empty())
+    {
+        return;
+    }
+
+    size_t fileSizeInBytes = fs::file_size(biosPath);
+
+    if (fileSizeInBytes != biosROM_.size())
+    {
+        return;
+    }
+
+    std::ifstream bios(biosPath, std::ios::binary);
+
+    if (bios.fail())
+    {
+        return;
+    }
+
+    bios.read(reinterpret_cast<char*>(biosROM_.data()), fileSizeInBytes);
+    biosLoaded_ = true;
 }
 
 MemReadData BIOSManager::ReadMem(u32 addr, AccessSize length)
@@ -28,29 +50,4 @@ MemReadData BIOSManager::ReadMem(u32 addr, AccessSize length)
 
     lastSuccessfulFetch_ = ReadMemoryBlock(biosROM_, addr, BIOS_ADDR_MIN, length);
     return {cycles, lastSuccessfulFetch_, false};
-}
-
-bool BIOSManager::Load(fs::path biosPath)
-{
-    if (biosPath.empty())
-    {
-        return false;
-    }
-
-    auto fileSizeInBytes = fs::file_size(biosPath);
-
-    if (fileSizeInBytes != biosROM_.size())
-    {
-        return false;
-    }
-
-    std::ifstream bios(biosPath, std::ios::binary);
-
-    if (bios.fail())
-    {
-        return false;
-    }
-
-    bios.read(reinterpret_cast<char*>(biosROM_.data()), fileSizeInBytes);
-    return true;
 }

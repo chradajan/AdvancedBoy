@@ -35,13 +35,13 @@ public:
     /// @brief Write to an address in BIOS memory. Has no effect.
     int WriteMem(u32, u32, AccessSize) const { return 1; }
 
-private:
-    /// @brief Load the BIOS ROM file into memory.
-    /// @param biosPath Path to BIOS.
-    /// @return Whether BIOS was able to load be successfully loaded.
-    bool Load(fs::path biosPath);
+    /// @brief Check if BIOS was successfully loaded into memory.
+    /// @return True if BIOS is loaded.
+    bool BiosLoaded() const { return biosLoaded_; }
 
+private:
     GetPCCallback GetPC;
     std::array<std::byte, 16 * KiB> biosROM_;
     u32 lastSuccessfulFetch_;
+    bool biosLoaded_;
 };

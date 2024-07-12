@@ -23,10 +23,15 @@ class GameBoyAdvance
 {
 public:
     GameBoyAdvance() = delete;
+    GameBoyAdvance(GameBoyAdvance const&) = delete;
+    GameBoyAdvance& operator=(GameBoyAdvance const&) = delete;
+    GameBoyAdvance(GameBoyAdvance&&) = delete;
+    GameBoyAdvance& operator=(GameBoyAdvance&&) = delete;
 
     /// @brief Initialize the GBA.
-    /// @param biosPath Path to BIOS ROM file..
-    explicit GameBoyAdvance(fs::path biosPath);
+    /// @param biosPath Path to BIOS ROM file.
+    /// @param romPath Path to GamePak ROM file.
+    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath);
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------

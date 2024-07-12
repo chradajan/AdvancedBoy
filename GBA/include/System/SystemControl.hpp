@@ -4,6 +4,15 @@
 #include <cstddef>
 #include <GBA/include/Types.hpp>
 
+/// @brief Possible waitstate regions to use for GamePak access.
+enum class WaitStateRegion
+{
+    ZERO,
+    ONE,
+    TWO,
+    SRAM
+};
+
 /// @brief Manager of interrupt, waitstate, and power-down control registers.
 class SystemControl
 {

@@ -1,8 +1,16 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
+#include <memory>
+#include <string>
 #include <vector>
+#include <GBA/include/Cartridge/BackupMedia.hpp>
+#include <GBA/include/System/EventScheduler.hpp>
+#include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
+
+namespace fs = std::filesystem;
 
 namespace cartridge
 {
@@ -10,6 +18,18 @@ namespace cartridge
 class GamePak
 {
 public:
+    GamePak() = delete;
+    GamePak(GamePak const&) = delete;
+    GamePak& operator=(GamePak const&) = delete;
+    GamePak(GamePak&&) = delete;
+    GamePak& operator=(GamePak&&) = delete;
+
+    /// @brief Load cartridge ROM into memory and load a save file if one exists.
+    /// @param romPath Path to ROM. Looks for save file in the same directory.
+    /// @param scheduler Reference to event scheduler to determine prefetched waitstate timing.
+    /// @param systemControl Reference to system control to check waitstate settings.
+    explicit GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& systemControl);
+
     /// @brief Read an address in GamePak memory.
     /// @param addr Address to read from.
     /// @param length Memory access size of the read.
@@ -29,7 +49,18 @@ public:
     /// @return Number of cycles taken to read, value returned from the read, and whether it was an open-bus read.
     static MemReadData ReadUnloadedGamePakMem(u32 addr, AccessSize length);
 
+    /// @brief Check if GamePak was successfully loaded into memory.
+    /// @return True if a GamePak is loaded.
+    bool GamePakLoaded() const { return gamePakLoaded_; }
+
 private:
     std::vector<std::byte> ROM_;
+    std::unique_ptr<BackupMedia> backupMedia_;
+    std::string title_;
+    bool gamePakLoaded_;
+
+    // External components
+    EventScheduler& scheduler_;
+    SystemControl& systemControl_;
 };
 }  // namespace cartridge

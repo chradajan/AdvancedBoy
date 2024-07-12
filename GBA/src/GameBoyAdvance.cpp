@@ -33,15 +33,26 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 }
 }
 
-GameBoyAdvance::GameBoyAdvance(fs::path biosPath) :
+GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath) :
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
     cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_),
     dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
-    timerMgr_(scheduler_, systemControl_)
+    timerMgr_(scheduler_, systemControl_),
+    gamePak_(nullptr)
 {
+    if (!romPath.empty() && fs::exists(romPath))
+    {
+        gamePak_ = std::make_unique<cartridge::GamePak>(romPath, scheduler_, systemControl_);
+
+        if (!gamePak_->GamePakLoaded())
+        {
+            gamePak_.reset();
+        }
+    }
+
     EWRAM_.fill(std::byte{0});
     IWRAM_.fill(std::byte{0});
 
