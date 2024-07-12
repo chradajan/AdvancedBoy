@@ -61,16 +61,22 @@ void Registers::WriteRegister(u8 index, u32 val, OperatingMode mode)
         case OperatingMode::User:
         case OperatingMode::System:
             *sysAndUserRegLUT_.at(index) = val;
+            break;
         case OperatingMode::FIQ:
             *fiqRegLUT_.at(index) = val;
+            break;
         case OperatingMode::IRQ:
             *irqRegLUT_.at(index) = val;
+            break;
         case OperatingMode::Supervisor:
             *supervisorRegLUT_.at(index) = val;
+            break;
         case OperatingMode::Abort:
             *abortRegLUT_.at(index) = val;
+            break;
         case OperatingMode::Undefined:
             *undefinedRegLUT.at(index) = val;
+            break;
         default:
             throw std::logic_error("Wrote invalid CPU register index");
     }
@@ -101,14 +107,19 @@ void Registers::SetSPSR(u32 val)
     {
         case OperatingMode::FIQ:
             fiqRegBank_.spsr = std::bit_cast<CPSR>(val);
+            break;
         case OperatingMode::IRQ:
             irqRegBank_.spsr = std::bit_cast<CPSR>(val);
+            break;
         case OperatingMode::Supervisor:
             supervisorRegBank_.spsr = std::bit_cast<CPSR>(val);
+            break;
         case OperatingMode::Abort:
             abortRegBank_.spsr = std::bit_cast<CPSR>(val);
+            break;
         case OperatingMode::Undefined:
             undefinedRegBank_.spsr = std::bit_cast<CPSR>(val);
+            break;
         default:
             break;
     }
@@ -120,14 +131,19 @@ void Registers::LoadSPSR()
     {
         case OperatingMode::FIQ:
             cpsr_ = fiqRegBank_.spsr;
+            break;
         case OperatingMode::IRQ:
             cpsr_ = irqRegBank_.spsr;
+            break;
         case OperatingMode::Supervisor:
             cpsr_ = supervisorRegBank_.spsr;
+            break;
         case OperatingMode::Abort:
             cpsr_ = abortRegBank_.spsr;
+            break;
         case OperatingMode::Undefined:
             cpsr_ = undefinedRegBank_.spsr;
+            break;
         default:
             break;
     }
