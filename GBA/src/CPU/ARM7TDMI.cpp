@@ -1,4 +1,5 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
+#include <memory>
 #include <stdexcept>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
@@ -8,9 +9,9 @@ namespace cpu
 ARM7TDMI::ARM7TDMI(ReadMemCallback readMem, WriteMemCallback writeMem, EventScheduler& scheduler) :
     ReadMemory(readMem),
     WriteMemory(writeMem),
+    flushPipeline_(false),
     scheduler_(scheduler)
 {
-    flushPipeline_ = false;
 }
 
 void ARM7TDMI::Step(bool irq)
@@ -31,9 +32,16 @@ void ARM7TDMI::Step(bool irq)
     // Decode and execute
     if (pipeline_.Full())
     {
-        auto [undecodedInstruction, executedPC] = pipeline_.Pop();
+        u32 undecodedInstruction = pipeline_.Pop().op;
 
-        // TODO: Decode and execute instruction
+        if (registers_.InArmState())
+        {
+            DecodeAndExecuteARM(undecodedInstruction, false);
+        }
+        else
+        {
+            DecodeAndExecuteTHUMB(undecodedInstruction, false);
+        }
     }
 
     if (flushPipeline_)

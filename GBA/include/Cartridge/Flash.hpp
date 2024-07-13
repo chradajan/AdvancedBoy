@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 namespace cartridge
 {
-class Flash final : public BackupMedia
+class Flash final : public virtual BackupMedia
 {
 public:
     Flash() = delete;

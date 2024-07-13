@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 namespace cartridge
 {
-class EEPROM final : public BackupMedia
+class EEPROM final : public virtual BackupMedia
 {
 public:
     EEPROM() = delete;

@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 namespace cartridge
 {
-class SRAM final : public BackupMedia
+class SRAM final : public virtual BackupMedia
 {
 public:
     SRAM() = delete;

@@ -49,8 +49,69 @@ private:
     /// @return True if instruction should be executed.
     bool ConditionSatisfied(u8 condition) const;
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// ARM instructions
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Decode an ARM instruction, optionally log it along with the current state of registers, and execute the instruction.
+    /// @param instruction Undecoded 32-bit ARM instruction.
+    /// @param log Whether to log the instruction.
+    void DecodeAndExecuteARM(u32 instruction, bool log);
+
+    void ExecuteBranchAndExchange(u32 instruction);                     void LogBranchAndExchange(u32 instruction);
+    void ExecuteBlockDataTransfer(u32 instruction);                     void LogBlockDataTransfer(u32 instruction);
+    void ExecuteBranch(u32 instruction);                                void LogBranch(u32 instruction);
+    void ExecuteArmSoftwareInterrupt(u32 instruction);                  void LogArmSoftwareInterrupt(u32 instruction);
+    void ExecuteUndefined(u32 instruction);                             void LogUndefined(u32 instruction);
+    void ExecuteSingleDataTransfer(u32 instruction);                    void LogSingleDataTransfer(u32 instruction);
+    void ExecuteSingleDataSwap(u32 instruction);                        void LogSingleDataSwap(u32 instruction);
+    void ExecuteMultiply(u32 instruction);                              void LogMultiply(u32 instruction);
+    void ExecuteMultiplyLong(u32 instruction);                          void LogMultiplyLong(u32 instruction);
+    void ExecuteHalfwordDataTransferRegOffset(u32 instruction);         void LogHalfwordDataTransferRegOffset(u32 instruction);
+    void ExecuteHalfwordDataTransferImmOffset(u32 instruction);         void LogHalfwordDataTransferImmOffset(u32 instruction);
+    void ExecutePSRTransferMRS(u32 instruction);                        void LogPSRTransferMRS(u32 instruction);
+    void ExecutePSRTransferMSR(u32 instruction);                        void LogPSRTransferMSR(u32 instruction);
+    void ExecuteDataProcessing(u32 instruction);                        void LogDataProcessing(u32 instruction);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// THUMB instructions
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Decode a THUMB instruction, optionally log it along with the current state of registers, and execute the instruction.
+    /// @param instruction Undecoded 16-bit THUMB instruction.
+    /// @param log Whether to log the instruction.
+    void DecodeAndExecuteTHUMB(u16 instruction, bool log);
+
+    void ExecuteThumbSoftwareInterrupt(u16 instruction);                void LogThumbSoftwareInterrupt(u16 instruction);
+    void ExecuteUnconditionalBranch(u16 instruction);                   void LogUnconditionalBranch(u16 instruction);
+    void ExecuteConditionalBranch(u16 instruction);                     void LogConditionalBranch(u16 instruction);
+    void ExecuteMultipleLoadStore(u16 instruction);                     void LogMultipleLoadStore(u16 instruction);
+    void ExecuteLongBranchWithLink(u16 instruction);                    void LogLongBranchWithLink(u16 instruction);
+    void ExecuteAddOffsetToStackPointer(u16 instruction);               void LogAddOffsetToStackPointer(u16 instruction);
+    void ExecutePushPopRegisters(u16 instruction);                      void LogPushPopRegisters(u16 instruction);
+    void ExecuteLoadStoreHalfword(u16 instruction);                     void LogLoadStoreHalfword(u16 instruction);
+    void ExecuteSPRelativeLoadStore(u16 instruction);                   void LogSPRelativeLoadStore(u16 instruction);
+    void ExecuteLoadAddress(u16 instruction);                           void LogLoadAddress(u16 instruction);
+    void ExecuteLoadStoreWithImmOffset(u16 instruction);                void LogLoadStoreWithImmOffset(u16 instruction);
+    void ExecuteLoadStoreWithRegOffset(u16 instruction);                void LogLoadStoreWithRegOffset(u16 instruction);
+    void ExecuteLoadStoreSignExtendedByteHalfword(u16 instruction);     void LogLoadStoreSignExtendedByteHalfword(u16 instruction);
+    void ExecutePCRelativeLoad(u16 instruction);                        void LogPCRelativeLoad(u16 instruction);
+    void ExecuteHiRegisterOperationsBranchExchange(u16 instruction);    void LogHiRegisterOperationsBranchExchange(u16 instruction);
+    void ExecuteALUOperations(u16 instruction);                         void LogALUOperations(u16 instruction);
+    void ExecuteMoveCompareAddSubtractImmediate(u16 instruction);       void LogMoveCompareAddSubtractImmediate(u16 instruction);
+    void ExecuteAddSubtract(u16 instruction);                           void LogAddSubtract(u16 instruction);
+    void ExecuteMoveShiftedRegister(u16 instruction);                   void LogMoveShiftedRegister(u16 instruction);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Bus access
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     ReadMemCallback ReadMemory;
     WriteMemCallback WriteMemory;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// CPU state
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     // ARM registers
     Registers registers_;
