@@ -38,7 +38,14 @@ public:
     /// @brief Dump any unlogged entries.
     ~GameBoyAdvance();
 
+    /// @brief Run the emulator until the internal audio buffer is full.
+    void Run();
+
 private:
+    /// @brief Main emulation loop.
+    /// @param samples Number of audio samples to be generated before returning from main loop.
+    void MainLoop(size_t samples);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Bus functionality
     ///-----------------------------------------------------------------------------------------------------------------------------

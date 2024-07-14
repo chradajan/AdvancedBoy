@@ -4,6 +4,8 @@
 
 namespace cpu
 {
+constexpr u32 CPU_FREQUENCY_HZ = 16'777'216;
+
 // Special general purpose register indexes
 
 constexpr u8 SP_INDEX = 13;

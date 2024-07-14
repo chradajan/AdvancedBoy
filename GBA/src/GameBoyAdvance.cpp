@@ -68,6 +68,27 @@ GameBoyAdvance::~GameBoyAdvance()
     log_.DumpRemainingBuffer();
 }
 
+void GameBoyAdvance::Run()
+{
+    size_t samplesToGenerate = apu_.FreeBufferSpace();
+
+    while (samplesToGenerate > 0)
+    {
+        MainLoop(samplesToGenerate);
+        samplesToGenerate = apu_.FreeBufferSpace();
+    }
+}
+
+void GameBoyAdvance::MainLoop(size_t samples)
+{
+    apu_.ClearSampleCounter();
+
+    while (apu_.GetSampleCounter() < samples)
+    {
+        scheduler_.FireNextEvent();
+    }
+}
+
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Bus functionality
 ///---------------------------------------------------------------------------------------------------------------------------------

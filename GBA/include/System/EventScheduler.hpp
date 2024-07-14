@@ -8,7 +8,10 @@
 /// @brief Enum of various event types that can be scheduled to execute. Must be registered before scheduling.
 enum class EventType
 {
-    // EventScheduler
+    // APU
+    SampleAPU,
+
+    // PPU
     VDraw,
     HBlank,
     VBlank,
