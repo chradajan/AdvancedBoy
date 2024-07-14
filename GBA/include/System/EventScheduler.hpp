@@ -62,6 +62,10 @@ public:
     /// @brief Advance the scheduler to whenever the next scheduled event would occur.
     void FireNextEvent();
 
+    /// @brief Get the total number of CPU cycles that have elapsed since system startup.
+    /// @return Total cycle count.
+    u64 GetTotalElapsedCycles() const { return totalCycles_; }
+
 private:
     /// @brief Execute any scheduled events which were scheduled to execute at or before the current total cycle count.
     void CheckEventQueue();

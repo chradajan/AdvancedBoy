@@ -33,10 +33,13 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 }
 }
 
-GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath) :
+GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir) :
+    scheduler_(),
+    systemControl_(),
+    log_(logDir, scheduler_),
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
-    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_),
+    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, log_),
     dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
@@ -58,6 +61,11 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath) :
 
     scheduler_.RegisterEvent(EventType::HBlank, std::bind(&GameBoyAdvance::HBlank, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::VBlank, std::bind(&GameBoyAdvance::VBlank, this, std::placeholders::_1));
+}
+
+GameBoyAdvance::~GameBoyAdvance()
+{
+    log_.DumpRemainingBuffer();
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------

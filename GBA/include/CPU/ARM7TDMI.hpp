@@ -3,6 +3,7 @@
 #include <utility>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/CPU/Registers.hpp>
+#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
 #include <GBA/include/Utilities/CicrularBuffer.hpp>
@@ -29,7 +30,8 @@ public:
     /// @param ReadMem Callback function to access bus read functionality.
     /// @param WriteMem Callback function to access bus write functionality.
     /// @param scheduler Reference to event scheduler that will be advanced as instructions execute.
-    explicit ARM7TDMI(ReadMemCallback readMem, WriteMemCallback writeMem, EventScheduler& scheduler);
+    /// @param log Reference to logger to log CPU state and instructions to.
+    explicit ARM7TDMI(ReadMemCallback readMem, WriteMemCallback writeMem, EventScheduler& scheduler, logging::Logger& log);
 
     /// @brief Advance the pipeline by one stage and execute an instruction if one is ready to be executed. Advances the scheduler
     ///        after each memory read/write and internal cycle.
@@ -39,6 +41,10 @@ public:
     /// @brief Get the current PC value that code is executing from.
     /// @return Current r15 value.
     u32 GetPC() { return registers_.GetPC(); }
+
+    /// @brief Set whether the CPU should log its state and decoded instructions.
+    /// @param enable Whether CPU should log.
+    void SetLogging(bool enable) { loggingEnabled_ = enable; }
 
 private:
     /// @brief Flush pipeline and prepare to start executing from IRQ handler.
@@ -122,5 +128,10 @@ private:
 
     // External components
     EventScheduler& scheduler_;
+
+    // Logging
+    logging::Logger& log_;
+    bool loggingEnabled_;
+    u32 logPC_;
 };
 }  // namespace cpu

@@ -20,8 +20,8 @@ constexpr u32 IRQ_VECTOR                = 0x0000'0018;
 /// @brief Represent an undecoded ARM/THUMB instruction in the pipeline.
 struct PrefetchedInstruction
 {
-    u32 op;
-    u32 pc;
+    u32 Instruction;
+    u32 PC;
 };
 
 /// @brief CPU operating mode, determines which register bank is in use.

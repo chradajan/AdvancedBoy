@@ -11,7 +11,7 @@ BIOSManager::BIOSManager(fs::path biosPath, GetPCCallback getPC) : GetPC(getPC)
     lastSuccessfulFetch_ = 0;
     biosLoaded_ = false;
 
-    if (biosPath.empty())
+    if (biosPath.empty() || !fs::exists(biosPath) || !fs::is_regular_file(biosPath))
     {
         return;
     }

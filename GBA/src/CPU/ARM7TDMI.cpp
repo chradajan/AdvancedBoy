@@ -1,16 +1,23 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
 #include <memory>
 #include <stdexcept>
+#include <GBA/include/CPU/CpuTypes.hpp>
+#include <GBA/include/CPU/Registers.hpp>
+#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CicrularBuffer.hpp>
+#include <GBA/include/Utilities/Functor.hpp>
 
 namespace cpu
 {
-ARM7TDMI::ARM7TDMI(ReadMemCallback readMem, WriteMemCallback writeMem, EventScheduler& scheduler) :
+ARM7TDMI::ARM7TDMI(ReadMemCallback readMem, WriteMemCallback writeMem, EventScheduler& scheduler, logging::Logger& log) :
     ReadMemory(readMem),
     WriteMemory(writeMem),
     flushPipeline_(false),
-    scheduler_(scheduler)
+    scheduler_(scheduler),
+    log_(log),
+    loggingEnabled_(false)
 {
 }
 
@@ -32,7 +39,8 @@ void ARM7TDMI::Step(bool irq)
     // Decode and execute
     if (pipeline_.Full())
     {
-        u32 undecodedInstruction = pipeline_.Pop().op;
+        auto [undecodedInstruction, executedPC] = pipeline_.Pop();
+        logPC_ = executedPC;
 
         if (registers_.InArmState())
         {
@@ -58,7 +66,7 @@ void ARM7TDMI::Step(bool irq)
 void ARM7TDMI::HandleIRQ()
 {
     u32 cpsr = registers_.GetCPSR();
-    u32 lr = pipeline_.Empty() ? registers_.GetPC() : pipeline_.Peak().pc;
+    u32 lr = pipeline_.Empty() ? registers_.GetPC() : pipeline_.Peak().PC;
     lr += 4;
 
     registers_.SetOperatingMode(OperatingMode::IRQ);

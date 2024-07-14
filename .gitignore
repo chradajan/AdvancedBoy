@@ -2,4 +2,5 @@
 bin/
 bios/gba_bios.bin
 build/
+logs/
 .DS_Store

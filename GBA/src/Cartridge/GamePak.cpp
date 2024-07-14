@@ -23,7 +23,7 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
     title_ = "";
     gamePakLoaded_ = false;
 
-    if (romPath.empty() || !fs::exists(romPath))
+    if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath))
     {
         return;
     }

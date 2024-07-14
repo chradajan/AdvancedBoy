@@ -10,6 +10,7 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <GBA/include/Keypad/Keypad.hpp>
+#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
@@ -31,7 +32,11 @@ public:
     /// @brief Initialize the GBA.
     /// @param biosPath Path to BIOS ROM file.
     /// @param romPath Path to GamePak ROM file.
-    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath);
+    /// @param logDir Path to directory where log file should be generated. Pass empty path to disable logging.
+    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir);
+
+    /// @brief Dump any unlogged entries.
+    ~GameBoyAdvance();
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -109,6 +114,9 @@ private:
     // Non-components
     EventScheduler scheduler_;
     SystemControl systemControl_;
+
+    // Debug
+    logging::Logger log_;
 
     // Components
     audio::APU apu_;
