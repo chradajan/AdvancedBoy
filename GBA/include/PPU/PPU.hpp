@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <GBA/include/PPU/FrameBuffer.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
@@ -24,6 +25,10 @@ public:
     /// @param scheduler Reference to event scheduler to post PPU state change events to.
     /// @param systemControl Reference to system control to post PPU interrupts to.
     explicit PPU(EventScheduler& scheduler, SystemControl& systemControl);
+
+    /// @brief Get a pointer to the pixel data of the most recently completed frame.
+    /// @return Pointer to raw pixel data.
+    u8* GetRawFrameBuffer() { return frameBuffer_.GetRawFrameBuffer(); }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Bus functionality
@@ -171,6 +176,9 @@ private:
 
     // Registers
     std::array<std::byte, 0x58> registers_;
+
+    // Frame buffer
+    FrameBuffer frameBuffer_;
 
     // External components
     EventScheduler& scheduler_;

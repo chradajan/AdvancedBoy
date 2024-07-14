@@ -89,6 +89,7 @@ MemReadData GamePak::ReadMem(u32 addr, AccessSize length)
     }
 
     // TODO: Calculate actual cycles based on waitstate region and prefetcher buffer settings
+    (void)region;
     int cycles = 1;
 
     if ((addr - GAMEPAK_ROM_ADDR_MIN) >= ROM_.size())

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QtGui/QOpenGLFunctions>
 #include <QtOpenGLWidgets/QOpenGLWidget>
 
 namespace gui
 {
-class LCD : public QOpenGLWidget, public QOpenGLFunctions
+/// @brief Class representing the GBA LCD screen.
+class LCD : public QOpenGLWidget
 {
     Q_OBJECT
 
@@ -15,5 +15,7 @@ public:
     LCD(QWidget* parent = nullptr);
 
 private:
+    /// @brief Update the screen with the most recently completed frame.
+    void paintGL() override;
 };
 }  // namespace gui

@@ -38,6 +38,19 @@ public:
     /// @brief Dump any unlogged entries.
     ~GameBoyAdvance();
 
+    /// @brief Get a pointer to the pixel data of the most recently completed frame.
+    /// @return Pointer to raw pixel data.
+    u8* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
+
+    /// @brief Transfer audio samples from internal buffer to external one.
+    /// @param buffer Buffer to transfer samples to.
+    /// @param cnt Number of samples to transfer.
+    void DrainAudioBuffer(float* buffer, size_t cnt) { apu_.DrainBuffer(buffer, cnt); }
+
+    /// @brief Check how many samples are ready to be transferred from the internal buffer.
+    /// @return Current number of buffered audio samples.
+    size_t AvailableSamples() const { return apu_.AvailableSamples(); }
+
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
 
