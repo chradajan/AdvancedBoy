@@ -8,7 +8,10 @@ project (AdvancedBoy
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-add_executable(${PROJECT_NAME})
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets)
+
+qt_standard_project_setup()
+qt_add_executable(${PROJECT_NAME})
 add_subdirectory(GBA)
 add_subdirectory(GUI)
 
@@ -21,4 +24,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC ${PROJECT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::OpenGL
+    Qt6::OpenGLWidgets
+    Qt6::Widgets
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    WIN32_EXECUTABLE ON
+    MACOSX_BUNDLE ON
 )
