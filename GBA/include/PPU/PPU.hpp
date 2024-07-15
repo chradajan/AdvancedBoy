@@ -123,6 +123,11 @@ private:
     /// @param reg New value of VCOUNT.
     void SetVCOUNT(u8 reg) { std::memcpy(&registers_[VCOUNT::INDEX], &reg, sizeof(u8)); }
 
+    /// @brief Get a background control register.
+    /// @param bg Which background to get control register for.
+    /// @return Background control register.
+    BGCNT GetBGCNT(u8 bg) const { BGCNT reg; std::memcpy(&reg, &registers_[BGCNT::INDEX + (2 * bg)], sizeof(BGCNT)); return reg; }
+
     /// @brief Set internal register corresponding to BG2X.
     void SetBG2RefX();
 
@@ -145,6 +150,36 @@ private:
     void CheckVCountSetting();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
+    /// PRAM access
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get a background color in 16/16 color mode.
+    /// @param palette Index of palette.
+    /// @param index Index of color within palette.
+    /// @return BGR555 value.
+    u16 GetBgColor(u8 palette, u8 index) const {
+        u16 val; std::memcpy(&val, &PRAM_.at(((palette * 16) + index) * 2), sizeof(u16)); return val;
+    }
+
+    /// @brief Get a background color in 256/1 color mode.
+    /// @param index Index of color.
+    /// @return BGR555 value.
+    u16 GetBgColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(index * 2), sizeof(u16)); return val; }
+
+    /// @brief Get a sprite color in 16/16 color mode.
+    /// @param palette Index of palette.
+    /// @param index Index of color within palette.
+    /// @return BGR555 value.
+    u16 GetSpriteColor(u8 palette, u8 index) const {
+        u16 val; std::memcpy(&val, &PRAM_.at(512 + (((palette * 16) + index) * 2)), sizeof(u16)); return val;
+    }
+
+    /// @brief Get a sprite color in 256/1 color mode.
+    /// @param index Index of color.
+    /// @return BGR555 value.
+    u16 GetSpriteColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(512 + (index * 2)), sizeof(u16)); return val; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event Handlers
     ///-----------------------------------------------------------------------------------------------------------------------------
 
@@ -158,6 +193,12 @@ private:
 
     /// @brief Evaluate sprites, window, and background layers on the current scanline.
     void EvaluateScanline();
+
+    /// @brief Render background pixels in mode 3.
+    void RenderMode3Scanline();
+
+    /// @brief Render background pixels in mode 4.
+    void RenderMode4Scanline();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data

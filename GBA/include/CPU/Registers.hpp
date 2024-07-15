@@ -47,14 +47,14 @@ public:
 
     /// @brief Get the current value of the program counter.
     /// @return Current PC value.
-    u32 GetPC() const { return sysAndUserRegBank_.R15; }
+    u32 GetPC() const { return sysAndUserRegBank_.r15; }
 
     /// @brief Set the value of the program counter. Should be accompanied by a pipeline flush.
     /// @param val Value to set PC to.
     void SetPC(u32 val) { WriteRegister(PC_INDEX, val); }
 
     /// @brief Increment the PC by either 2 or 4 depending on the current operating state.
-    void AdvancePC() { sysAndUserRegBank_.R15 += InArmState() ? 4 : 2; }
+    void AdvancePC() { sysAndUserRegBank_.r15 += InArmState() ? 4 : 2; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// CPSR flags access
@@ -166,15 +166,15 @@ private:
     /// @brief Bitfield of fields in CPSR and SPSR.
     struct CPSR
     {
-        u32 Mode : 5;
-        u32 T : 1;
-        u32 F : 1;
-        u32 I : 1;
-        u32 : 20;
-        u32 V : 1;
-        u32 C : 1;
-        u32 Z : 1;
-        u32 N : 1;
+        u32 Mode    : 5;
+        u32 T       : 1;
+        u32 F       : 1;
+        u32 I       : 1;
+        u32         : 20;
+        u32 V       : 1;
+        u32 C       : 1;
+        u32 Z       : 1;
+        u32 N       : 1;
     };
 
     static_assert(sizeof(CPSR) == sizeof(u32), "CPSR must be 4 bytes");
@@ -183,176 +183,176 @@ private:
 
     struct
     {
-        u32 R0;
-        u32 R1;
-        u32 R2;
-        u32 R3;
-        u32 R4;
-        u32 R5;
-        u32 R6;
-        u32 R7;
-        u32 R8;
-        u32 R9;
-        u32 R10;
-        u32 R11;
-        u32 R12;
-        u32 R13;
-        u32 R14;
-        u32 R15;
+        u32 r0;
+        u32 r1;
+        u32 r2;
+        u32 r3;
+        u32 r4;
+        u32 r5;
+        u32 r6;
+        u32 r7;
+        u32 r8;
+        u32 r9;
+        u32 r10;
+        u32 r11;
+        u32 r12;
+        u32 r13;
+        u32 r14;
+        u32 r15;
     } sysAndUserRegBank_;
 
     struct
     {
-        u32 R8;
-        u32 R9;
-        u32 R10;
-        u32 R11;
-        u32 R12;
-        u32 R13;
-        u32 R14;
+        u32 r8;
+        u32 r9;
+        u32 r10;
+        u32 r11;
+        u32 r12;
+        u32 r13;
+        u32 r14;
         CPSR spsr;
     } fiqRegBank_;
 
     struct
     {
-        u32 R13;
-        u32 R14;
+        u32 r13;
+        u32 r14;
         CPSR spsr;
     } supervisorRegBank_;
 
     struct
     {
-        u32 R13;
-        u32 R14;
+        u32 r13;
+        u32 r14;
         CPSR spsr;
     } abortRegBank_;
 
     struct
     {
-        u32 R13;
-        u32 R14;
+        u32 r13;
+        u32 r14;
         CPSR spsr;
     } irqRegBank_;
 
     struct
     {
-        u32 R13;
-        u32 R14;
+        u32 r13;
+        u32 r14;
         CPSR spsr;
     } undefinedRegBank_;
 
     std::array<u32* const, 16> const sysAndUserRegLUT_ = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &sysAndUserRegBank_.R8,
-        &sysAndUserRegBank_.R9,
-        &sysAndUserRegBank_.R10,
-        &sysAndUserRegBank_.R11,
-        &sysAndUserRegBank_.R12,
-        &sysAndUserRegBank_.R13,
-        &sysAndUserRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &sysAndUserRegBank_.r8,
+        &sysAndUserRegBank_.r9,
+        &sysAndUserRegBank_.r10,
+        &sysAndUserRegBank_.r11,
+        &sysAndUserRegBank_.r12,
+        &sysAndUserRegBank_.r13,
+        &sysAndUserRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 
     std::array<u32* const, 16> const fiqRegLUT_ = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &fiqRegBank_.R8,
-        &fiqRegBank_.R9,
-        &fiqRegBank_.R10,
-        &fiqRegBank_.R11,
-        &fiqRegBank_.R12,
-        &fiqRegBank_.R13,
-        &fiqRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &fiqRegBank_.r8,
+        &fiqRegBank_.r9,
+        &fiqRegBank_.r10,
+        &fiqRegBank_.r11,
+        &fiqRegBank_.r12,
+        &fiqRegBank_.r13,
+        &fiqRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 
     std::array<u32* const, 16> const supervisorRegLUT_ = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &sysAndUserRegBank_.R8,
-        &sysAndUserRegBank_.R9,
-        &sysAndUserRegBank_.R10,
-        &sysAndUserRegBank_.R11,
-        &sysAndUserRegBank_.R12,
-        &supervisorRegBank_.R13,
-        &supervisorRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &sysAndUserRegBank_.r8,
+        &sysAndUserRegBank_.r9,
+        &sysAndUserRegBank_.r10,
+        &sysAndUserRegBank_.r11,
+        &sysAndUserRegBank_.r12,
+        &supervisorRegBank_.r13,
+        &supervisorRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 
     std::array<u32* const, 16> const abortRegLUT_ = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &sysAndUserRegBank_.R8,
-        &sysAndUserRegBank_.R9,
-        &sysAndUserRegBank_.R10,
-        &sysAndUserRegBank_.R11,
-        &sysAndUserRegBank_.R12,
-        &abortRegBank_.R13,
-        &abortRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &sysAndUserRegBank_.r8,
+        &sysAndUserRegBank_.r9,
+        &sysAndUserRegBank_.r10,
+        &sysAndUserRegBank_.r11,
+        &sysAndUserRegBank_.r12,
+        &abortRegBank_.r13,
+        &abortRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 
     std::array<u32* const, 16> const irqRegLUT_ = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &sysAndUserRegBank_.R8,
-        &sysAndUserRegBank_.R9,
-        &sysAndUserRegBank_.R10,
-        &sysAndUserRegBank_.R11,
-        &sysAndUserRegBank_.R12,
-        &irqRegBank_.R13,
-        &irqRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &sysAndUserRegBank_.r8,
+        &sysAndUserRegBank_.r9,
+        &sysAndUserRegBank_.r10,
+        &sysAndUserRegBank_.r11,
+        &sysAndUserRegBank_.r12,
+        &irqRegBank_.r13,
+        &irqRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 
     std::array<u32* const, 16> const undefinedRegLUT = {
-        &sysAndUserRegBank_.R0,
-        &sysAndUserRegBank_.R1,
-        &sysAndUserRegBank_.R2,
-        &sysAndUserRegBank_.R3,
-        &sysAndUserRegBank_.R4,
-        &sysAndUserRegBank_.R5,
-        &sysAndUserRegBank_.R6,
-        &sysAndUserRegBank_.R7,
-        &sysAndUserRegBank_.R8,
-        &sysAndUserRegBank_.R9,
-        &sysAndUserRegBank_.R10,
-        &sysAndUserRegBank_.R11,
-        &sysAndUserRegBank_.R12,
-        &undefinedRegBank_.R13,
-        &undefinedRegBank_.R14,
-        &sysAndUserRegBank_.R15
+        &sysAndUserRegBank_.r0,
+        &sysAndUserRegBank_.r1,
+        &sysAndUserRegBank_.r2,
+        &sysAndUserRegBank_.r3,
+        &sysAndUserRegBank_.r4,
+        &sysAndUserRegBank_.r5,
+        &sysAndUserRegBank_.r6,
+        &sysAndUserRegBank_.r7,
+        &sysAndUserRegBank_.r8,
+        &sysAndUserRegBank_.r9,
+        &sysAndUserRegBank_.r10,
+        &sysAndUserRegBank_.r11,
+        &sysAndUserRegBank_.r12,
+        &undefinedRegBank_.r13,
+        &undefinedRegBank_.r14,
+        &sysAndUserRegBank_.r15
     };
 };
 }  // namespace cpu

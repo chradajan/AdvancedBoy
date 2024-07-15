@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstring>
 #include <functional>
+#include <span>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -320,6 +321,7 @@ void PPU::VBlank(int extraCycles)
     if (scanline == 160)
     {
         dispstat.vBlank = 1;
+        frameBuffer_.ResetFrameIndex();
 
         if (dispstat.vBlankIrqEnable)
         {
@@ -374,6 +376,68 @@ void PPU::VDraw(int extraCycles)
 
 void PPU::EvaluateScanline()
 {
-    // TODO
+    auto dispcnt = GetDISPCNT();
+    u16 backdropColor = GetBgColor(0);
+
+    switch (dispcnt.bgMode)
+    {
+        case 3:
+            RenderMode3Scanline();
+            break;
+        case 4:
+            RenderMode4Scanline();
+            break;
+        default:
+            break;
+    }
+
+    frameBuffer_.RenderScanline(backdropColor, dispcnt.forceBlank);
+}
+
+void PPU::RenderMode3Scanline()
+{
+    auto dispcnt = GetDISPCNT();
+    auto bg2cnt = GetBGCNT(2);
+    u8 scanline = GetVCOUNT();
+
+    if (!dispcnt.screenDisplayBg2)
+    {
+        return;
+    }
+
+    std::span<u16> bitmap(reinterpret_cast<u16*>(VRAM_.data()), LCD_WIDTH * LCD_HEIGHT);
+    size_t bitmapIndex = scanline * LCD_WIDTH;
+
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        frameBuffer_.PushPixel({PixelSrc::BG2, bitmap[bitmapIndex++], bg2cnt.priority, false}, dot);
+    }
+}
+
+void PPU::RenderMode4Scanline()
+{
+    auto dispcnt = GetDISPCNT();
+    auto bg2cnt = GetBGCNT(2);
+    u8 scanline = GetVCOUNT();
+
+    if (!dispcnt.screenDisplayBg2)
+    {
+        return;
+    }
+
+    size_t bitmapIndex = scanline * LCD_WIDTH;
+
+    if (dispcnt.displayFrameSelect)
+    {
+        bitmapIndex += 0xA000;
+    }
+
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        u8 paletteIndex = static_cast<u8>(VRAM_[bitmapIndex++]);
+        u16 color = GetBgColor(paletteIndex);
+        bool transparent = (paletteIndex == 0);
+        frameBuffer_.PushPixel({PixelSrc::BG2, color, bg2cnt.priority, transparent}, dot);
+    }
 }
 }  // namespace graphics
