@@ -1,4 +1,5 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
+#include <bit>
 #include <cstring>
 #include <stdexcept>
 #include <GBA/include/CPU/ARM.hpp>
@@ -80,6 +81,11 @@ void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
         if (log) LogPSRTransferMSR(instruction);
         if (conditionMet) ExecutePSRTransferMSR(instruction);
     }
+    else if (DataProcessing::IsInstanceOf(instruction))
+    {
+        if (log) LogDataProcessing(instruction);
+        if (conditionMet) ExecuteDataProcessing(instruction);
+    }
     else
     {
         throw std::runtime_error("Unable to decode ARM instruction");
@@ -94,13 +100,142 @@ void ARM7TDMI::ExecuteBranchAndExchange(u32 instruction)
 
 void ARM7TDMI::ExecuteBlockDataTransfer(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("BlockDataTransfer not implemented");
+    auto flags = std::bit_cast<BlockDataTransfer::Flags>(instruction);
+
+    u16 regList = flags.RegisterList;
+    bool emptyRlist = regList == 0;
+    bool wbIndexInList = flags.W && (regList & (0x01 << flags.Rn));
+    bool wbIndexFirstInList = wbIndexInList && !flags.L && ((((0x01 << flags.Rn) - 1) & regList) == 0);
+
+    OperatingMode mode = registers_.GetOperatingMode();
+    bool r15InList = (regList & 0x8000) == 0x8000;
+
+    if (regList == 0)
+    {
+        regList = 0x8000;
+    }
+
+    if (flags.S)
+    {
+        if (r15InList)
+        {
+            if (!flags.L)
+            {
+                mode = OperatingMode::User;
+            }
+        }
+        else
+        {
+            mode = OperatingMode::User;
+        }
+    }
+
+    int xferCnt = std::popcount(regList);
+    u32 baseAddr = registers_.ReadRegister(flags.Rn);
+    u32 minAddr = 0;
+    u32 wbAddr = 0;
+    bool preIndexOffset = flags.P;
+
+    if (flags.U)
+    {
+        minAddr = preIndexOffset ? (baseAddr + 4) : baseAddr;
+
+        if (preIndexOffset)
+        {
+            wbAddr = minAddr + (4 * (xferCnt - 1));
+        }
+        else
+        {
+            wbAddr = minAddr + (4 * xferCnt);
+        }
+
+        if (emptyRlist)
+        {
+            wbAddr = baseAddr + 0x40;
+        }
+    }
+    else
+    {
+        if (preIndexOffset)
+        {
+            minAddr = baseAddr - (4 * xferCnt);
+            wbAddr = minAddr;
+        }
+        else
+        {
+            minAddr = baseAddr - (4 * (xferCnt - 1));
+            wbAddr = minAddr - 4;
+        }
+
+        if (emptyRlist)
+        {
+            minAddr = baseAddr - (preIndexOffset ? 0x40 : 0x3C);
+            wbAddr = baseAddr - 0x40;
+        }
+    }
+
+    u8 regIndex = 0;
+    u32 addr = minAddr;
+
+    while (regList != 0)
+    {
+        if (regList & 0x01)
+        {
+            if (flags.L)
+            {
+                auto [readValue, readCycles] = ReadMemory(addr, AccessSize::WORD);
+                scheduler_.Step(readCycles);
+
+                if (regIndex == PC_INDEX)
+                {
+                    flushPipeline_ = true;
+
+                    if (flags.S)
+                    {
+                        registers_.LoadSPSR();
+                    }
+                }
+
+                registers_.WriteRegister(regIndex, readValue, mode);
+            }
+            else
+            {
+                u32 regValue = registers_.ReadRegister(regIndex, mode);
+
+                if (regIndex == PC_INDEX)
+                {
+                    regValue += 4;
+                }
+                else if ((regIndex == flags.Rn) && !wbIndexFirstInList)
+                {
+                    regValue = wbAddr;
+                }
+
+                int writeCycles = WriteMemory(addr, regValue, AccessSize::WORD);
+                scheduler_.Step(writeCycles);
+            }
+
+            addr += 4;
+        }
+
+        ++regIndex;
+        regList >>= 1;
+    }
+
+    if (flags.W && !(wbIndexInList && flags.L))
+    {
+        registers_.WriteRegister(flags.Rn, wbAddr);
+    }
+
+    if (flags.L)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecuteBranch(u32 instruction)
 {
-    Branch::Flags flags; std::memcpy(&flags, &instruction, sizeof(instruction));
+    auto flags = std::bit_cast<Branch::Flags>(instruction);
     i32 offset = SignExtend<i32, 25>(flags.Offset << 2);
 
     if (flags.L)

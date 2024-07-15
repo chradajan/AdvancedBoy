@@ -33,7 +33,7 @@ void Logger::LogCPU(std::string instruction, std::string state, u32 pc)
         return;
     }
 
-    std::string cpuMessage = std::format("{:08X} -> {:45}", pc, instruction) + state;
+    std::string cpuMessage = std::format("{:08X}:  {:45}", pc, instruction) + state;
     AddToLog(cpuMessage);
 }
 
