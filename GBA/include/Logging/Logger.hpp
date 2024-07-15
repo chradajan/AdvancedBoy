@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -30,6 +31,10 @@ public:
     /// @param instruction Human readable form of instruction about to be executed.
     /// @param state Current register state of CPU before executing instruction.
     void LogCPU(std::string instruction, std::string state);
+
+    /// @brief Log when an exception occurs.
+    /// @param error Reference to exception that was thrown.
+    void LogException(std::exception const& error);
 
     /// @brief Append whatever messages are currently stored in the buffer to the log file.
     void DumpRemainingBuffer();

@@ -43,6 +43,8 @@ private:
 
     // Emulation control
     EmuThread emuThread_;
+    fs::path biosPath_;
+    fs::path logDir_;
 
     // Screen control
     LCD screen_;

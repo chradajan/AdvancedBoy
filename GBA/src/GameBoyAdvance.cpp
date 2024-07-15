@@ -74,7 +74,17 @@ void GameBoyAdvance::Run()
 
     while (samplesToGenerate > 0)
     {
-        MainLoop(samplesToGenerate);
+        try
+        {
+            MainLoop(samplesToGenerate);
+        }
+        catch (std::exception& e)
+        {
+            log_.LogException(e);
+            log_.DumpRemainingBuffer();
+            throw;
+        }
+
         samplesToGenerate = apu_.FreeBufferSpace();
     }
 }
@@ -85,7 +95,18 @@ void GameBoyAdvance::MainLoop(size_t samples)
 
     while (apu_.GetSampleCounter() < samples)
     {
-        scheduler_.FireNextEvent();
+        if (dmaMgr_.DmaRunning())
+        {
+            // TODO: Execute DMA transfers.
+        }
+        else if (systemControl_.Halted())
+        {
+            scheduler_.FireNextEvent();
+        }
+        else
+        {
+            cpu_.Step(systemControl_.IrqPending());
+        }
     }
 }
 

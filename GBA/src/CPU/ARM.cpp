@@ -11,7 +11,7 @@ using namespace arm;
 
 void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
 {
-    u8 conditionCode = (instruction & 0xF000'0000) >> 24;
+    u8 conditionCode = (instruction & 0xF000'0000) >> 28;
     bool conditionMet = (conditionCode == 0x0E) || ConditionSatisfied(conditionCode);
 
     if (BranchAndExchange::IsInstanceOf(instruction))

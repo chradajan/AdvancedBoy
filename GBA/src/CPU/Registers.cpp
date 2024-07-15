@@ -14,6 +14,12 @@ Registers::Registers()
     abortRegBank_ = {};
     irqRegBank_ = {};
     undefinedRegBank_ = {};
+
+    SetOperatingMode(OperatingMode::Supervisor);
+    SetOperatingState(OperatingState::ARM);
+    SetIrqDisabled(true);
+    SetFiqDisabled(true);
+    SetPC(RESET_VECTOR);
 }
 
 u32 Registers::ReadRegister(u8 index) const
@@ -147,5 +153,14 @@ void Registers::LoadSPSR()
         default:
             break;
     }
+}
+
+void Registers::SkipBIOS()
+{
+    SetOperatingMode(OperatingMode::System);
+    SetPC(0x0800'0000);
+    WriteRegister(SP_INDEX, 0x0300'7F00, OperatingMode::System);
+    WriteRegister(SP_INDEX, 0x0300'7FA0, OperatingMode::IRQ);
+    WriteRegister(SP_INDEX, 0x0300'7FE0, OperatingMode::Supervisor);
 }
 }  // namespace cpu

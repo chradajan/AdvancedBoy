@@ -43,6 +43,10 @@ public:
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
+    /// @brief Check if one of the DMA channels is currently in the middle of a transfer.
+    /// @return Whether any DMA channel is running.
+    bool DmaRunning() const { return false; }
+
 private:
     ReadMemCallback ReadMemory;
     WriteMemCallback WriteMemory;

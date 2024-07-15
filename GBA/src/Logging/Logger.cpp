@@ -37,6 +37,16 @@ void Logger::LogCPU(std::string instruction, std::string state)
     AddToLog(cpuMessage);
 }
 
+void Logger::LogException(std::exception const& error)
+{
+    if (!initialized_)
+    {
+        return;
+    }
+
+    AddToLog(error.what());
+}
+
 void Logger::DumpRemainingBuffer()
 {
     if (!initialized_)

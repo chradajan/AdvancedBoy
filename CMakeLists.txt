@@ -20,7 +20,7 @@ add_subdirectory(GUI)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
-    COMPILE_FLAGS "-Wall -Wextra -O2"
+    COMPILE_FLAGS "-Wall -Wextra -O2 -g"
     PREFIX ""
 )
 
@@ -38,7 +38,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
 )
 
-# set_target_properties(${PROJECT_NAME} PROPERTIES
-#     WIN32_EXECUTABLE ON
-#     MACOSX_BUNDLE ON
-# )
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    WIN32_EXECUTABLE ON
+    MACOSX_BUNDLE ON
+)

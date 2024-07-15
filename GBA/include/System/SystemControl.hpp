@@ -38,6 +38,14 @@ public:
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
+    /// @brief Check if the CPU is halted.
+    /// @return Whether the CPU is currently halted.
+    bool Halted() const { return false; }
+
+    /// @brief Check if an IRQ is pending. True if IF & IE != 0, and IME is enabled.
+    /// @return Whether an IRQ is pending.
+    bool IrqPending() const { return false; }
+
 private:
     std::array<std::byte, 0x0C> interruptAndWaitcntRegisters_;
     std::array<std::byte, 0x04> postFlgAndHaltcntRegisters_;

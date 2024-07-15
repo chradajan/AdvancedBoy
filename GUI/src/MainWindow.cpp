@@ -3,6 +3,7 @@
 #include <GBA/include/Types.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
+#include <QtWidgets/QApplication>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QtWidgets>
 
@@ -40,6 +41,20 @@ MainWindow::MainWindow(QWidget* parent) :
     audioSpec.samples = 256;
     audioSpec.callback = &AudioCallback;
     audioDevice_ = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
+
+    // Paths
+    biosPath_ = "../bios/gba_bios.bin";
+    logDir_ = "../logs";
+
+    QCoreApplication* app = QApplication::instance();
+
+    if (app->arguments().size() > 2)
+    {
+        biosPath_ = app->arguments().at(1).toStdString();
+        fs::path romPath = app->arguments().at(2).toStdString();
+
+        StartEmulation(romPath);
+    }
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
@@ -81,7 +96,7 @@ void MainWindow::StartEmulation(fs::path romPath)
     }
 
     PowerOff();
-    InitializeGBA("../bios/gba_bios.bin", romPath, "");
+    InitializeGBA(biosPath_, romPath, logDir_);
     emuThread_.start();
     SDL_UnlockAudioDevice(audioDevice_);
     SDL_PauseAudioDevice(audioDevice_, 0);
