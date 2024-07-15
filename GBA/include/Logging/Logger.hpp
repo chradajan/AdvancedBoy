@@ -27,10 +27,15 @@ public:
     /// @param scheduler Reference to event scheduler to total cycles elapsed alongside logged events.
     explicit Logger(fs::path logDir, EventScheduler const& scheduler);
 
+    /// @brief Check if logging is currently enabled.
+    /// @return Whether logging is enabled.
+    bool Enabled() const { return initialized_; }
+
     /// @brief Log function for logging current CPU state and the instruction about to be executed.
     /// @param instruction Human readable form of instruction about to be executed.
     /// @param state Current register state of CPU before executing instruction.
-    void LogCPU(std::string instruction, std::string state);
+    /// @param pc Address of the instruction being logged.
+    void LogCPU(std::string instruction, std::string state, u32 pc);
 
     /// @brief Log when an exception occurs.
     /// @param error Reference to exception that was thrown.

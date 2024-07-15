@@ -44,11 +44,11 @@ void ARM7TDMI::Step(bool irq)
 
         if (registers_.InArmState())
         {
-            DecodeAndExecuteARM(undecodedInstruction, false);
+            DecodeAndExecuteARM(undecodedInstruction, log_.Enabled());
         }
         else
         {
-            DecodeAndExecuteTHUMB(undecodedInstruction, false);
+            DecodeAndExecuteTHUMB(undecodedInstruction, log_.Enabled());
         }
     }
 

@@ -26,14 +26,14 @@ Logger::Logger(fs::path logDir, EventScheduler const& scheduler) : scheduler_(sc
     initialized_ = true;
 }
 
-void Logger::LogCPU(std::string instruction, std::string state)
+void Logger::LogCPU(std::string instruction, std::string state, u32 pc)
 {
     if (!initialized_)
     {
         return;
     }
 
-    std::string cpuMessage = std::format("{:45}", instruction) + state;
+    std::string cpuMessage = std::format("{:08X} -> {:45}", pc, instruction) + state;
     AddToLog(cpuMessage);
 }
 

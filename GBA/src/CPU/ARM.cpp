@@ -4,6 +4,7 @@
 #include <GBA/include/CPU/ARM.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace cpu
 {
@@ -99,8 +100,16 @@ void ARM7TDMI::ExecuteBlockDataTransfer(u32 instruction)
 
 void ARM7TDMI::ExecuteBranch(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("Branch not implemented");
+    Branch::Flags flags; std::memcpy(&flags, &instruction, sizeof(instruction));
+    i32 offset = SignExtend<i32, 25>(flags.Offset << 2);
+
+    if (flags.L)
+    {
+        registers_.WriteRegister(LR_INDEX, (registers_.GetPC() - 4) & 0xFFFF'FFFC);
+    }
+
+    registers_.SetPC(registers_.GetPC() + offset);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteArmSoftwareInterrupt(u32 instruction)

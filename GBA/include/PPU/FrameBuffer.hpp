@@ -46,7 +46,7 @@ public:
     /// @param prio Priority (0-3) of this pixel.
     /// @param transparency Whether this pixel is transparent.
     /// @param semiTransparency If this is an OBJ pixel, then whether this pixel is part of a semi-transparent sprite.
-    Pixel(PixelSrc src, uint16_t bgr555, int prio, bool transparency, bool semiTransparency = false) :
+    Pixel(PixelSrc src, u16 bgr555, int prio, bool transparency, bool semiTransparency = false) :
         source(src),
         color(bgr555),
         priority(prio),
@@ -61,7 +61,7 @@ public:
     bool operator<(Pixel const& rhs) const;
 
     PixelSrc source;
-    uint16_t color;
+    u16 color;
     int priority;
     bool transparent;
     bool semiTransparent;

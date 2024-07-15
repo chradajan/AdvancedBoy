@@ -1,5 +1,8 @@
 #include <GBA/include/CPU/Registers.hpp>
+#include <format>
 #include <stdexcept>
+#include <sstream>
+#include <string>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Types.hpp>
 
@@ -20,6 +23,8 @@ Registers::Registers()
     SetIrqDisabled(true);
     SetFiqDisabled(true);
     SetPC(RESET_VECTOR);
+
+    SkipBIOS();
 }
 
 u32 Registers::ReadRegister(u8 index) const
@@ -153,6 +158,50 @@ void Registers::LoadSPSR()
         default:
             break;
     }
+}
+
+std::string Registers::RegistersString() const
+{
+    std::stringstream regStream;
+
+    for (int i = 0; i < 16; ++i)
+    {
+        regStream << std::format("R{} {:08X}  ", i, ReadRegister(i));
+    }
+
+    regStream << "CPSR: " << (IsNegative() ? "N" : "-") <<
+                             (IsZero() ? "Z" : "-") <<
+                             (IsCarry() ? "C" : "-") <<
+                             (IsOverflow() ? "V" : "-") << "  ";
+    regStream << (IsIrqDisabled() ? "I" : "-") << (IsFiqDisabled() ? "F" : "-") << (InThumbState() ? "T" : "-") << "  " << "Mode: ";
+    u32 spsr = GetSPSR();
+
+    switch (GetOperatingMode())
+    {
+        case OperatingMode::User:
+            regStream << "User";
+            break;
+        case OperatingMode::FIQ:
+            regStream << std::format("FIQ         SPSR: {:08X}", spsr);
+            break;
+        case OperatingMode::IRQ:
+            regStream << std::format("IRQ         SPSR: {:08X}", spsr);
+            break;
+        case OperatingMode::Supervisor:
+            regStream << std::format("Supervisor  SPSR: {:08X}", spsr);
+            break;
+        case OperatingMode::Abort:
+            regStream << std::format("Abort       SPSR: {:08X}", spsr);
+            break;
+        case OperatingMode::System:
+            regStream << "System";
+            break;
+        case OperatingMode::Undefined:
+            regStream << std::format("Undefined   SPSR: {:08X}", spsr);
+            break;
+    }
+
+    return regStream.str();
 }
 
 void Registers::SkipBIOS()

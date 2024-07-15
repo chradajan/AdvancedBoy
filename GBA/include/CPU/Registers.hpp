@@ -2,6 +2,7 @@
 
 #include <array>
 #include <bit>
+#include <string>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Types.hpp>
 
@@ -154,6 +155,14 @@ public:
 
     /// @brief Copy the SPSR value of the current operating mode into CPSR.
     void LoadSPSR();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Logging
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Dump current registers state to a string.
+    /// @return String of current register values.
+    std::string RegistersString() const;
 
 private:
     /// @brief Setup registers to start executing from ROM.
