@@ -130,13 +130,13 @@ void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
     }
     else if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
     {
-        if (log) LogHalfwordDataTransferRegOffset(instruction);
-        if (conditionMet) ExecuteHalfwordDataTransferRegOffset(instruction);
+        if (log) LogHalfwordDataTransfer(instruction);
+        if (conditionMet) ExecuteHalfwordDataTransfer(instruction);
     }
     else if (HalfwordDataTransferImmOffset::IsInstanceOf(instruction))
     {
-        if (log) LogHalfwordDataTransferImmOffset(instruction);
-        if (conditionMet) ExecuteHalfwordDataTransferImmOffset(instruction);
+        if (log) LogHalfwordDataTransfer(instruction);
+        if (conditionMet) ExecuteHalfwordDataTransfer(instruction);
     }
     else if (PSRTransferMRS::IsInstanceOf(instruction))
     {
@@ -350,41 +350,59 @@ void ARM7TDMI::ExecuteMultiplyLong(u32 instruction)
     throw std::runtime_error("MultiplyLong not implemented");
 }
 
-void ARM7TDMI::ExecuteHalfwordDataTransferRegOffset(u32 instruction)
+void ARM7TDMI::ExecuteHalfwordDataTransfer(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("HalfwordDataTransferRegOffset not implemented");
-}
+    u32 addr;
+    u32 offset;
+    u8 Rd;
+    u8 Rn;
+    bool s;
+    bool h;
+    bool up;
+    bool preIndex;
+    bool load;
+    bool writeBack;
+    bool ignoreWriteBack = false;
 
-void ARM7TDMI::ExecuteHalfwordDataTransferImmOffset(u32 instruction)
-{
-    auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
-
-    u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
-    u32 addr = registers_.ReadRegister(flags.Rn);
-    bool preIndex = flags.P;
-    bool postIndex = !preIndex;
-    bool ignoreWriteback = false;
+    if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
+    {
+        auto flags = std::bit_cast<HalfwordDataTransferRegOffset::Flags>(instruction);
+        offset = registers_.ReadRegister(flags.Rm);
+        addr = registers_.ReadRegister(flags.Rn);
+        Rd = flags.Rd;
+        Rn = flags.Rn;
+        s = flags.S;
+        h = flags.H;
+        up = flags.U;
+        preIndex = flags.P;
+        load = flags.L;
+        writeBack = flags.W;
+    }
+    else
+    {
+        auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
+        offset = (flags.OffsetHi << 4) | flags.OffsetLo;
+        addr = registers_.ReadRegister(flags.Rn);
+        Rd = flags.Rd;
+        Rn = flags.Rn;
+        s = flags.S;
+        h = flags.H;
+        up = flags.U;
+        preIndex = flags.P;
+        load = flags.L;
+        writeBack = flags.W;
+    }
 
     if (preIndex)
     {
-        if (flags.U)
-        {
-            addr += offset;
-        }
-        else
-        {
-            addr -= offset;
-        }
+        addr += (up ? offset : -offset);
     }
 
-    if (flags.L)
+    if (load)
     {
-        bool s = flags.S;
-        bool h = flags.H;
         bool misaligned = addr & 0x01;
-        flushPipeline_ = flags.Rd == PC_INDEX;
-        ignoreWriteback = flags.Rd == flags.Rn;
+        flushPipeline_ = Rd == PC_INDEX;
+        ignoreWriteBack = Rd == Rn;
 
         // LDRH Rd,[odd]   -->  LDRH Rd,[odd-1] ROR 8
         // LDRSH Rd,[odd]  -->  LDRSB Rd,[odd]
@@ -402,9 +420,9 @@ void ARM7TDMI::ExecuteHalfwordDataTransferImmOffset(u32 instruction)
             if (h)
             {
                 // S = 1, H = 1
-                auto [halfWord, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+                auto [halfword, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
                 scheduler_.Step(readCycles);
-                val = SignExtend<i32, 15>(halfWord);
+                val = SignExtend<i32, 15>(halfword);
             }
             else
             {
@@ -414,54 +432,47 @@ void ARM7TDMI::ExecuteHalfwordDataTransferImmOffset(u32 instruction)
                 val = SignExtend<i32, 7>(byte);
             }
 
-            registers_.WriteRegister(flags.Rd, val);
+            registers_.WriteRegister(Rd, val);
         }
         else
         {
             // S = 0, H = 1
-            auto [halfWord, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+            auto [halfword, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
             scheduler_.Step(readCycles);
 
             if (misaligned)
             {
-                halfWord = std::rotr(halfWord, 8);
+                halfword = std::rotr(halfword, 8);
             }
 
-            registers_.WriteRegister(flags.Rd, halfWord);
+            registers_.WriteRegister(Rd, halfword);
         }
     }
     else
     {
         // S = 0, H = 1
-        u16 halfWord = registers_.ReadRegister(flags.Rd);
+        u16 halfword = registers_.ReadRegister(Rd);
 
-        if (flags.Rd == PC_INDEX)
+        if (Rd == PC_INDEX)
         {
-            halfWord += 4;
+            halfword += 4;
         }
 
-        int writeCycles = WriteMemory(addr, halfWord, AccessSize::HALFWORD);
+        int writeCycles = WriteMemory(addr, halfword, AccessSize::HALFWORD);
         scheduler_.Step(writeCycles);
     }
 
-    if (postIndex)
+    if (!preIndex)
     {
-        if (flags.U)
-        {
-            addr += offset;
-        }
-        else
-        {
-            addr -= offset;
-        }
+        addr += (up ? offset : -offset);
     }
 
-    if (!ignoreWriteback && (flags.W || postIndex))
+    if (!ignoreWriteBack && (writeBack || !preIndex))
     {
-        registers_.WriteRegister(flags.Rn, addr);
+        registers_.WriteRegister(Rn, addr);
     }
 
-    if (flags.L)
+    if (load)
     {
         scheduler_.Step(1);
     }

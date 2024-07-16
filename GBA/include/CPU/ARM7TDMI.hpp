@@ -73,8 +73,7 @@ private:
     void ExecuteSingleDataSwap(u32 instruction);                        void LogSingleDataSwap(u32 instruction) const;
     void ExecuteMultiply(u32 instruction);                              void LogMultiply(u32 instruction) const;
     void ExecuteMultiplyLong(u32 instruction);                          void LogMultiplyLong(u32 instruction) const;
-    void ExecuteHalfwordDataTransferRegOffset(u32 instruction);         void LogHalfwordDataTransferRegOffset(u32 instruction) const;
-    void ExecuteHalfwordDataTransferImmOffset(u32 instruction);         void LogHalfwordDataTransferImmOffset(u32 instruction) const;
+    void ExecuteHalfwordDataTransfer(u32 instruction);                  void LogHalfwordDataTransfer(u32 instruction) const;
     void ExecutePSRTransferMRS(u32 instruction);                        void LogPSRTransferMRS(u32 instruction) const;
     void ExecutePSRTransferMSR(u32 instruction);                        void LogPSRTransferMSR(u32 instruction) const;
     void ExecuteDataProcessing(u32 instruction);                        void LogDataProcessing(u32 instruction) const;

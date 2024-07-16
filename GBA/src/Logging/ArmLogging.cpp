@@ -86,6 +86,7 @@ void BlockDataTransferHelper(std::stringstream& regStream, int consecutiveRegist
 }
 
 /// @brief Form a mnemonic for halfword data transfer ops.
+/// @param instruction 32-bit ARM instruction.
 /// @param load Whether this is a load or store op.
 /// @param cond ARM condition code.
 /// @param destIndex Index of destination register.
@@ -97,7 +98,8 @@ void BlockDataTransferHelper(std::stringstream& regStream, int consecutiveRegist
 /// @param writeBack Whether to write back to 
 /// @param offsetExpression String of either immediate offset or offset register index.
 /// @return Mnemonic of instruction.
-std::string HalfwordDataTransferHelper(bool load,
+std::string HalfwordDataTransferHelper(u32 instruction,
+                                       bool load,
                                        u8 cond,
                                        u8 destIndex,
                                        u8 baseIndex,
@@ -138,7 +140,7 @@ std::string HalfwordDataTransferHelper(bool load,
         }
     }
 
-    return std::format("{}{}{} R{}, {}", op, opType, ConditionMnemonic(cond), destIndex, address);
+    return std::format("{:08X} -> {}{}{} R{}, {}", instruction, op, opType, ConditionMnemonic(cond), destIndex, address);
 }
 }
 
@@ -276,19 +278,54 @@ void ARM7TDMI::LogMultiplyLong(u32 instruction) const
     (void)instruction;
 }
 
-void ARM7TDMI::LogHalfwordDataTransferRegOffset(u32 instruction) const
+void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
 {
-    (void)instruction;
-}
+    std::string offsetStr;
+    bool load;
+    u8 cond;
+    u8 Rd;
+    u8 Rn;
+    bool s;
+    bool h;
+    bool up;
+    bool preIndex;
+    bool writeBack;
 
-void ARM7TDMI::LogHalfwordDataTransferImmOffset(u32 instruction) const
-{
-    auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
-    u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
-    std::string offsetStr = (offset == 0) ? "" : std::format("#{}", offset);
+    if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
+    {
+        auto flags = std::bit_cast<HalfwordDataTransferRegOffset::Flags>(instruction);
+        u8 Rm = flags.Rm;
+        offsetStr = std::format("R{}", Rm);
+        cond = flags.Cond;
+
+        Rd = flags.Rd;
+        Rn = flags.Rn;
+        s = flags.S;
+        h = flags.H;
+        up = flags.U;
+        preIndex = flags.P;
+        load = flags.L;
+        writeBack = flags.W;
+    }
+    else
+    {
+        auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
+        u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
+        offsetStr = (offset == 0) ? "" : std::format("#{}", offset);
+        cond = flags.Cond;
+
+        Rd = flags.Rd;
+        Rn = flags.Rn;
+        s = flags.S;
+        h = flags.H;
+        up = flags.U;
+        preIndex = flags.P;
+        load = flags.L;
+        writeBack = flags.W;
+    }
 
     std::string mnemonic =
-        HalfwordDataTransferHelper(flags.L, flags.Cond, flags.Rd, flags.Rn, flags.S, flags.H, flags.U, flags.P, flags.W, offsetStr);
+        HalfwordDataTransferHelper(instruction, load, cond, Rd, Rn, s, h, up, preIndex, writeBack, offsetStr);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -366,13 +403,12 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
             break;
     }
 
-    u32 op2;
     std::string op2Str;
 
     if (flags.I)
     {
         auto op2SrcFlags = std::bit_cast<DataProcessing::RotatedImmSrc>(instruction);
-        op2 = op2SrcFlags.Imm;
+        u32 op2 = op2SrcFlags.Imm;
         u8 rotate = op2SrcFlags.Rotate << 1;
         op2 = std::rotr(op2, rotate);
         op2Str = std::format("#{}", op2);
@@ -390,21 +426,14 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
         {
             auto op2SrcFlags = std::bit_cast<DataProcessing::RegShiftedRegSrc>(instruction);
             Rm = op2SrcFlags.Rm;
-            op2 = registers_.ReadRegister(Rm);
             shiftType = op2SrcFlags.ShiftOp;
             Rs = op2SrcFlags.Rs;
             shiftAmount = registers_.ReadRegister(Rs) & U8_MAX;
-
-            if (op2SrcFlags.Rm == PC_INDEX)
-            {
-                op2 += 4;
-            }
         }
         else
         {
             auto op2SrcFlags = std::bit_cast<DataProcessing::ImmShiftedRegSrc>(instruction);
             Rm = op2SrcFlags.Rm;
-            op2 = registers_.ReadRegister(Rm);
             shiftType = op2SrcFlags.ShiftOp;
             shiftAmount = op2SrcFlags.Imm;
             isRRX = (op2SrcFlags.Imm == 0) && (op2SrcFlags.ShiftOp == 3);
@@ -413,81 +442,21 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
         switch (shiftType)
         {
             case 0b00:  // LSL
-            {
-                if (shiftAmount >= 32)
-                {
-                    op2 = 0;
-                }
-                else if (shiftAmount != 0)
-                {
-                    op2 <<= shiftAmount;
-                }
-
                 shiftTypeStr = "LSL";
                 break;
-            }
             case 0b01:  // LSR
-            {
-                if (shiftAmount >= 32)
-                {
-                    op2 = 0;
-                }
-                else if (shiftAmount != 0)
-                {
-                    op2 >>= shiftAmount;
-                }
-                else if (!flags.RegShift)
-                {
-                    op2 = 0;
-                }
-
                 shiftTypeStr = "LSR";
                 shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
                 break;
-            }
             case 0b10:  // ASR
-            {
-                bool msbSet = op2 & U32_MSB;
-
-                if (shiftAmount >= 32)
-                {
-                    op2 = msbSet ? U32_MAX : 0;
-                }
-                else if (shiftAmount != 0)
-                {
-                    for (u8 i = 0; i < shiftAmount; ++i)
-                    {
-                        op2 >>= 1;
-                        op2 |= msbSet ? U32_MSB : 0;
-                    }
-                }
-                else if (!flags.RegShift)
-                {
-                    op2 = msbSet ? U32_MAX : 0;
-                }
-
                 shiftTypeStr = "ASR";
                 shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
                 break;
-            }
             case 0b11:  // ROR, RRX
             {
                 if (shiftAmount > 32)
                 {
                     shiftAmount %= 32;
-                }
-
-                if (shiftAmount == 0)
-                {
-                    if (!flags.RegShift)
-                    {
-                        op2 >>= 1;
-                        op2 |= registers_.IsCarry() ? U32_MSB : 0;
-                    }
-                }
-                else
-                {
-                    op2 = std::rotr(op2, shiftAmount);
                 }
 
                 shiftTypeStr = isRRX ? "RRX" : "ROR";
