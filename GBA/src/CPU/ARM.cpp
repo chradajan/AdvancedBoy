@@ -358,8 +358,113 @@ void ARM7TDMI::ExecuteHalfwordDataTransferRegOffset(u32 instruction)
 
 void ARM7TDMI::ExecuteHalfwordDataTransferImmOffset(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("HalfwordDataTransferImmOffset not implemented");
+    auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
+
+    u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
+    u32 addr = registers_.ReadRegister(flags.Rn);
+    bool preIndex = flags.P;
+    bool postIndex = !preIndex;
+    bool ignoreWriteback = false;
+
+    if (preIndex)
+    {
+        if (flags.U)
+        {
+            addr += offset;
+        }
+        else
+        {
+            addr -= offset;
+        }
+    }
+
+    if (flags.L)
+    {
+        bool s = flags.S;
+        bool h = flags.H;
+        bool misaligned = addr & 0x01;
+        flushPipeline_ = flags.Rd == PC_INDEX;
+        ignoreWriteback = flags.Rd == flags.Rn;
+
+        // LDRH Rd,[odd]   -->  LDRH Rd,[odd-1] ROR 8
+        // LDRSH Rd,[odd]  -->  LDRSB Rd,[odd]
+
+        if (s)
+        {
+            i32 val;
+
+            if (misaligned && h)
+            {
+                // Convert LDRSH into LDRSB
+                h = false;
+            }
+
+            if (h)
+            {
+                // S = 1, H = 1
+                auto [halfWord, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+                scheduler_.Step(readCycles);
+                val = SignExtend<i32, 15>(halfWord);
+            }
+            else
+            {
+                // S = 1, H = 0
+                auto [byte, readCycles] = ReadMemory(addr, AccessSize::BYTE);
+                scheduler_.Step(readCycles);
+                val = SignExtend<i32, 7>(byte);
+            }
+
+            registers_.WriteRegister(flags.Rd, val);
+        }
+        else
+        {
+            // S = 0, H = 1
+            auto [halfWord, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+            scheduler_.Step(readCycles);
+
+            if (misaligned)
+            {
+                halfWord = std::rotr(halfWord, 8);
+            }
+
+            registers_.WriteRegister(flags.Rd, halfWord);
+        }
+    }
+    else
+    {
+        // S = 0, H = 1
+        u16 halfWord = registers_.ReadRegister(flags.Rd);
+
+        if (flags.Rd == PC_INDEX)
+        {
+            halfWord += 4;
+        }
+
+        int writeCycles = WriteMemory(addr, halfWord, AccessSize::HALFWORD);
+        scheduler_.Step(writeCycles);
+    }
+
+    if (postIndex)
+    {
+        if (flags.U)
+        {
+            addr += offset;
+        }
+        else
+        {
+            addr -= offset;
+        }
+    }
+
+    if (!ignoreWriteback && (flags.W || postIndex))
+    {
+        registers_.WriteRegister(flags.Rn, addr);
+    }
+
+    if (flags.L)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecutePSRTransferMRS(u32 instruction)

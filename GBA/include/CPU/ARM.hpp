@@ -277,21 +277,21 @@ struct HalfwordDataTransferImmOffset
 
     struct Flags
     {
-        u32 Offset  : 4;
-        u32         : 1;
-        u32 H       : 1;
-        u32 S       : 1;
-        u32         : 1;
-        u32 Offset1 : 4;
-        u32 Rd      : 4;
-        u32 Rn      : 4;
-        u32 L       : 1;
-        u32 W       : 1;
-        u32         : 1;
-        u32 U       : 1;
-        u32 P       : 1;
-        u32         : 3;
-        u32 Cond    : 4;
+        u32 OffsetLo    : 4;
+        u32             : 1;
+        u32 H           : 1;
+        u32 S           : 1;
+        u32             : 1;
+        u32 OffsetHi    : 4;
+        u32 Rd          : 4;
+        u32 Rn          : 4;
+        u32 L           : 1;
+        u32 W           : 1;
+        u32             : 1;
+        u32 U           : 1;
+        u32 P           : 1;
+        u32             : 3;
+        u32 Cond        : 4;
     };
 };
 

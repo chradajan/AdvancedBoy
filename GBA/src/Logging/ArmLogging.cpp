@@ -84,6 +84,62 @@ void BlockDataTransferHelper(std::stringstream& regStream, int consecutiveRegist
         regStream << "R" << (regIndex - consecutiveRegisters) << "-R" << (regIndex - 1) << ", ";
     }
 }
+
+/// @brief Form a mnemonic for halfword data transfer ops.
+/// @param load Whether this is a load or store op.
+/// @param cond ARM condition code.
+/// @param destIndex Index of destination register.
+/// @param baseIndex Index of base register.
+/// @param s S flag.
+/// @param h H flag.
+/// @param up Add or Subtract offset from base.
+/// @param preIndexed Pre/Post indexed op.
+/// @param writeBack Whether to write back to 
+/// @param offsetExpression String of either immediate offset or offset register index.
+/// @return Mnemonic of instruction.
+std::string HalfwordDataTransferHelper(bool load,
+                                       u8 cond,
+                                       u8 destIndex,
+                                       u8 baseIndex,
+                                       bool s,
+                                       bool h,
+                                       bool up,
+                                       bool preIndexed,
+                                       bool writeBack,
+                                       std::string offsetExpression)
+{
+    std::string op = load ? "LDR" : "STR";
+    std::string opType;
+
+    if (s)
+    {
+        opType = h ? "SH" : "SB";
+    }
+    else
+    {
+        opType = "H";
+    }
+
+    std::string address;
+
+    if (offsetExpression == "")
+    {
+        address = std::format("[R{}]", baseIndex);
+    }
+    else
+    {
+        if (preIndexed)
+        {
+            address = std::format("[R{}, {}{}]{}", baseIndex, up ? "+" : "-", offsetExpression, writeBack ? "!" : "");
+        }
+        else
+        {
+            address = std::format("[R{}], {}{}", baseIndex, up ? "+" : "-", offsetExpression);
+        }
+    }
+
+    return std::format("{}{}{} R{}, {}", op, opType, ConditionMnemonic(cond), destIndex, address);
+}
 }
 
 namespace cpu
@@ -227,7 +283,13 @@ void ARM7TDMI::LogHalfwordDataTransferRegOffset(u32 instruction) const
 
 void ARM7TDMI::LogHalfwordDataTransferImmOffset(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
+    u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
+    std::string offsetStr = (offset == 0) ? "" : std::format("#{}", offset);
+
+    std::string mnemonic =
+        HalfwordDataTransferHelper(flags.L, flags.Cond, flags.Rd, flags.Rn, flags.S, flags.H, flags.U, flags.P, flags.W, offsetStr);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogPSRTransferMRS(u32 instruction) const
