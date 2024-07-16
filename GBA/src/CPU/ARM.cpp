@@ -161,8 +161,13 @@ void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
 
 void ARM7TDMI::ExecuteBranchAndExchange(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("ExecuteBranchAndExchange not implemented");
+    auto flags = std::bit_cast<BranchAndExchange::Flags>(instruction);
+
+    u32 pc = registers_.ReadRegister(flags.Rn);
+    auto state = (pc & 0x01) ? OperatingState::THUMB : OperatingState::ARM;
+    registers_.SetOperatingState(state);
+    registers_.SetPC(pc);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteBlockDataTransfer(u32 instruction)

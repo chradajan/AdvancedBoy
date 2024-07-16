@@ -150,7 +150,10 @@ using namespace arm;
 
 void ARM7TDMI::LogBranchAndExchange(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<BranchAndExchange::Flags>(instruction);
+    u8 Rn = flags.Rn;
+    std::string mnemonic = std::format("{:08X} -> BX{} R{}", instruction, ConditionMnemonic(flags.Cond), Rn);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogBlockDataTransfer(u32 instruction) const
