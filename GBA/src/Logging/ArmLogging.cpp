@@ -242,6 +242,249 @@ void ARM7TDMI::LogPSRTransferMSR(u32 instruction) const
 
 void ARM7TDMI::LogDataProcessing(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<DataProcessing::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string op;
+    std::string s = flags.S ? "S" : "";
+
+    if ((8 <= flags.OpCode) && (flags.OpCode <= 11))
+    {
+        s = "";
+    }
+
+    switch (flags.OpCode)
+    {
+        case 0b0000:
+            op = "AND";
+            break;
+        case 0b0001:
+            op = "EOR";
+            break;
+        case 0b0010:
+            op = "SUB";
+            break;
+        case 0b0011:
+            op = "RSB";
+            break;
+        case 0b0100:
+            op = "ADD";
+            break;
+        case 0b0101:
+            op = "ADC";
+            break;
+        case 0b0110:
+            op = "SBC";
+            break;
+        case 0b0111:
+            op = "RSC";
+            break;
+        case 0b1000:
+            op = "TST";
+            break;
+        case 0b1001:
+            op = "TEQ";
+            break;
+        case 0b1010:
+            op = "CMP";
+            break;
+        case 0b1011:
+            op = "CMN";
+            break;
+        case 0b1100:
+            op = "ORR";
+            break;
+        case 0b1101:
+            op = "MOV";
+            break;
+        case 0b1110:
+            op = "BIC";
+            break;
+        case 0b1111:
+            op = "MVN";
+            break;
+    }
+
+    u32 op2;
+    std::string op2Str;
+
+    if (flags.I)
+    {
+        auto op2SrcFlags = std::bit_cast<DataProcessing::RotatedImmSrc>(instruction);
+        op2 = op2SrcFlags.Imm;
+        u8 rotate = op2SrcFlags.Rotate << 1;
+        op2 = std::rotr(op2, rotate);
+        op2Str = std::format("#{}", op2);
+    }
+    else
+    {
+        u8 shiftType;
+        u8 shiftAmount;
+        u8 Rm;
+        u8 Rs = 0;
+        std::string shiftTypeStr;
+        bool isRRX = false;
+
+        if (flags.RegShift)
+        {
+            auto op2SrcFlags = std::bit_cast<DataProcessing::RegShiftedRegSrc>(instruction);
+            Rm = op2SrcFlags.Rm;
+            op2 = registers_.ReadRegister(Rm);
+            shiftType = op2SrcFlags.ShiftOp;
+            Rs = op2SrcFlags.Rs;
+            shiftAmount = registers_.ReadRegister(Rs) & U8_MAX;
+
+            if (op2SrcFlags.Rm == PC_INDEX)
+            {
+                op2 += 4;
+            }
+        }
+        else
+        {
+            auto op2SrcFlags = std::bit_cast<DataProcessing::ImmShiftedRegSrc>(instruction);
+            Rm = op2SrcFlags.Rm;
+            op2 = registers_.ReadRegister(Rm);
+            shiftType = op2SrcFlags.ShiftOp;
+            shiftAmount = op2SrcFlags.Imm;
+            isRRX = (op2SrcFlags.Imm == 0) && (op2SrcFlags.ShiftOp == 3);
+        }
+
+        switch (shiftType)
+        {
+            case 0b00:  // LSL
+            {
+                if (shiftAmount >= 32)
+                {
+                    op2 = 0;
+                }
+                else if (shiftAmount != 0)
+                {
+                    op2 <<= shiftAmount;
+                }
+
+                shiftTypeStr = "LSL";
+                break;
+            }
+            case 0b01:  // LSR
+            {
+                if (shiftAmount >= 32)
+                {
+                    op2 = 0;
+                }
+                else if (shiftAmount != 0)
+                {
+                    op2 >>= shiftAmount;
+                }
+                else if (!flags.RegShift)
+                {
+                    op2 = 0;
+                }
+
+                shiftTypeStr = "LSR";
+                shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
+                break;
+            }
+            case 0b10:  // ASR
+            {
+                bool msbSet = op2 & U32_MSB;
+
+                if (shiftAmount >= 32)
+                {
+                    op2 = msbSet ? U32_MAX : 0;
+                }
+                else if (shiftAmount != 0)
+                {
+                    for (u8 i = 0; i < shiftAmount; ++i)
+                    {
+                        op2 >>= 1;
+                        op2 |= msbSet ? U32_MSB : 0;
+                    }
+                }
+                else if (!flags.RegShift)
+                {
+                    op2 = msbSet ? U32_MAX : 0;
+                }
+
+                shiftTypeStr = "ASR";
+                shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
+                break;
+            }
+            case 0b11:  // ROR, RRX
+            {
+                if (shiftAmount > 32)
+                {
+                    shiftAmount %= 32;
+                }
+
+                if (shiftAmount == 0)
+                {
+                    if (!flags.RegShift)
+                    {
+                        op2 >>= 1;
+                        op2 |= registers_.IsCarry() ? U32_MSB : 0;
+                    }
+                }
+                else
+                {
+                    op2 = std::rotr(op2, shiftAmount);
+                }
+
+                shiftTypeStr = isRRX ? "RRX" : "ROR";
+                break;
+            }
+        }
+
+        if (flags.RegShift)
+        {
+            op2Str = std::format("R{}, {} R{}", Rm, shiftTypeStr, Rs);
+        }
+        else
+        {
+            if (isRRX)
+            {
+                op2Str = std::format("R{}, {}", Rm, shiftTypeStr);
+            }
+            else if ((shiftTypeStr == "LSL") && (shiftAmount == 0))
+            {
+                op2Str = std::format("R{}", Rm);
+            }
+            else
+            {
+                op2Str = std::format("R{}, {} #{}", Rm, shiftTypeStr, shiftAmount);
+            }
+        }
+    }
+
+    std::string regInfo = "";
+    u8 destIndex = flags.Rd;
+    u8 op1Index = flags.Rn;
+
+    switch (flags.OpCode)
+    {
+        case 0b1101:  // MOV
+        case 0b1111:  // MVN
+            regInfo = std::format("R{}, {}", destIndex, op2Str);
+            break;
+        case 0b1010:  // CMP
+        case 0b1011:  // CMN
+        case 0b1001:  // TEQ
+        case 0b1000:  // TST
+            regInfo = std::format("R{}, {}", op1Index, op2Str);
+            break;
+        case 0b0000:  // AND
+        case 0b0001:  // EOR
+        case 0b0010:  // SUB
+        case 0b0011:  // RSB
+        case 0b0100:  // ADD
+        case 0b0101:  // ADC
+        case 0b0110:  // SBC
+        case 0b0111:  // RSC
+        case 0b1100:  // ORR
+        case 0b1110:  // BIC
+            regInfo = std::format("R{}, R{}, {}", destIndex, op1Index, op2Str);
+            break;
+    }
+
+    std::string mnemonic = std::format("{:08X} -> {}{}{} {}", instruction, op, cond, s, regInfo);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 }  // namespace cpu

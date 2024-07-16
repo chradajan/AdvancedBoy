@@ -375,14 +375,16 @@ struct DataProcessing
 
     struct Flags
     {
-        u32         : 12;
-        u32 Rd      : 4;
-        u32 Rn      : 4;
-        u32 S       : 1;
-        u32 OpCode  : 4;
-        u32 I       : 1;
-        u32         : 2;
-        u32 Cond    : 4;
+        u32             : 4;
+        u32 RegShift    : 1;
+        u32             : 7;
+        u32 Rd          : 4;
+        u32 Rn          : 4;
+        u32 S           : 1;
+        u32 OpCode      : 4;
+        u32 I           : 1;
+        u32             : 2;
+        u32 Cond        : 4;
     };
 
     struct RotatedImmSrc
