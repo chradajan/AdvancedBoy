@@ -333,8 +333,115 @@ void ARM7TDMI::ExecuteUndefined(u32 instruction)
 
 void ARM7TDMI::ExecuteSingleDataTransfer(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("SingleDataTransfer not implemented");
+    auto flags = std::bit_cast<SingleDataTransfer::Flags>(instruction);
+
+    u32 offset;
+
+    if (flags.I)
+    {
+        auto regFlags = std::bit_cast<SingleDataTransfer::RegOffset>(instruction);
+        offset = registers_.ReadRegister(regFlags.Rm);
+
+        switch (regFlags.ShiftType)
+        {
+            case 0b00:  // LSL
+                offset <<= regFlags.ShiftAmount;
+                break;
+            case 0b01:  // LSR
+                offset = regFlags.ShiftAmount ? (offset >> regFlags.ShiftAmount) : 0;
+                break;
+            case 0b10:  // ASR
+            {
+                bool msbSet = offset & U32_MSB;
+
+                if (regFlags.ShiftAmount)
+                {
+                    for (u8 i = 0; i < regFlags.ShiftAmount; ++i)
+                    {
+                        offset >>= 1;
+                        offset |= (msbSet ? U32_MSB : 0);
+                    }
+                }
+                else
+                {
+                    offset = msbSet ? U32_MAX : 0;
+                }
+
+                break;
+            }
+            case 0b11:  // ROR, RRX
+            {
+                if (regFlags.ShiftAmount)
+                {
+                    offset = std::rotr(offset, regFlags.ShiftAmount);
+                }
+                else
+                {
+                    offset >>= 1;
+                    offset |= (registers_.IsCarry() ? U32_MSB : 0);
+                }
+
+                break;
+            }
+        }
+    }
+    else
+    {
+        auto immFlags = std::bit_cast<SingleDataTransfer::ImmOffset>(instruction);
+        offset = immFlags.Imm;
+    }
+
+    u32 addr = registers_.ReadRegister(flags.Rn);
+    bool preIndex = flags.P;
+    bool ignoreWriteback = false;
+    auto length = flags.B ? AccessSize::BYTE : AccessSize::WORD;
+
+    if (preIndex)
+    {
+        addr += (flags.U ? offset : -offset);
+    }
+
+    if (flags.L)
+    {
+        auto [val, readCycles] = ReadMemory(addr, length);
+        scheduler_.Step(readCycles);
+
+        if ((length == AccessSize::WORD) && ((addr & 0x03)))
+        {
+            val = std::rotr(val, (addr & 0x03) * 8);
+        }
+
+        registers_.WriteRegister(flags.Rd, val);
+        flushPipeline_ = flags.Rd == PC_INDEX;
+        ignoreWriteback = flags.Rd == flags.Rn;
+    }
+    else
+    {
+        u32 val = registers_.ReadRegister(flags.Rd);
+
+        if (flags.Rd == PC_INDEX)
+        {
+            val += 4;
+        }
+
+        int writeCycles = WriteMemory(addr, val, length);
+        scheduler_.Step(writeCycles);
+    }
+
+    if (!preIndex)
+    {
+        addr += (flags.U ? offset : -offset);
+    }
+
+    if (!ignoreWriteback && (flags.W || !preIndex))
+    {
+        registers_.WriteRegister(flags.Rn, addr);
+    }
+
+    if (flags.L)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecuteSingleDataSwap(u32 instruction)
@@ -602,7 +709,7 @@ void ARM7TDMI::ExecuteDataProcessing(u32 instruction)
                     for (u8 i = 0; i < shiftAmount; ++i)
                     {
                         op2 >>= 1;
-                        op2 |= msbSet ? U32_MSB : 0;
+                        op2 |= (msbSet ? U32_MSB : 0);
                     }
                 }
                 else if (!flags.RegShift)
@@ -626,7 +733,7 @@ void ARM7TDMI::ExecuteDataProcessing(u32 instruction)
                     {
                         carry = op2 & 0x01;
                         op2 >>= 1;
-                        op2 |= registers_.IsCarry() ? U32_MSB : 0;
+                        op2 |= (registers_.IsCarry() ? U32_MSB : 0);
                     }
                 }
                 else

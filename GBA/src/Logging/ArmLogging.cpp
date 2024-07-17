@@ -262,7 +262,100 @@ void ARM7TDMI::LogUndefined(u32 instruction) const
 
 void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<SingleDataTransfer::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string op = flags.L ? "LDR" : "STR";
+    std::string xfer = flags.B ? "B" : "";
+    op = op + cond + xfer;
+    std::string address;
+    std::string expression;
+
+    u8 Rd = flags.Rd;
+    u8 Rn = flags.Rn;
+
+    if (flags.I)
+    {
+        auto regFlags = std::bit_cast<SingleDataTransfer::RegOffset>(instruction);
+        std::string shiftExpression;
+        std::string shiftType;
+        uint8_t shiftRegIndex = regFlags.Rm;
+        uint8_t shiftAmount = regFlags.ShiftAmount;
+
+        switch (regFlags.ShiftType)
+        {
+            case 0b00:
+                shiftType = "LSL";
+                break;
+            case 0b01:
+                shiftType = "LSR";
+                shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
+                break;
+            case 0b10:
+                shiftType = "ASR";
+                shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
+                break;
+            case 0b11:
+                shiftType = (shiftAmount == 0) ? "RRX" : "ROR";
+                break;
+        }
+
+        if (shiftType == "RRX")
+        {
+            shiftExpression = std::format("R{}, RRX", shiftRegIndex);
+        }
+        else if ((shiftType == "LSL") && (shiftAmount == 0))
+        {
+            shiftExpression = std::format("R{}", shiftRegIndex);
+        }
+        else
+        {
+            shiftExpression = std::format("R{}, {} #{}", shiftRegIndex, shiftType, shiftAmount);
+        }
+
+        expression = std::format("{}{}", flags.U ? "+" : "-", shiftExpression);
+    }
+    else
+    {
+        auto immFlags = std::bit_cast<SingleDataTransfer::ImmOffset>(instruction);
+        u32 offset = immFlags.Imm;
+
+        if (offset == 0)
+        {
+            expression = "";
+        }
+        else
+        {
+            expression = std::format("#{}{}", flags.U ? "+" : "-", offset);
+        }
+    }
+
+    if (flags.P)
+    {
+        // Pre-indexed
+        if (expression == "")
+        {
+            address = std::format("[R{}]", Rn);
+        }
+        else
+        {
+            address = std::format("[R{}, {}]{}", Rn, expression, flags.W ? "!" : "");
+        }
+    }
+    else
+    {
+        // Post-indexed
+        if (expression == "")
+        {
+            address = std::format("[R{}]", Rn);
+        }
+        else
+        {
+            address = std::format("[R{}], {}", Rn, expression);
+        }
+    }
+
+    std::string mnemonic = std::format("{:08X} -> {} R{}, {}", instruction, op, Rd, address);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogSingleDataSwap(u32 instruction) const

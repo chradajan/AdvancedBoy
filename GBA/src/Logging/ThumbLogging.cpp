@@ -76,7 +76,7 @@ void ARM7TDMI::LogConditionalBranch(u16 instruction) const
     u16 offset = flags.SOffset8 << 1;
     offset = SignExtend<i16, 8>(offset);
     u32 pc = registers_.GetPC() + offset;
-    std::string mnemonic = std::format("{:04X} -> B{} 0x{:08X}", instruction, cond, pc);
+    std::string mnemonic = std::format("    {:04X} -> B{} 0x{:08X}", instruction, cond, pc);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -88,7 +88,7 @@ void ARM7TDMI::LogMultipleLoadStore(u16 instruction) const
 void ARM7TDMI::LogLongBranchWithLink(u16 instruction) const
 {
     auto flags = std::bit_cast<LongBranchWithLink::Flags>(instruction);
-    std::string mnemonic = std::format("{:04X} -> BL {}", instruction, flags.H ? "1" : "0");
+    std::string mnemonic = std::format("    {:04X} -> BL {}", instruction, flags.H ? "1" : "0");
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -118,7 +118,7 @@ void ARM7TDMI::LogLoadAddress(u16 instruction) const
     std::string regStr = flags.SP ? "SP" : "PC";
     u16 offset = flags.Word8 << 2;
     u8 Rd = flags.Rd;
-    std::string mnemonic = std::format("{:04X} -> ADD R{}, {}, #{}", instruction, Rd, regStr, offset);
+    std::string mnemonic = std::format("    {:04X} -> ADD R{}, {}, #{}", instruction, Rd, regStr, offset);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -167,7 +167,7 @@ void ARM7TDMI::LogHiRegisterOperationsBranchExchange(u16 instruction) const
             break;
     }
 
-    std::string mnemonic = std::format("{:04X} -> {} {}", instruction, op, regStr);
+    std::string mnemonic = std::format("    {:04X} -> {} {}", instruction, op, regStr);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -199,7 +199,7 @@ void ARM7TDMI::LogMoveCompareAddSubtractImmediate(u16 instruction) const
 
     u8 Rd = flags.Rd;
     u8 offset = flags.Offset8;
-    std::string mnemonic = std::format("{:04X} -> {} R{}, #{}", instruction, op, Rd, offset);
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, #{}", instruction, op, Rd, offset);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
