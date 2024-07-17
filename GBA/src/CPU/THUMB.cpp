@@ -191,9 +191,9 @@ void ARM7TDMI::ExecuteConditionalBranch(u16 instruction)
         return;
     }
 
-    u16 unsignedOffset = flags.SOffset8 << 1;
-    i16 signedOffset = SignExtend<i16, 8>(unsignedOffset);
-    u32 pc = registers_.GetPC() + signedOffset;
+    i16 offset = flags.SOffset8 << 1;
+    offset = SignExtend<i16, 8>(offset);
+    u32 pc = registers_.GetPC() + offset;
     registers_.SetPC(pc);
     flushPipeline_ = true;
 }
@@ -206,8 +206,26 @@ void ARM7TDMI::ExecuteMultipleLoadStore(u16 instruction)
 
 void ARM7TDMI::ExecuteLongBranchWithLink(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("LongBranchWithLink not implemented");
+    auto flags = std::bit_cast<LongBranchWithLink::Flags>(instruction);
+
+    if (!flags.H)
+    {
+        // Instruction 1
+        i32 offset = flags.Offset << 12;
+        offset = SignExtend<i32, 22>(offset);
+        u32 lr = registers_.GetPC() + offset;
+        registers_.WriteRegister(LR_INDEX, lr);
+    }
+    else
+    {
+        // Instruction 2
+        u32 offset = flags.Offset << 1;
+        u32 lr = (registers_.GetPC() - 2) | 0x01;
+        u32 pc = registers_.ReadRegister(LR_INDEX) + offset;
+        registers_.WriteRegister(LR_INDEX, lr);
+        registers_.SetPC(pc);
+        flushPipeline_ = true;
+    }
 }
 
 void ARM7TDMI::ExecuteAddOffsetToStackPointer(u16 instruction)

@@ -73,9 +73,9 @@ void ARM7TDMI::LogConditionalBranch(u16 instruction) const
 {
     auto flags = std::bit_cast<ConditionalBranch::Flags>(instruction);
     std::string cond = ConditionMnemonic(flags.Cond);
-    u16 unsignedOffset = flags.SOffset8 << 1;
-    i16 signedOffset = SignExtend<i16, 8>(unsignedOffset);
-    u32 pc = registers_.GetPC() + signedOffset;
+    u16 offset = flags.SOffset8 << 1;
+    offset = SignExtend<i16, 8>(offset);
+    u32 pc = registers_.GetPC() + offset;
     std::string mnemonic = std::format("{:04X} -> B{} 0x{:08X}", instruction, cond, pc);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
@@ -87,7 +87,9 @@ void ARM7TDMI::LogMultipleLoadStore(u16 instruction) const
 
 void ARM7TDMI::LogLongBranchWithLink(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<LongBranchWithLink::Flags>(instruction);
+    std::string mnemonic = std::format("{:04X} -> BL {}", instruction, flags.H ? "1" : "0");
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogAddOffsetToStackPointer(u16 instruction) const
