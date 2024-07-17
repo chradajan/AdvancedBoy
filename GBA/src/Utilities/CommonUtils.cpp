@@ -15,7 +15,7 @@ u32 ReadMemoryBlock(std::span<const std::byte> memory, u32 readAddr, u32 baseAdd
         throw std::out_of_range("Bad memory read");
     }
 
-    u32 val;
+    u32 val = 0;
     std::memcpy(&val, &memory[index], count);
     return val;
 }

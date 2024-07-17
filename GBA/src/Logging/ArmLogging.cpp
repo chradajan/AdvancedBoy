@@ -282,8 +282,8 @@ void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const
         auto regFlags = std::bit_cast<SingleDataTransfer::RegOffset>(instruction);
         std::string shiftExpression;
         std::string shiftType;
-        uint8_t shiftRegIndex = regFlags.Rm;
-        uint8_t shiftAmount = regFlags.ShiftAmount;
+        u8 shiftRegIndex = regFlags.Rm;
+        u8 shiftAmount = regFlags.ShiftAmount;
 
         switch (regFlags.ShiftType)
         {
@@ -430,12 +430,46 @@ void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
 
 void ARM7TDMI::LogPSRTransferMRS(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<PSRTransferMRS::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string psr = flags.Ps ? "SPSR" : "CPSR";
+    u8 Rd = flags.Rd;
+    std::string mnemonic = std::format("{:08X} -> MRS{} R{}, {}", instruction, cond, Rd, psr);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogPSRTransferMSR(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<PSRTransferMSR::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+
+    std::stringstream fields;
+    fields << "_";
+    fields << (flags.SetFlags ? "f" : "");
+    fields << (flags.SetStatus ? "s" : "");
+    fields << (flags.SetExtension ? "x" : "");
+    fields << (flags.SetControl ? "c" : "");
+    std::string fieldsStr = fields.str() == "_fsxc" ? "_all" : fields.str();
+
+    std::string psr = flags.Pd ? "SPSR" : "CPSR";
+    psr = psr + fieldsStr;
+    std::string expression;
+
+    if (flags.I)
+    {
+        auto immFlags = std::bit_cast<PSRTransferMSR::ImmSrc>(instruction);
+        u32 imm = std::rotr(immFlags.Imm, immFlags.Rotate * 2);
+        expression = std::format("{}, #{:08X}", psr, imm);
+    }
+    else
+    {
+        auto regFlags = std::bit_cast<PSRTransferMSR::RegSrc>(instruction);
+        u8 Rm = regFlags.Rm;
+        expression = std::format("{}, R{}", psr, Rm);
+    }
+
+    std::string mnemonic = std::format("{:08X} -> MSR{} {}", instruction, cond, expression);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogDataProcessing(u32 instruction) const

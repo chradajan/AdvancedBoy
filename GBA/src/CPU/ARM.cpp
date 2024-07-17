@@ -162,7 +162,6 @@ void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
 void ARM7TDMI::ExecuteBranchAndExchange(u32 instruction)
 {
     auto flags = std::bit_cast<BranchAndExchange::Flags>(instruction);
-
     u32 pc = registers_.ReadRegister(flags.Rn);
     auto state = (pc & 0x01) ? OperatingState::THUMB : OperatingState::ARM;
     registers_.SetOperatingState(state);
@@ -173,7 +172,6 @@ void ARM7TDMI::ExecuteBranchAndExchange(u32 instruction)
 void ARM7TDMI::ExecuteBlockDataTransfer(u32 instruction)
 {
     auto flags = std::bit_cast<BlockDataTransfer::Flags>(instruction);
-
     u16 regList = flags.RegisterList;
     bool emptyRlist = regList == 0;
     bool wbIndexInList = flags.W && (regList & (0x01 << flags.Rn));
@@ -340,8 +338,12 @@ void ARM7TDMI::ExecuteUndefined(u32 instruction)
 void ARM7TDMI::ExecuteSingleDataTransfer(u32 instruction)
 {
     auto flags = std::bit_cast<SingleDataTransfer::Flags>(instruction);
-
     u32 offset;
+
+    if (logPC_ == 0x00000144)
+    {
+        u32 trap = 1;
+    }
 
     if (flags.I)
     {
@@ -598,20 +600,62 @@ void ARM7TDMI::ExecuteHalfwordDataTransfer(u32 instruction)
 
 void ARM7TDMI::ExecutePSRTransferMRS(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("PSRTransferMRS not implemented");
+    auto flags = std::bit_cast<PSRTransferMRS::Flags>(instruction);
+    u32 val = flags.Ps ? registers_.GetSPSR() : registers_.GetCPSR();
+    registers_.WriteRegister(flags.Rd, val);
 }
 
 void ARM7TDMI::ExecutePSRTransferMSR(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("PSRTransferMSR not implemented");
+    auto flags = std::bit_cast<PSRTransferMSR::Flags>(instruction);
+    u32 val;
+
+    if (flags.I)
+    {
+        auto immFlags = std::bit_cast<PSRTransferMSR::ImmSrc>(instruction);
+        val = std::rotr(immFlags.Imm, immFlags.Rotate * 2);
+    }
+    else
+    {
+        auto regFlags = std::bit_cast<PSRTransferMSR::RegSrc>(instruction);
+        val = registers_.ReadRegister(regFlags.Rm);
+    }
+
+    u32 mask = flags.SetFlags ? 0xFF00'0000 : 0;
+
+    if (registers_.GetOperatingMode() != OperatingMode::User)
+    {
+        mask |= flags.SetStatus ? 0x00FF'0000 : 0;
+        mask |= flags.SetExtension ? 0x0000'FF00 : 0;
+        mask |= flags.SetControl ? 0x0000'00FF : 0;
+    }
+
+    if (mask == 0)
+    {
+        return;
+    }
+
+    val &= mask;
+
+    if (flags.Pd)
+    {
+        u32 spsr = registers_.GetSPSR();
+        spsr &= ~mask;
+        spsr |= val;
+        registers_.SetSPSR(spsr);
+    }
+    else
+    {
+        u32 cpsr = registers_.GetCPSR();
+        cpsr &= ~mask;
+        cpsr |= val;
+        registers_.SetCPSR(cpsr);
+    }
 }
 
 void ARM7TDMI::ExecuteDataProcessing(u32 instruction)
 {
     auto flags = std::bit_cast<DataProcessing::Flags>(instruction);
-
     u32 op1 = registers_.ReadRegister(flags.Rn);
     u32 op2;
 
