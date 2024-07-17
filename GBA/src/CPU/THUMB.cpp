@@ -254,8 +254,22 @@ void ARM7TDMI::ExecuteSPRelativeLoadStore(u16 instruction)
 
 void ARM7TDMI::ExecuteLoadAddress(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("LoadAddress not implemented");
+    auto flags = std::bit_cast<LoadAddress::Flags>(instruction);
+
+    u16 offset = flags.Word8 << 2;
+    u32 addr;
+
+    if (flags.SP)
+    {
+        addr = registers_.ReadRegister(SP_INDEX);
+    }
+    else
+    {
+        addr = registers_.GetPC() & 0xFFFF'FFFD;
+    }
+
+    addr += offset;
+    registers_.WriteRegister(flags.Rd, addr);
 }
 
 void ARM7TDMI::ExecuteLoadStoreWithImmOffset(u16 instruction)

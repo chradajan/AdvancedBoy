@@ -114,7 +114,12 @@ void ARM7TDMI::LogSPRelativeLoadStore(u16 instruction) const
 
 void ARM7TDMI::LogLoadAddress(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<LoadAddress::Flags>(instruction);
+    std::string reg = flags.SP ? "SP" : "PC";
+    u16 offset = flags.Word8 << 2;
+    u8 Rd = flags.Rd;
+    std::string mnemonic = std::format("{:04X} -> ADD R{}, {}, #{}", instruction, Rd, reg, offset);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogLoadStoreWithImmOffset(u16 instruction) const
