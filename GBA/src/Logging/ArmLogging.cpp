@@ -369,7 +369,25 @@ void ARM7TDMI::LogSingleDataSwap(u32 instruction) const
 
 void ARM7TDMI::LogMultiply(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<Multiply::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string s = flags.S ? "S" : "";
+    u8 Rd = flags.Rd;
+    u8 Rm = flags.Rm;
+    u8 Rs = flags.Rs;
+    u8 Rn = flags.Rn;
+    std::string mnemonic;
+
+    if (flags.A)
+    {
+        mnemonic = std::format("{:08X} -> MLA{}{} R{}, R{}, R{}, R{}", instruction, cond, s, Rd, Rm, Rs, Rn);
+    }
+    else
+    {
+        mnemonic = std::format("{:08X} -> MUL{}{} R{}, R{}, R{}", instruction, cond, s, Rd, Rm, Rs);
+    }
+
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogMultiplyLong(u32 instruction) const

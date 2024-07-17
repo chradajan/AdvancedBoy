@@ -340,11 +340,6 @@ void ARM7TDMI::ExecuteSingleDataTransfer(u32 instruction)
     auto flags = std::bit_cast<SingleDataTransfer::Flags>(instruction);
     u32 offset;
 
-    if (logPC_ == 0x00000144)
-    {
-        u32 trap = 1;
-    }
-
     if (flags.I)
     {
         auto regFlags = std::bit_cast<SingleDataTransfer::RegOffset>(instruction);
@@ -460,8 +455,46 @@ void ARM7TDMI::ExecuteSingleDataSwap(u32 instruction)
 
 void ARM7TDMI::ExecuteMultiply(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("Multiply not implemented");
+    auto flags = std::bit_cast<Multiply::Flags>(instruction);
+    u32 Rm = registers_.ReadRegister(flags.Rm);
+    u32 Rs = registers_.ReadRegister(flags.Rs);
+    u32 Rn = registers_.ReadRegister(flags.Rn);
+
+    int cycles;
+
+    if (((Rs & 0xFFFF'FF00) == 0xFFFF'FF00) || ((Rs & 0xFFFF'FF00) == 0))
+    {
+        cycles = 1;
+    }
+    else if (((Rs & 0xFFFF'0000) == 0xFFFF'0000) || ((Rs & 0xFFFF'0000) == 0))
+    {
+        cycles = 2;
+    }
+    else if (((Rs & 0xFF00'0000) == 0xFF00'0000) || ((Rs & 0xFF00'0000) == 0))
+    {
+        cycles = 3;
+    }
+    else
+    {
+        cycles = 4;
+    }
+
+    i64 result = Rm * Rs;
+
+    if (flags.A)
+    {
+        result += Rn;
+        ++cycles;
+    }
+
+    if (flags.S)
+    {
+        registers_.SetNegative(result & U32_MSB);
+        registers_.SetZero(result == 0);
+    }
+
+    registers_.WriteRegister(flags.Rd, result & U32_MAX);
+    scheduler_.Step(cycles);
 }
 
 void ARM7TDMI::ExecuteMultiplyLong(u32 instruction)
