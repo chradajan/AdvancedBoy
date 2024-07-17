@@ -261,7 +261,10 @@ void ARM7TDMI::LogArmSoftwareInterrupt(u32 instruction) const
 
 void ARM7TDMI::LogUndefined(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<Undefined::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string mnemonic = std::format("{:08X} -> UNDEFINED {}", instruction, cond);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const

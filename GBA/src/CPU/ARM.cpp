@@ -332,7 +332,13 @@ void ARM7TDMI::ExecuteArmSoftwareInterrupt(u32 instruction)
 void ARM7TDMI::ExecuteUndefined(u32 instruction)
 {
     (void)instruction;
-    throw std::runtime_error("Undefined not implemented");
+    u32 cpsr = registers_.GetCPSR();
+    registers_.SetOperatingMode(OperatingMode::Undefined);
+    registers_.WriteRegister(LR_INDEX, registers_.GetPC() - 4);
+    registers_.SetIrqDisabled(true);
+    registers_.SetSPSR(cpsr);
+    registers_.SetPC(UNDEFINED_INSTR_VECTOR);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteSingleDataTransfer(u32 instruction)
