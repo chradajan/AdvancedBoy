@@ -6,6 +6,7 @@
 #include <GBA/include/CPU/THUMB.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace
 {
@@ -183,8 +184,18 @@ void ARM7TDMI::ExecuteUnconditionalBranch(u16 instruction)
 
 void ARM7TDMI::ExecuteConditionalBranch(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("ConditionalBranch not implemented");
+    auto flags = std::bit_cast<ConditionalBranch::Flags>(instruction);
+
+    if (!ConditionSatisfied(flags.Cond))
+    {
+        return;
+    }
+
+    u16 unsignedOffset = flags.SOffset8 << 1;
+    i16 signedOffset = SignExtend<i16, 8>(unsignedOffset);
+    u32 pc = registers_.GetPC() + signedOffset;
+    registers_.SetPC(pc);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteMultipleLoadStore(u16 instruction)

@@ -6,6 +6,54 @@
 #include <GBA/include/CPU/THUMB.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
+
+namespace
+{
+/// @brief Convert ARM condition code to its mnemonic.
+/// @param condition 4-bit ARM condition code.
+/// @return Condition mnemonic.
+std::string ConditionMnemonic(u8 condition)
+{
+    switch (condition)
+    {
+        case 0:
+            return "EQ";
+        case 1:
+            return "NE";
+        case 2:
+            return "CS";
+        case 3:
+            return "CC";
+        case 4:
+            return "MI";
+        case 5:
+            return "PL";
+        case 6:
+            return "VS";
+        case 7:
+            return "VC";
+        case 8:
+            return "HI";
+        case 9:
+            return "LS";
+        case 10:
+            return "GE";
+        case 11:
+            return "LT";
+        case 12:
+            return "GT";
+        case 13:
+            return "LE";
+        case 14:
+            return "";
+        default:
+            break;
+    }
+
+    return "";
+}
+}
 
 namespace cpu
 {
@@ -23,7 +71,13 @@ void ARM7TDMI::LogUnconditionalBranch(u16 instruction) const
 
 void ARM7TDMI::LogConditionalBranch(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<ConditionalBranch::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    u16 unsignedOffset = flags.SOffset8 << 1;
+    i16 signedOffset = SignExtend<i16, 8>(unsignedOffset);
+    u32 pc = registers_.GetPC() + signedOffset;
+    std::string mnemonic = std::format("{:04X} -> B{} 0x{:08X}", instruction, cond, pc);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogMultipleLoadStore(u16 instruction) const
