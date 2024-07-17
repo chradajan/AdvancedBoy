@@ -66,7 +66,10 @@ void ARM7TDMI::LogThumbSoftwareInterrupt(u16 instruction) const
 
 void ARM7TDMI::LogUnconditionalBranch(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<UnconditionalBranch::Flags>(instruction);
+    u32 pc = registers_.GetPC() + SignExtend<i16, 11>(flags.Offset11 << 1);
+    std::string mnemonic = std::format("    {:04X} -> B #{:08X}", instruction, pc);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogConditionalBranch(u16 instruction) const

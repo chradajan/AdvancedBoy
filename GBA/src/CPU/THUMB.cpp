@@ -178,8 +178,10 @@ void ARM7TDMI::ExecuteThumbSoftwareInterrupt(u16 instruction)
 
 void ARM7TDMI::ExecuteUnconditionalBranch(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("UnconditionalBranch not implemented");
+    auto flags = std::bit_cast<UnconditionalBranch::Flags>(instruction);
+    i16 offset = SignExtend<i16, 11>(flags.Offset11 << 1);
+    registers_.SetPC(registers_.GetPC() + offset);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteConditionalBranch(u16 instruction)
@@ -255,7 +257,6 @@ void ARM7TDMI::ExecuteSPRelativeLoadStore(u16 instruction)
 void ARM7TDMI::ExecuteLoadAddress(u16 instruction)
 {
     auto flags = std::bit_cast<LoadAddress::Flags>(instruction);
-
     u16 offset = flags.Word8 << 2;
     u32 addr;
 
@@ -299,7 +300,6 @@ void ARM7TDMI::ExecutePCRelativeLoad(u16 instruction)
 void ARM7TDMI::ExecuteHiRegisterOperationsBranchExchange(u16 instruction)
 {
     auto flags = std::bit_cast<HiRegisterOperationsBranchExchange::Flags>(instruction);
-
     u8 Rd = flags.RdHd;
     u8 Rs = flags.RsHs;
 
@@ -369,7 +369,6 @@ void ARM7TDMI::ExecuteALUOperations(u16 instruction)
 void ARM7TDMI::ExecuteMoveCompareAddSubtractImmediate(u16 instruction)
 {
     auto flags = std::bit_cast<MoveCompareAddSubtractImmediate::Flags>(instruction);
-
     bool carry = registers_.IsCarry();
     bool overflow = registers_.IsOverflow();
     bool saveResult = true;
