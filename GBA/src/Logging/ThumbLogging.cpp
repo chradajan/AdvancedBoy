@@ -115,10 +115,10 @@ void ARM7TDMI::LogSPRelativeLoadStore(u16 instruction) const
 void ARM7TDMI::LogLoadAddress(u16 instruction) const
 {
     auto flags = std::bit_cast<LoadAddress::Flags>(instruction);
-    std::string reg = flags.SP ? "SP" : "PC";
+    std::string regStr = flags.SP ? "SP" : "PC";
     u16 offset = flags.Word8 << 2;
     u8 Rd = flags.Rd;
-    std::string mnemonic = std::format("{:04X} -> ADD R{}, {}, #{}", instruction, Rd, reg, offset);
+    std::string mnemonic = std::format("{:04X} -> ADD R{}, {}, #{}", instruction, Rd, regStr, offset);
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
@@ -144,7 +144,31 @@ void ARM7TDMI::LogPCRelativeLoad(u16 instruction) const
 
 void ARM7TDMI::LogHiRegisterOperationsBranchExchange(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<HiRegisterOperationsBranchExchange::Flags>(instruction);
+    u8 Rd = flags.RdHd;
+    u8 Rs = flags.RsHs;
+    std::string op;
+    std::string regStr = std::format("R{}, R{}", Rd, Rs);
+
+    switch (flags.Op)
+    {
+        case 0b00:
+            op = "ADD";
+            break;
+        case 0b01:
+            op = "CMP";
+            break;
+        case 0b10:
+            op = "MOV";
+            break;
+        case 0b11:
+            op = "BX";
+            regStr = std::format("R{}", Rs);
+            break;
+    }
+
+    std::string mnemonic = std::format("{:04X} -> {} {}", instruction, op, regStr);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogALUOperations(u16 instruction) const

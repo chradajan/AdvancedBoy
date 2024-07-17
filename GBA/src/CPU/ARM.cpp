@@ -708,8 +708,6 @@ void ARM7TDMI::ExecuteDataProcessing(u32 instruction)
             break;
     }
 
-    // destIndex == flags.Rd
-
     if (flags.S)
     {
         if (flags.Rd == PC_INDEX)

@@ -38,7 +38,7 @@ bool SubtractionOverflow(u32 op1, u32 op2, u32 result)
 /// @return Pair of {carry_flag, overflow_flag}.
 std::pair<bool, bool> Add32(u32 op1, u32 op2, u32& result, bool carry = 0)
 {
-    uint64_t result64 = static_cast<uint64_t>(op1) + static_cast<uint64_t>(op2) + static_cast<uint64_t>(carry);
+    u64 result64 = static_cast<u64>(op1) + static_cast<u64>(op2) + static_cast<u64>(carry);
     result = result64 & U32_MAX;
     bool c = (result64 > U32_MAX);
     bool v = AdditionOverflow(op1, op2, result);
@@ -55,7 +55,7 @@ std::pair<bool, bool> Sub32(u32 op1, u32 op2, u32& result, bool carry = 1)
 {
     u32 carryVal = carry ? 0 : 1;
     carryVal = ~carryVal + 1;
-    uint64_t result64 = static_cast<uint64_t>(op1) + static_cast<uint64_t>(~op2 + 1) + static_cast<uint64_t>(carryVal);
+    u64 result64 = static_cast<u64>(op1) + static_cast<u64>(~op2 + 1) + static_cast<u64>(carryVal);
     result = result64 & U32_MAX;
     bool c = op1 >= op2;
     bool v = SubtractionOverflow(op1, op2, result);
@@ -298,8 +298,66 @@ void ARM7TDMI::ExecutePCRelativeLoad(u16 instruction)
 
 void ARM7TDMI::ExecuteHiRegisterOperationsBranchExchange(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("HiRegisterOperationsBranchExchange not implemented");
+    auto flags = std::bit_cast<HiRegisterOperationsBranchExchange::Flags>(instruction);
+
+    u8 Rd = flags.RdHd;
+    u8 Rs = flags.RsHs;
+
+    if (flags.H1)
+    {
+        Rd += 8;
+    }
+
+    if (flags.H2)
+    {
+        Rs += 8;
+    }
+
+    switch (flags.Op)
+    {
+        case 0b00:  // ADD
+        {
+            u32 result = registers_.ReadRegister(Rd) + registers_.ReadRegister(Rs);
+            registers_.WriteRegister(Rd, result);
+            flushPipeline_ = Rd == PC_INDEX;
+            break;
+        }
+        case 0b01:  // CMP
+        {
+            u32 op1 = registers_.ReadRegister(Rd);
+            u32 op2 = registers_.ReadRegister(Rs);
+            u32 result = 0;
+
+            auto [carry, overflow] = Sub32(op1, op2, result);
+
+            registers_.SetNegative(result & U32_MSB);
+            registers_.SetZero(result == 0);
+            registers_.SetCarry(carry);
+            registers_.SetOverflow(overflow);
+            break;
+        }
+        case 0b10:  // MOV
+            registers_.WriteRegister(Rd, registers_.ReadRegister(Rs));
+            flushPipeline_ = Rd == PC_INDEX;
+            break;
+        case 0b11:  // BX
+        {
+            u32 pc = registers_.ReadRegister(Rs);
+            flushPipeline_ = true;
+
+            if (pc & 0x01)
+            {
+                registers_.SetOperatingState(OperatingState::THUMB);
+            }
+            else
+            {
+                registers_.SetOperatingState(OperatingState::ARM);
+            }
+
+            registers_.SetPC(pc);
+            break;
+        }
+    }
 }
 
 void ARM7TDMI::ExecuteALUOperations(u16 instruction)
