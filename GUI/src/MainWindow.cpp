@@ -32,6 +32,11 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(&screenTimer_, &QTimer::timeout, this, &RefreshScreen);
     screenTimer_.start(16);
 
+    // Temporarily set scale to 4x manually
+    int width = 240 * 4;
+    int height = (160 * 4) + menuBar()->height();
+    resize(width, height);
+
     // Initialize SDL
     SDL_Init(SDL_INIT_AUDIO);
     SDL_AudioSpec audioSpec = {};
