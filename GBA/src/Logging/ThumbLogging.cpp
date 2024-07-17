@@ -213,6 +213,27 @@ void ARM7TDMI::LogAddSubtract(u16 instruction) const
 
 void ARM7TDMI::LogMoveShiftedRegister(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<MoveShiftedRegister::Flags>(instruction);
+    std::string op;
+
+    switch (flags.Op)
+    {
+        case 0b00:
+            op = "LSL";
+            break;
+        case 0b01:
+            op = "LSR";
+            break;
+        case 0b10:
+            op = "ASR";
+            break;
+    }
+
+    u8 Rd = flags.Rd;
+    u8 Rs = flags.Rs;
+    u8 offset = flags.Offset5;
+
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, R{}, #{}", instruction, op, Rd, Rs, offset);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 }  // namespace cpu

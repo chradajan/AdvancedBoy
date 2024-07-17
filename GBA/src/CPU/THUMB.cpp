@@ -419,7 +419,50 @@ void ARM7TDMI::ExecuteAddSubtract(u16 instruction)
 
 void ARM7TDMI::ExecuteMoveShiftedRegister(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("MoveShiftedRegister not implemented");
+    auto flags = std::bit_cast<MoveShiftedRegister::Flags>(instruction);
+    bool carry = registers_.IsCarry();
+    u8 shiftAmount = flags.Offset5;
+    u32 result = registers_.ReadRegister(flags.Rs);
+
+    switch (flags.Op)
+    {
+        case 0b00:  // LSL
+            carry = (shiftAmount == 0) ? carry : (result & (U32_MSB >> (shiftAmount - 1)));
+            result <<= shiftAmount;
+            break;
+        case 0b01:
+            carry = (shiftAmount == 0) ? (result & U32_MSB) : (result & (0x01 << (shiftAmount - 1)));
+            result = (shiftAmount == 0) ? 0 : (result >> shiftAmount);
+            break;
+        case 0b10:
+        {
+            bool msbSet = result & U32_MSB;
+
+            if (shiftAmount == 0)
+            {
+                carry = msbSet;
+                result = msbSet ? U32_MAX : 0;
+            }
+            else
+            {
+                carry = result & (0x01 << (shiftAmount - 1));
+
+                for (u8 i = 0; i < shiftAmount; ++i)
+                {
+                    result >>= 1;
+                    result |= (msbSet ? U32_MSB : 0);
+                }
+            }
+
+            break;
+        }
+        default:
+            break;
+    }
+
+    registers_.SetNegative(result & U32_MSB);
+    registers_.SetZero(result == 0);
+    registers_.SetCarry(carry);
+    registers_.WriteRegister(flags.Rd, result);
 }
 }  // namespace cpu
