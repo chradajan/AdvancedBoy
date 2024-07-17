@@ -252,7 +252,11 @@ void ARM7TDMI::LogBranch(u32 instruction) const
 
 void ARM7TDMI::LogArmSoftwareInterrupt(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<SoftwareInterrupt::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    u32 comment = flags.CommentField;
+    std::string mnemonic = std::format("{:08X} -> SWI{} #{:06X}", instruction, cond, comment);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogUndefined(u32 instruction) const

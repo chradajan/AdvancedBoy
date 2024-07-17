@@ -322,7 +322,13 @@ void ARM7TDMI::ExecuteBranch(u32 instruction)
 void ARM7TDMI::ExecuteArmSoftwareInterrupt(u32 instruction)
 {
     (void)instruction;
-    throw std::runtime_error("ArmSoftwareInterrupt not implemented");
+    u32 cpsr = registers_.GetCPSR();
+    registers_.SetOperatingMode(OperatingMode::Supervisor);
+    registers_.WriteRegister(LR_INDEX, registers_.GetPC() - 4);
+    registers_.SetIrqDisabled(true);
+    registers_.SetSPSR(cpsr);
+    registers_.SetPC(SWI_VECTOR);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteUndefined(u32 instruction)
