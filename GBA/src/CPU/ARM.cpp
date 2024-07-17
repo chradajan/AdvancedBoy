@@ -519,8 +519,88 @@ void ARM7TDMI::ExecuteMultiply(u32 instruction)
 
 void ARM7TDMI::ExecuteMultiplyLong(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("MultiplyLong not implemented");
+    auto flags = std::bit_cast<MultiplyLong::Flags>(instruction);
+    u32 Rm = registers_.ReadRegister(flags.Rm);
+    u32 Rs = registers_.ReadRegister(flags.Rs);
+    u32 RdHi = registers_.ReadRegister(flags.RdHi);
+    u32 RdLo = registers_.ReadRegister(flags.RdLo);
+    u64 RdHiLo = (static_cast<u64>(RdHi) << 32) | RdLo;
+
+    u64 result;
+    int cycles = flags.A ? 2 : 1;
+
+    if (flags.U)
+    {
+        // Signed
+        if (((Rs & 0xFFFF'FF00) == 0xFFFF'FF00) || ((Rs & 0xFFFF'FF00) == 0))
+        {
+            cycles += 1;
+        }
+        else if (((Rs & 0xFFFF'0000) == 0xFFFF'0000) || ((Rs & 0xFFFF'0000) == 0))
+        {
+            cycles += 2;
+        }
+        else if (((Rs & 0xFF00'0000) == 0xFF00'0000) || ((Rs & 0xFF00'0000) == 0))
+        {
+            cycles += 3;
+        }
+        else
+        {
+            cycles += 4;
+        }
+
+        i64 op1 = Rm;
+        i64 op2 = Rs;
+        i64 op3 = RdHiLo;
+
+        if (op1 & U32_MSB)
+        {
+            op1 |= 0xFFFF'FFFF'0000'0000;
+        }
+
+        if (op2 & U32_MSB)
+        {
+            op2 |= 0xFFFF'FFFF'0000'0000;
+        }
+
+        i64 signedResult = flags.A ? ((op1 * op2) + op3) : (op1 * op2);
+        result = static_cast<u64>(signedResult);
+    }
+    else
+    {
+        // Unsigned
+        if ((Rs & 0xFFFF'FF00) == 0)
+        {
+            cycles += 1;
+        }
+        else if ((Rs & 0xFFFF'0000) == 0)
+        {
+            cycles += 2;
+        }
+        else if ((Rs & 0xFF00'0000) == 0)
+        {
+            cycles += 3;
+        }
+        else
+        {
+            cycles += 4;
+        }
+
+        u64 op1 = Rm;
+        u64 op2 = Rs;
+        u64 op3 = RdHiLo;
+        result = flags.A ? ((op1 * op2) + op3) : (op1 * op2);
+    }
+
+    if (flags.S)
+    {
+        registers_.SetNegative(result & U64_MSB);
+        registers_.SetZero(result == 0);
+    }
+
+    registers_.WriteRegister(flags.RdHi, result >> 32);
+    registers_.WriteRegister(flags.RdLo, result & U32_MAX);
+    scheduler_.Step(cycles);
 }
 
 void ARM7TDMI::ExecuteHalfwordDataTransfer(u32 instruction)

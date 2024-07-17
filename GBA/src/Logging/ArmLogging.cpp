@@ -406,7 +406,27 @@ void ARM7TDMI::LogMultiply(u32 instruction) const
 
 void ARM7TDMI::LogMultiplyLong(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<MultiplyLong::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string u = flags.U ? "S" : "U";
+    std::string s = flags.S ? "S" : "";
+    u8 RdHi = flags.RdHi;
+    u8 RdLo = flags.RdLo;
+    u8 Rs = flags.Rs;
+    u8 Rm = flags.Rm;
+    std::string regString = std::format("R{}, R{}, R{}, R{}", RdLo, RdHi, Rm, Rs);
+    std::string mnemonic;
+
+    if (flags.A)
+    {
+        mnemonic = std::format("{:08X} -> {}MLAL{}{} {}", instruction, u, cond, s, regString);
+    }
+    else
+    {
+        mnemonic = std::format("{:08X} -> {}MULL{}{} {}", instruction, u, cond, s, regString);
+    }
+
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
