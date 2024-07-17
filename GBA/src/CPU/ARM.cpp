@@ -455,8 +455,22 @@ void ARM7TDMI::ExecuteSingleDataTransfer(u32 instruction)
 
 void ARM7TDMI::ExecuteSingleDataSwap(u32 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("SingleDataSwap not implemented");
+    auto flags = std::bit_cast<SingleDataSwap::Flags>(instruction);
+    u32 addr = registers_.ReadRegister(flags.Rn);
+    auto length = flags.B ? AccessSize::BYTE : AccessSize::WORD;
+
+    auto [memValue, readCycles] = ReadMemory(addr, length);
+    u32 regValue = registers_.ReadRegister(flags.Rm);
+
+    if ((length == AccessSize::WORD) && (addr & 0x03))
+    {
+        memValue = std::rotr(memValue, (addr & 0x03) * 8);
+    }
+
+    int writeCycles = WriteMemory(addr, regValue, length);
+    registers_.WriteRegister(flags.Rd, memValue);
+
+    scheduler_.Step(readCycles + writeCycles);
 }
 
 void ARM7TDMI::ExecuteMultiply(u32 instruction)

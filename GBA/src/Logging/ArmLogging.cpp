@@ -367,7 +367,18 @@ void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const
 
 void ARM7TDMI::LogSingleDataSwap(u32 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<SingleDataSwap::Flags>(instruction);
+    std::string cond = ConditionMnemonic(flags.Cond);
+    std::string b = flags.B ? "B" : "";
+    std::string op = "SWP" + cond + b;
+
+    u8 Rd = flags.Rd;
+    u8 Rm = flags.Rm;
+    u8 Rn = flags.Rn;
+    std::string regString = std::format("R{}, R{}, [R{}]", Rd, Rm, Rn);
+
+    std::string mnemonic = std::format("{:08X} -> {} {}", instruction, op, regString);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogMultiply(u32 instruction) const
