@@ -1,6 +1,5 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
 #include <bit>
-#include <cstring>
 #include <format>
 #include <sstream>
 #include <string>
