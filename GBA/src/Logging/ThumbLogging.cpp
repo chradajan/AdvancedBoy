@@ -176,7 +176,65 @@ void ARM7TDMI::LogHiRegisterOperationsBranchExchange(u16 instruction) const
 
 void ARM7TDMI::LogALUOperations(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<ALUOperations::Flags>(instruction);
+    std::string op;
+
+    switch (flags.Op)
+    {
+        case 0b0000:
+            op = "AND";
+            break;
+        case 0b0001:
+            op = "EOR";
+            break;
+        case 0b0010:
+            op = "LSL";
+            break;
+        case 0b0011:
+            op = "LSR";
+            break;
+        case 0b0100:
+            op = "ASR";
+            break;
+        case 0b0101:
+            op = "ADC";
+            break;
+        case 0b0110:
+            op = "SBC";
+            break;
+        case 0b0111:
+            op = "ROR";
+            break;
+        case 0b1000:
+            op = "TST";
+            break;
+        case 0b1001:
+            op = "NEG";
+            break;
+        case 0b1010:
+            op = "CMP";
+            break;
+        case 0b1011:
+            op = "CMN";
+            break;
+        case 0b1100:
+            op = "ORR";
+            break;
+        case 0b1101:
+            op = "MUL";
+            break;
+        case 0b1110:
+            op = "BIC";
+            break;
+        case 0b1111:
+            op = "MVN";
+            break;
+    }
+
+    u8 Rd = flags.Rd;
+    u8 Rs = flags.Rs;
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, R{}", instruction, op, Rd, Rs);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogMoveCompareAddSubtractImmediate(u16 instruction) const

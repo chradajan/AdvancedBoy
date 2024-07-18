@@ -61,6 +61,33 @@ std::pair<bool, bool> Sub32(u32 op1, u32 op2, u32& result, bool carry = 1)
     bool v = SubtractionOverflow(op1, op2, result);
     return {c, v};
 }
+
+/// @brief Determine the number of internal cycles needed to perform a multiplication op.
+/// @param val Current value in destination register.
+/// @return Number of internal cycles.
+int InternalMultiplyCycles(u32 val)
+{
+    int cycles;
+
+    if (((val & 0xFFFF'FF00) == 0xFFFF'FF00) || ((val & 0xFFFF'FF00) == 0))
+    {
+        cycles = 1;
+    }
+    else if (((val & 0xFFFF'0000) == 0xFFFF'0000) || ((val & 0xFFFF'0000) == 0))
+    {
+        cycles = 2;
+    }
+    else if (((val & 0xFF00'0000) == 0xFF00'0000) || ((val & 0xFF00'0000) == 0))
+    {
+        cycles = 3;
+    }
+    else
+    {
+        cycles = 4;
+    }
+
+    return cycles;
+}
 }
 
 namespace cpu
@@ -362,8 +389,188 @@ void ARM7TDMI::ExecuteHiRegisterOperationsBranchExchange(u16 instruction)
 
 void ARM7TDMI::ExecuteALUOperations(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("ALUOperations not implemented");
+    auto flags = std::bit_cast<ALUOperations::Flags>(instruction);
+    bool saveResult = true;
+    bool updateCarry = true;
+    bool updateOverflow = true;
+    bool carry = registers_.IsCarry();
+    bool overflow = registers_.IsOverflow();
+
+    u32 op1 = registers_.ReadRegister(flags.Rd);
+    u32 op2 = registers_.ReadRegister(flags.Rs);
+    u32 result;
+
+    switch (flags.Op)
+    {
+        case 0b0000:  // AND
+            result = op1 & op2;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+        case 0b0001:  // EOR
+            result = op1 ^ op2;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+        case 0b0010:  // LSL
+        {
+            op2 &= 0xFF;
+            result = op1;
+            updateOverflow = false;
+
+            if (op2 > 32)
+            {
+                carry = false;
+                result = 0;
+            }
+            else if (op2 == 32)
+            {
+                carry = (op1 & 0x01);
+                result = 0;
+            }
+            else if (op2 != 0)
+            {
+                carry = op1 & (U32_MSB >> (op2 - 1));
+                result <<= op2;
+            }
+
+            scheduler_.Step(1);
+            break;
+        }
+        case 0b0011:  // LSR
+        {
+            op2 &= U8_MAX;
+            result = op1;
+            updateOverflow = false;
+
+            if (op2 > 32)
+            {
+                carry = false;
+                result = 0;
+            }
+            else if (op2 == 32)
+            {
+                carry = op1 & U32_MSB;
+                result = 0;
+            }
+            else if (op2 != 0)
+            {
+                carry = op1 & (0x01 << (op2 - 1));
+                result >>= op2;
+            }
+
+            scheduler_.Step(1);
+            break;
+        }
+        case 0b0100:  // ASR
+        {
+            op2 &= U8_MAX;
+            result = op1;
+            updateOverflow = false;
+            bool msbSet = op1 & U32_MSB;
+
+            if (op2 >= 32)
+            {
+                carry = msbSet;
+                result = msbSet ? U32_MAX : 0;
+            }
+            else if (op2 > 0)
+            {
+                carry = op1 & (0x01 << (op2 - 1));
+
+                while (op2 > 0)
+                {
+                    result >>= 1;
+                    result |= (msbSet ? U32_MSB : 0);
+                    --op2;
+                }
+            }
+
+            scheduler_.Step(1);
+            break;
+        }
+        case 0b0101:  // ADC
+            std::tie(carry, overflow) = Add32(op1, op2, result, carry);
+            break;
+        case 0b0110:  // SBC
+            std::tie(carry, overflow) = Sub32(op1, op2, result, carry);
+            break;
+        case 0b0111:  // ROR
+        {
+            op2 &= U8_MAX;
+            result = op1;
+            updateOverflow = false;
+
+            if (op2 > 32)
+            {
+                op2 %= 32;
+            }
+
+            if (op2)
+            {
+                carry = op1 & (0x01 << (op2 - 1));
+                result = std::rotr(result, op2);
+            }
+
+            scheduler_.Step(1);
+            break;
+        }
+        case 0b1000:  // TST
+            result = op1 & op2;
+            saveResult = false;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+        case 0b1001:  // NEG
+            std::tie(carry, overflow) = Sub32(0, op2, result);
+            break;
+        case 0b1010:  // CMP
+            std::tie(carry, overflow) = Sub32(op1, op2, result);
+            saveResult = false;
+            break;
+        case 0b1011:  // CMN
+            std::tie(carry, overflow) = Add32(op1, op2, result);
+            saveResult = false;
+            break;
+        case 0b1100:  // ORR
+            result = op1 | op2;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+        case 0b1101:  // MUL
+            result = op1 * op2;
+            updateOverflow = false;
+            scheduler_.Step(InternalMultiplyCycles(op1));
+            break;
+        case 0b1110:  // BIC
+            result = op1 & ~op2;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+        case 0b1111:  // MVN
+            result = ~op2;
+            updateCarry = false;
+            updateOverflow = false;
+            break;
+    }
+
+    registers_.SetNegative(result & U32_MSB);
+    registers_.SetZero(result == 0);
+
+    if (updateCarry)
+    {
+        registers_.SetCarry(carry);
+    }
+
+    if (updateOverflow)
+    {
+        registers_.SetOverflow(overflow);
+    }
+
+    if (saveResult)
+    {
+        registers_.WriteRegister(flags.Rd, result);
+    }
 }
 
 void ARM7TDMI::ExecuteMoveCompareAddSubtractImmediate(u16 instruction)
