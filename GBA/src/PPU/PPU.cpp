@@ -271,7 +271,7 @@ void PPU::CheckVCountSetting()
 
         if (dispstat.vCounterIrqEnable)
         {
-            // TODO: Request VCOUNT IRQ
+            systemControl_.RequestInterrupt(InterruptType::LCD_VCOUNTER_MATCH);
         }
     }
     else
@@ -294,7 +294,7 @@ void PPU::HBlank(int extraCycles)
 
     if (dispstat.hBlankIrqEnable)
     {
-        // TODO: Request HBlank IRQ
+        systemControl_.RequestInterrupt(InterruptType::LCD_HBLANK);
     }
 
     SetDISPSTAT(dispstat);
@@ -328,7 +328,7 @@ void PPU::VBlank(int extraCycles)
 
         if (dispstat.vBlankIrqEnable)
         {
-            // TODO: Request VBlank IRQ
+            systemControl_.RequestInterrupt(InterruptType::LCD_VBLANK);
         }
 
         SetBG2RefX();
