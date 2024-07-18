@@ -164,7 +164,33 @@ void ARM7TDMI::LogLoadStoreWithOffset(u16 instruction) const
 
 void ARM7TDMI::LogLoadStoreSignExtendedByteHalfword(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<LoadStoreSignExtendedByteHalfword::Flags>(instruction);
+    u8 Ro = flags.Ro;
+    u8 Rb = flags.Rb;
+    u8 Rd = flags.Rd;
+    std::string regString = std::format("R{}, [R{}, R{}]", Rd, Rb, Ro);
+
+    std::string op;
+    u8 sh = (flags.S << 1) | (flags.H);
+
+    switch (sh)
+    {
+        case 0b00:  // S = 0, H = 0
+            op = "STRH";
+            break;
+        case 0b01:  // S = 0, H = 1
+            op = "LDRH";
+            break;
+        case 0b10:  // S = 1, H = 0
+            op = "LDSB";
+            break;
+        case 0b11:  // S = 1, H = 1
+            op = "LDSH";
+            break;
+    }
+
+    std::string mnemonic = std::format("    {:04X} -> {} {}", instruction, op, regString);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogPCRelativeLoad(u16 instruction) const

@@ -351,8 +351,67 @@ void ARM7TDMI::ExecuteLoadStoreWithOffset(u16 instruction)
 
 void ARM7TDMI::ExecuteLoadStoreSignExtendedByteHalfword(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("LoadStoreSignExtendedByteHalfword not implemented");
+    auto flags = std::bit_cast<LoadStoreSignExtendedByteHalfword::Flags>(instruction);
+    u32 addr = registers_.ReadRegister(flags.Rb) + registers_.ReadRegister(flags.Ro);
+    bool load = true;
+    bool h = flags.H;
+
+    if (flags.S)
+    {
+        i32 val;
+        int readCycles;
+
+        if (h && (addr & 0x01))
+        {
+            // Convert LDRSH into LDRSB
+            h = false;
+        }
+
+        if (h)
+        {
+            // LDSH
+            std::tie(val, readCycles) = ReadMemory(addr, AccessSize::HALFWORD);
+            val = SignExtend<i32, 15>(val);
+        }
+        else
+        {
+            // LDSB
+            std::tie(val, readCycles) = ReadMemory(addr, AccessSize::BYTE);
+            val = SignExtend<i32, 7>(val);
+        }
+
+        scheduler_.Step(readCycles);
+        registers_.WriteRegister(flags.Rd, val);
+    }
+    else
+    {
+        if (h)
+        {
+            // LDRH
+            auto [val, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+            scheduler_.Step(readCycles);
+
+            if (addr & 0x01)
+            {
+                val = std::rotr(val, 8);
+            }
+
+            registers_.WriteRegister(flags.Rd, val);
+        }
+        else
+        {
+            // STRH
+            load = false;
+            u32 val = registers_.ReadRegister(flags.Rd);
+            int writeCycles = WriteMemory(addr, val, AccessSize::HALFWORD);
+            scheduler_.Step(writeCycles);
+        }
+    }
+
+    if (load)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecutePCRelativeLoad(u16 instruction)
