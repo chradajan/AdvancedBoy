@@ -259,8 +259,11 @@ void ARM7TDMI::ExecuteLongBranchWithLink(u16 instruction)
 
 void ARM7TDMI::ExecuteAddOffsetToStackPointer(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("AddOffsetToStackPointer not implemented");
+    auto flags = std::bit_cast<AddOffsetToStackPointer::Flags>(instruction);
+    u16 offset = flags.SWord7 << 2;
+    u32 sp = registers_.ReadRegister(SP_INDEX);
+    sp += flags.S ? -offset : offset;
+    registers_.WriteRegister(SP_INDEX, sp);
 }
 
 void ARM7TDMI::ExecutePushPopRegisters(u16 instruction)

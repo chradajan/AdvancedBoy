@@ -97,7 +97,11 @@ void ARM7TDMI::LogLongBranchWithLink(u16 instruction) const
 
 void ARM7TDMI::LogAddOffsetToStackPointer(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<AddOffsetToStackPointer::Flags>(instruction);
+    u16 offset = flags.SWord7 << 2;
+    std::string imm = std::format("#{}{}", flags.S ? "-" : "", offset);
+    std::string mnemonic = std::format("    {:04X} -> ADD SP, {}", instruction, imm);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogPushPopRegisters(u16 instruction) const
