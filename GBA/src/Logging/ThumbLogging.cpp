@@ -104,7 +104,45 @@ void ARM7TDMI::LogConditionalBranch(u16 instruction) const
 
 void ARM7TDMI::LogMultipleLoadStore(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<MultipleLoadStore::Flags>(instruction);
+    std::string op = flags.L ? "LDMIA" : "STMIA";
+    u8 Rb = flags.Rb;
+
+    std::stringstream regStream;
+    u8 regIndex = 0;
+    u8 regList = flags.Rlist;
+    int consecutiveRegisters = 0;
+    regStream << "{";
+
+    while (regList != 0)
+    {
+        if (regList & 0x01)
+        {
+            ++consecutiveRegisters;
+        }
+        else if (consecutiveRegisters > 0)
+        {
+            PushPopHelper(regStream, consecutiveRegisters, regIndex);
+            consecutiveRegisters = 0;
+        }
+
+        ++regIndex;
+        regList >>= 1;
+    }
+
+    if (consecutiveRegisters > 0)
+    {
+        PushPopHelper(regStream, consecutiveRegisters, regIndex);
+    }
+
+    if (regStream.str().length() > 1)
+    {
+        regStream.seekp(-2, regStream.cur);
+    }
+
+    regStream << "}";
+    std::string mnemonic = std::format("    {:04X} -> {} R{}!, {}", instruction, op, Rb, regStream.str());
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogLongBranchWithLink(u16 instruction) const

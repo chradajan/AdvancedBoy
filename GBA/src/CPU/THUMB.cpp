@@ -229,8 +229,91 @@ void ARM7TDMI::ExecuteConditionalBranch(u16 instruction)
 
 void ARM7TDMI::ExecuteMultipleLoadStore(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("MultipleLoadStore not implemented");
+    auto flags = std::bit_cast<MultipleLoadStore::Flags>(instruction);
+    u8 regList = flags.Rlist;
+    u32 addr = registers_.ReadRegister(flags.Rb);
+    u32 wbAddr = addr;
+    bool emptyRlist = regList == 0;
+    bool rbInList = regList & (0x01 << flags.Rb);
+    bool rbFirstInList = rbInList && !flags.L && ((((0x01 << flags.Rb) - 1) & regList) == 0);
+
+    if (!rbFirstInList)
+    {
+        wbAddr += (4 * std::popcount(regList));
+    }
+
+    if (flags.L)
+    {
+        u8 regIndex = 0;
+
+        while (regList != 0)
+        {
+            if (regList & 0x01)
+            {
+                auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+                scheduler_.Step(readCycles);
+                registers_.WriteRegister(regIndex, val);
+                addr += 4;
+            }
+
+            ++regIndex;
+            regList >>= 1;
+        }
+
+        if (emptyRlist)
+        {
+            auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+            scheduler_.Step(readCycles);
+            registers_.SetPC(val);
+            flushPipeline_ = true;
+        }
+    }
+    else
+    {
+        u8 regIndex = 0;
+
+        while (regList != 0)
+        {
+            if (regList & 0x01)
+            {
+                u32 val = registers_.ReadRegister(regIndex);
+
+                if (!rbFirstInList && (regIndex == flags.Rb))
+                {
+                    val = wbAddr;
+                }
+
+                int writeCycles = WriteMemory(addr, val, AccessSize::WORD);
+                scheduler_.Step(writeCycles);
+                addr += 4;
+            }
+
+            ++regIndex;
+            regList >>= 1;
+        }
+
+        if (emptyRlist)
+        {
+            u32 value = registers_.GetPC() + 2;
+            int writeCycles = WriteMemory(addr, value, AccessSize::WORD);
+            scheduler_.Step(writeCycles);
+        }
+    }
+
+    if (emptyRlist)
+    {
+        wbAddr = registers_.ReadRegister(flags.Rb) + 0x40;
+        registers_.WriteRegister(flags.Rb, wbAddr);
+    }
+    else if (!(rbInList && flags.L))
+    {
+        registers_.WriteRegister(flags.Rb, addr);
+    }
+
+    if (flags.L)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecuteLongBranchWithLink(u16 instruction)
