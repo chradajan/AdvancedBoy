@@ -274,8 +274,28 @@ void ARM7TDMI::ExecutePushPopRegisters(u16 instruction)
 
 void ARM7TDMI::ExecuteLoadStoreHalfword(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("LoadStoreHalfword not implemented");
+    auto flags = std::bit_cast<LoadStoreHalfword::Flags>(instruction);
+    u32 addr = registers_.ReadRegister(flags.Rb) + (flags.Offset5 << 1);
+
+    if (flags.L)
+    {
+        auto [val, readCycles] = ReadMemory(addr, AccessSize::HALFWORD);
+        scheduler_.Step(readCycles);
+
+        if (addr & 0x01)
+        {
+            val = std::rotr(val, 8);
+        }
+
+        registers_.WriteRegister(flags.Rd, val);
+        scheduler_.Step(1);
+    }
+    else
+    {
+        u16 val = registers_.ReadRegister(flags.Rd);
+        int writeCycles = WriteMemory(addr, val, AccessSize::HALFWORD);
+        scheduler_.Step(writeCycles);
+    }
 }
 
 void ARM7TDMI::ExecuteSPRelativeLoadStore(u16 instruction)

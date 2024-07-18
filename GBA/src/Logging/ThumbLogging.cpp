@@ -111,7 +111,13 @@ void ARM7TDMI::LogPushPopRegisters(u16 instruction) const
 
 void ARM7TDMI::LogLoadStoreHalfword(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<LoadStoreHalfword::Flags>(instruction);
+    u8 Rd = flags.Rd;
+    u8 Rb = flags.Rb;
+    u8 offset = flags.Offset5 << 1;
+    std::string op = flags.L ? "LDRH" : "STRH";
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, [R{}, #{}]", instruction, op, Rd, Rb, offset);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogSPRelativeLoadStore(u16 instruction) const
