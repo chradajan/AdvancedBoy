@@ -268,8 +268,88 @@ void ARM7TDMI::ExecuteAddOffsetToStackPointer(u16 instruction)
 
 void ARM7TDMI::ExecutePushPopRegisters(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("PushPopRegisters not implemented");
+    auto flags = std::bit_cast<PushPopRegisters::Flags>(instruction);
+    u8 regList = flags.Rlist;
+    bool emptyRlist = (regList == 0) && !flags.R;
+    u32 addr = registers_.ReadRegister(SP_INDEX);
+
+    if (flags.L)
+    {
+        // POP
+        u8 regIndex = 0;
+
+        while (regList != 0)
+        {
+            if (regList & 0x01)
+            {
+                auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+                scheduler_.Step(readCycles);
+                registers_.WriteRegister(regIndex, val);
+                addr += 4;
+            }
+
+            ++regIndex;
+            regList >>= 1;
+        }
+
+        if (flags.R || emptyRlist)
+        {
+            auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+            scheduler_.Step(readCycles);
+            registers_.SetPC(val);
+            addr += 4;
+            flushPipeline_ = true;
+        }
+    }
+    else
+    {
+        // PUSH
+        if (flags.R)
+        {
+            addr -= 4;
+            u32 val = registers_.ReadRegister(LR_INDEX);
+            int writeCycles = WriteMemory(addr, val, AccessSize::WORD);
+            scheduler_.Step(writeCycles);
+        }
+        else if (emptyRlist)
+        {
+            addr -= 4;
+            u32 val = registers_.GetPC() + 2;
+            int writeCycles = WriteMemory(addr, val, AccessSize::WORD);
+            scheduler_.Step(writeCycles);
+        }
+
+        u8 regIndex = 7;
+
+        while (regList != 0)
+        {
+            if (regList & 0x80)
+            {
+                addr -= 4;
+                u32 value = registers_.ReadRegister(regIndex);
+                int writeCycles = WriteMemory(addr, value, AccessSize::WORD);
+                scheduler_.Step(writeCycles);
+            }
+
+            --regIndex;
+            regList <<= 1;
+        }
+    }
+
+    if (emptyRlist)
+    {
+        u32 sp = registers_.ReadRegister(SP_INDEX) + (flags.L ? 0x40 : -0x40);
+        registers_.WriteRegister(SP_INDEX, sp);
+    }
+    else
+    {
+        registers_.WriteRegister(SP_INDEX, addr);
+    }
+
+    if (flags.L)
+    {
+        scheduler_.Step(1);
+    }
 }
 
 void ARM7TDMI::ExecuteLoadStoreHalfword(u16 instruction)
