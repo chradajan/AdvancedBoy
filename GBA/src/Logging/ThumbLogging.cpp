@@ -122,7 +122,12 @@ void ARM7TDMI::LogLoadStoreHalfword(u16 instruction) const
 
 void ARM7TDMI::LogSPRelativeLoadStore(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<SPRelativeLoadStore::Flags>(instruction);
+    std::string op = flags.L ? "LDR" : "STR";
+    u8 Rd = flags.Rd;
+    u16 imm = flags.Word8 << 2;
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, [SP, #{}]", instruction, op, Rd, imm);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogLoadAddress(u16 instruction) const

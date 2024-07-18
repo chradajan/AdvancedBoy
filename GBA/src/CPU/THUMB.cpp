@@ -300,8 +300,28 @@ void ARM7TDMI::ExecuteLoadStoreHalfword(u16 instruction)
 
 void ARM7TDMI::ExecuteSPRelativeLoadStore(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("SPRelativeLoadStore not implemented");
+    auto flags = std::bit_cast<SPRelativeLoadStore::Flags>(instruction);
+    u32 addr = registers_.ReadRegister(SP_INDEX) + (flags.Word8 << 2);
+
+    if (flags.L)
+    {
+        auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+        scheduler_.Step(readCycles);
+
+        if (addr & 0x03)
+        {
+            val = std::rotr(val, (addr & 0x03) * 8);
+        }
+
+        registers_.WriteRegister(flags.Rd, val);
+        scheduler_.Step(1);
+    }
+    else
+    {
+        u32 val = registers_.ReadRegister(flags.Rd);
+        int writeCycles = WriteMemory(addr, val, AccessSize::WORD);
+        scheduler_.Step(writeCycles);
+    }
 }
 
 void ARM7TDMI::ExecuteLoadAddress(u16 instruction)
