@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget* parent) :
     // Initialize screen
     setCentralWidget(&screen_);
     screenTimer_.setTimerType(Qt::TimerType::PreciseTimer);
-    connect(&screenTimer_, &QTimer::timeout, this, &RefreshScreen);
+    connect(&screenTimer_, &QTimer::timeout, this, &MainWindow::RefreshScreen);
     screenTimer_.start(16);
 
     // Temporarily set scale to 4x manually
@@ -64,7 +64,7 @@ MainWindow::MainWindow(QWidget* parent) :
     }
 
     // Window title
-    connect(&fpsTimer_, &QTimer::timeout, this, &UpdateWindowTitle);
+    connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
     fpsTimer_.start(1000);
 }
 
