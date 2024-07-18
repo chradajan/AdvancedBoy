@@ -3,6 +3,7 @@
 #include <array>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <GBA/include/GameBoyAdvance.hpp>
 
 std::unique_ptr<GameBoyAdvance> GBA;
@@ -71,5 +72,32 @@ u8* GetFrameBuffer()
     }
 
     return GBA->GetRawFrameBuffer();
+}
+
+int GetFPSCounter()
+{
+    if (!GBA)
+    {
+        return 0;
+    }
+
+    return GBA->GetFPSCounter();
+}
+
+std::string GetTitle()
+{
+    if (!GBA)
+    {
+        return "Advanced Boy";
+    }
+
+    std::string title = GBA->GetTitle();
+
+    if (title == "")
+    {
+        return "Advanced Boy";
+    }
+
+    return title;
 }
 }  // namespace gui

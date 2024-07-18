@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
 #include <GBA/include/Cartridge/GamePak.hpp>
@@ -41,6 +42,14 @@ public:
     /// @brief Get a pointer to the pixel data of the most recently completed frame.
     /// @return Pointer to raw pixel data.
     u8* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
+
+    /// @brief Get FPS counter from PPU.
+    /// @return Number of times the PPU has entered VBlank since last check.
+    int GetFPSCounter() { return ppu_.GetAndResetFPSCounter(); }
+
+    /// @brief Get the title of the ROM currently running.
+    /// @return Current ROM title.
+    std::string GetTitle() const { return gamePak_ ? gamePak_->GetTitle() : ""; }
 
     /// @brief Transfer audio samples from internal buffer to external one.
     /// @param buffer Buffer to transfer samples to.

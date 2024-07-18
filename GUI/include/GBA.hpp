@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <GBA/include/Types.hpp>
 
 namespace fs = std::filesystem;
@@ -27,4 +28,12 @@ void FillAudioBuffer(u8* stream, size_t len);
 /// @brief Get a pointer to the most recently completed frame.
 /// @return Pointer to frame buffer data.
 u8* GetFrameBuffer();
+
+/// @brief Get FPS counter from PPU.
+/// @return Number of times the PPU has entered VBlank since last check.
+int GetFPSCounter();
+
+/// @brief Get the title of the ROM currently running.
+/// @return Current ROM title.
+std::string GetTitle();
 }  // namespace gui

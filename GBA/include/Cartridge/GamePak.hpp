@@ -53,6 +53,10 @@ public:
     /// @return True if a GamePak is loaded.
     bool GamePakLoaded() const { return gamePakLoaded_; }
 
+    /// @brief Get the title of the ROM currently running.
+    /// @return Current ROM title.
+    std::string GetTitle() const { return title_; }
+
 private:
     std::vector<std::byte> ROM_;
     std::unique_ptr<BackupMedia> backupMedia_;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
 #include <SDL2/SDL.h>
@@ -41,6 +42,9 @@ private:
     /// @brief Signal the LCD to update the screen.
     void RefreshScreen();
 
+    /// @brief Update the window title with the ROM name and current internal FPS.
+    void UpdateWindowTitle();
+
     // Emulation control
     EmuThread emuThread_;
     fs::path biosPath_;
@@ -52,5 +56,9 @@ private:
 
     // Audio control
     SDL_AudioDeviceID audioDevice_;
+
+    // Window title
+    QTimer fpsTimer_;
+    std::string romTitle_;
 };
 }  // namespace gui

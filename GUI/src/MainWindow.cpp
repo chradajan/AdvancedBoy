@@ -24,7 +24,9 @@ MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     emuThread_(this),
     screen_(this),
-    screenTimer_(this)
+    screenTimer_(this),
+    fpsTimer_(this),
+    romTitle_("Advanced Boy")
 {
     // Initialize screen
     setCentralWidget(&screen_);
@@ -49,7 +51,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
     // Paths
     biosPath_ = "../bios/gba_bios.bin";
-    logDir_ = "../logs";
+    logDir_ = "";
 
     QCoreApplication* app = QApplication::instance();
 
@@ -60,6 +62,10 @@ MainWindow::MainWindow(QWidget* parent) :
 
         StartEmulation(romPath);
     }
+
+    // Window title
+    connect(&fpsTimer_, &QTimer::timeout, this, &UpdateWindowTitle);
+    fpsTimer_.start(1000);
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
@@ -102,6 +108,7 @@ void MainWindow::StartEmulation(fs::path romPath)
 
     PowerOff();
     InitializeGBA(biosPath_, romPath, logDir_);
+    romTitle_ = GetTitle();
     emuThread_.start();
     SDL_UnlockAudioDevice(audioDevice_);
     SDL_PauseAudioDevice(audioDevice_, 0);
@@ -110,5 +117,21 @@ void MainWindow::StartEmulation(fs::path romPath)
 void MainWindow::RefreshScreen()
 {
     screen_.update();
+}
+
+void MainWindow::UpdateWindowTitle()
+{
+    std::string title;
+
+    if (romTitle_ == "Advanced Boy")
+    {
+        title = "Advanced Boy";
+    }
+    else
+    {
+        title = std::format("{} ({} fps)", romTitle_, GetFPSCounter());
+    }
+
+    setWindowTitle(QString::fromStdString(title));
 }
 }  // namespace gui

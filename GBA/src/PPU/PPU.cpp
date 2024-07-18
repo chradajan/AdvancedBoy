@@ -20,6 +20,8 @@ PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(s
     bg3RefX_ = 0;
     bg3RefY_ = 0;
 
+    fpsCounter_ = 0;
+
     PRAM_.fill(std::byte{0});
     OAM_.fill(std::byte{0});
     VRAM_.fill(std::byte{0});
@@ -322,6 +324,7 @@ void PPU::VBlank(int extraCycles)
     {
         dispstat.vBlank = 1;
         frameBuffer_.ResetFrameIndex();
+        ++fpsCounter_;
 
         if (dispstat.vBlankIrqEnable)
         {

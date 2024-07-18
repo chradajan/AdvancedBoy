@@ -30,6 +30,10 @@ public:
     /// @return Pointer to raw pixel data.
     u8* GetRawFrameBuffer() { return frameBuffer_.GetRawFrameBuffer(); }
 
+    /// @brief Get the number of frames that have been generated since the last check. Reset the counter.
+    /// @return Number of times the PPU has entered VBlank since last check.
+    int GetAndResetFPSCounter() { int counter = fpsCounter_; fpsCounter_ = 0; return counter; }
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Bus functionality
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -220,6 +224,7 @@ private:
 
     // Frame buffer
     FrameBuffer frameBuffer_;
+    int fpsCounter_;
 
     // External components
     EventScheduler& scheduler_;
