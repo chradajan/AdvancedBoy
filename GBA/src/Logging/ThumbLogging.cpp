@@ -208,7 +208,34 @@ void ARM7TDMI::LogMoveCompareAddSubtractImmediate(u16 instruction) const
 
 void ARM7TDMI::LogAddSubtract(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<AddSubtract::Flags>(instruction);
+    std::string op;
+    u8 rnOffset = flags.RnOffset3;
+
+    if (flags.I && (rnOffset == 0))
+    {
+        op = "MOV";
+    }
+    else
+    {
+        op = flags.Op ? "SUB" : "ADD";
+    }
+
+    std::string operand;
+
+    if (!flags.I)
+    {
+        operand = std::format(", R{}", rnOffset);
+    }
+    else if (rnOffset > 0)
+    {
+        operand = std::format(", #{}", rnOffset);
+    }
+
+    u8 Rd = flags.Rd;
+    u8 Rs = flags.Rs;
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, R{}{}", instruction, op, Rd, Rs, operand);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogMoveShiftedRegister(u16 instruction) const

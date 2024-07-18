@@ -413,8 +413,27 @@ void ARM7TDMI::ExecuteMoveCompareAddSubtractImmediate(u16 instruction)
 
 void ARM7TDMI::ExecuteAddSubtract(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("AddSubtract not implemented");
+    auto flags = std::bit_cast<AddSubtract::Flags>(instruction);
+    u32 op1 = registers_.ReadRegister(flags.Rs);
+    u32 op2 = flags.I ? flags.RnOffset3 : registers_.ReadRegister(flags.RnOffset3);
+    bool carry;
+    bool overflow;
+    u32 result;
+
+    if (flags.Op)
+    {
+        std::tie(carry, overflow) = Sub32(op1, op2, result);
+    }
+    else
+    {
+        std::tie(carry, overflow) = Add32(op1, op2, result);
+    }
+
+    registers_.SetNegative(result & U32_MSB);
+    registers_.SetZero(result == 0);
+    registers_.SetCarry(carry);
+    registers_.SetOverflow(overflow);
+    registers_.WriteRegister(flags.Rd, result);
 }
 
 void ARM7TDMI::ExecuteMoveShiftedRegister(u16 instruction)
