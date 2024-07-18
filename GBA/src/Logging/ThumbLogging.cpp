@@ -129,14 +129,37 @@ void ARM7TDMI::LogLoadAddress(u16 instruction) const
     log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
-void ARM7TDMI::LogLoadStoreWithImmOffset(u16 instruction) const
+void ARM7TDMI::LogLoadStoreWithOffset(u16 instruction) const
 {
-    (void)instruction;
-}
+    std::string op;
+    std::string b;
+    std::string offsetStr;
+    u8 Rd;
+    u8 Rb;
 
-void ARM7TDMI::LogLoadStoreWithRegOffset(u16 instruction) const
-{
-    (void)instruction;
+    if (LoadStoreWithImmOffset::IsInstanceOf(instruction))
+    {
+        auto flags = std::bit_cast<LoadStoreWithImmOffset::Flags>(instruction);
+        op = flags.L ? "LDR" : "STR";
+        b = flags.B ? "B" : "";
+        u8 offset = flags.B ? flags.Offset5 : (flags.Offset5 << 2);
+        offsetStr = std::format("#{}", offset);
+        Rd = flags.Rd;
+        Rb = flags.Rb;
+    }
+    else
+    {
+        auto flags = std::bit_cast<LoadStoreWithRegOffset::Flags>(instruction);
+        op = flags.L ? "LDR" : "STR";
+        b = flags.B ? "B" : "";
+        u8 Ro = flags.Ro;
+        offsetStr = std::format("R{}", Ro);
+        Rd = flags.Rd;
+        Rb = flags.Rb;
+    }
+
+    std::string mnemonic = std::format("    {:04X} -> {} R{}, [R{}, {}]", instruction, op, Rd, Rb, offsetStr);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogLoadStoreSignExtendedByteHalfword(u16 instruction) const

@@ -148,13 +148,13 @@ void ARM7TDMI::DecodeAndExecuteTHUMB(u16 instruction, bool log)
     }
     else if (LoadStoreWithImmOffset::IsInstanceOf(instruction))
     {
-        if (log) LogLoadStoreWithImmOffset(instruction);
-        ExecuteLoadStoreWithImmOffset(instruction);
+        if (log) LogLoadStoreWithOffset(instruction);
+        ExecuteLoadStoreWithOffset(instruction);
     }
     else if (LoadStoreWithRegOffset::IsInstanceOf(instruction))
     {
-        if (log) LogLoadStoreWithRegOffset(instruction);
-        ExecuteLoadStoreWithRegOffset(instruction);
+        if (log) LogLoadStoreWithOffset(instruction);
+        ExecuteLoadStoreWithOffset(instruction);
     }
     else if (LoadStoreSignExtendedByteHalfword::IsInstanceOf(instruction))
     {
@@ -303,16 +303,50 @@ void ARM7TDMI::ExecuteLoadAddress(u16 instruction)
     registers_.WriteRegister(flags.Rd, addr);
 }
 
-void ARM7TDMI::ExecuteLoadStoreWithImmOffset(u16 instruction)
+void ARM7TDMI::ExecuteLoadStoreWithOffset(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("LoadStoreWithImmediateOffset not implemented");
-}
+    u32 addr;
+    u8 Rd;
+    AccessSize length;
+    bool load;
 
-void ARM7TDMI::ExecuteLoadStoreWithRegOffset(u16 instruction)
-{
-    (void)instruction;
-    throw std::runtime_error("LoadStoreWithRegisterOffset not implemented");
+    if (LoadStoreWithImmOffset::IsInstanceOf(instruction))
+    {
+        auto flags = std::bit_cast<LoadStoreWithImmOffset::Flags>(instruction);
+        u8 offset = flags.B ? flags.Offset5 : (flags.Offset5 << 2);
+        addr = registers_.ReadRegister(flags.Rb) + offset;
+        length = flags.B ? AccessSize::BYTE : AccessSize::WORD;
+        Rd = flags.Rd;
+        load = flags.L;
+    }
+    else
+    {
+        auto flags = std::bit_cast<LoadStoreWithRegOffset::Flags>(instruction);
+        addr = registers_.ReadRegister(flags.Rb) + registers_.ReadRegister(flags.Ro);
+        length = flags.B ? AccessSize::BYTE : AccessSize::WORD;
+        Rd = flags.Rd;
+        load = flags.L;
+    }
+
+    if (load)
+    {
+        auto [val, readCycles] = ReadMemory(addr, length);
+        scheduler_.Step(readCycles);
+
+        if ((length == AccessSize::WORD) && (addr & 0x03))
+        {
+            val = std::rotr(val, (addr & 0x03) * 8);
+        }
+
+        registers_.WriteRegister(Rd, val);
+        scheduler_.Step(1);
+    }
+    else
+    {
+        u32 val = registers_.ReadRegister(Rd);
+        int writeCycles = WriteMemory(addr, val, length);
+        scheduler_.Step(writeCycles);
+    }
 }
 
 void ARM7TDMI::ExecuteLoadStoreSignExtendedByteHalfword(u16 instruction)
@@ -330,7 +364,7 @@ void ARM7TDMI::ExecutePCRelativeLoad(u16 instruction)
 
     if (addr & 0x03)
     {
-        val = std::rotr(val, ((addr & 0x03) * 8));
+        val = std::rotr(val, (addr & 0x03) * 8);
     }
 
     registers_.WriteRegister(flags.Rd, val);

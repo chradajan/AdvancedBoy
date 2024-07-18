@@ -97,8 +97,7 @@ private:
     void ExecuteLoadStoreHalfword(u16 instruction);                     void LogLoadStoreHalfword(u16 instruction) const;
     void ExecuteSPRelativeLoadStore(u16 instruction);                   void LogSPRelativeLoadStore(u16 instruction) const;
     void ExecuteLoadAddress(u16 instruction);                           void LogLoadAddress(u16 instruction) const;
-    void ExecuteLoadStoreWithImmOffset(u16 instruction);                void LogLoadStoreWithImmOffset(u16 instruction) const;
-    void ExecuteLoadStoreWithRegOffset(u16 instruction);                void LogLoadStoreWithRegOffset(u16 instruction) const;
+    void ExecuteLoadStoreWithOffset(u16 instruction);                   void LogLoadStoreWithOffset(u16 instruction) const;
     void ExecuteLoadStoreSignExtendedByteHalfword(u16 instruction);     void LogLoadStoreSignExtendedByteHalfword(u16 instruction) const;
     void ExecutePCRelativeLoad(u16 instruction);                        void LogPCRelativeLoad(u16 instruction) const;
     void ExecuteHiRegisterOperationsBranchExchange(u16 instruction);    void LogHiRegisterOperationsBranchExchange(u16 instruction) const;
