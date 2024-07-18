@@ -80,7 +80,10 @@ using namespace thumb;
 
 void ARM7TDMI::LogThumbSoftwareInterrupt(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<SoftwareInterrupt::Flags>(instruction);
+    u8 comment = flags.Value8;
+    std::string mnemonic = std::format("    {:04X} -> SWI #{:02X}", instruction, comment);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogUnconditionalBranch(u16 instruction) const

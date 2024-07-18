@@ -200,7 +200,14 @@ void ARM7TDMI::DecodeAndExecuteTHUMB(u16 instruction, bool log)
 void ARM7TDMI::ExecuteThumbSoftwareInterrupt(u16 instruction)
 {
     (void)instruction;
-    throw std::runtime_error("ThumbSoftwareInterrupt not implemented");
+    u32 cpsr = registers_.GetCPSR();
+    registers_.SetOperatingState(OperatingState::ARM);
+    registers_.SetOperatingMode(OperatingMode::Supervisor);
+    registers_.WriteRegister(LR_INDEX, registers_.GetPC() - 2);
+    registers_.SetIrqDisabled(true);
+    registers_.SetSPSR(cpsr);
+    registers_.SetPC(SWI_VECTOR);
+    flushPipeline_ = true;
 }
 
 void ARM7TDMI::ExecuteUnconditionalBranch(u16 instruction)
