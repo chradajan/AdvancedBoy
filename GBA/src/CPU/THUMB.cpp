@@ -323,8 +323,17 @@ void ARM7TDMI::ExecuteLoadStoreSignExtendedByteHalfword(u16 instruction)
 
 void ARM7TDMI::ExecutePCRelativeLoad(u16 instruction)
 {
-    (void)instruction;
-    throw std::runtime_error("PCRelativeLoad not implemented");
+    auto flags = std::bit_cast<PCRelativeLoad::Flags>(instruction);
+    u32 addr = (registers_.GetPC() & 0xFFFF'FFFC) + (flags.Word8 << 2);
+    auto [val, readCycles] = ReadMemory(addr, AccessSize::WORD);
+    scheduler_.Step(readCycles);
+
+    if (addr & 0x03)
+    {
+        val = std::rotr(val, ((addr & 0x03) * 8));
+    }
+
+    registers_.WriteRegister(flags.Rd, val);
 }
 
 void ARM7TDMI::ExecuteHiRegisterOperationsBranchExchange(u16 instruction)

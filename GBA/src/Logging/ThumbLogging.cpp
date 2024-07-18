@@ -146,7 +146,11 @@ void ARM7TDMI::LogLoadStoreSignExtendedByteHalfword(u16 instruction) const
 
 void ARM7TDMI::LogPCRelativeLoad(u16 instruction) const
 {
-    (void)instruction;
+    auto flags = std::bit_cast<PCRelativeLoad::Flags>(instruction);
+    u8 Rd = flags.Rd;
+    u16 offset = flags.Word8 << 2;
+    std::string mnemonic = std::format("    {:04X} -> LDR R{}, [PC, #{}]",instruction, Rd, offset);
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogHiRegisterOperationsBranchExchange(u16 instruction) const
