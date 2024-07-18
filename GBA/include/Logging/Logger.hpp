@@ -41,6 +41,18 @@ public:
     /// @param error Reference to exception that was thrown.
     void LogException(std::exception const& error);
 
+    /// @brief Log when an interrupt request occurs.
+    /// @param interrupt Type of interrupt being requested.
+    /// @param IE IE register.
+    /// @param IME IME status.
+    void LogInterruptRequest(u16 interrupt, u16 IE, bool IME);
+
+    /// @brief Log when a halt or unhalt occurs.
+    /// @param halted True if system is being halted, false if unhalted.
+    /// @param IE IE register.
+    /// @param IF IF register.
+    void LogHalt(bool halted, u16 IE, u16 IF);
+
     /// @brief Append whatever messages are currently stored in the buffer to the log file.
     void DumpRemainingBuffer();
 

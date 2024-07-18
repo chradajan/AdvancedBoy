@@ -142,12 +142,12 @@ private:
 
     // Non-components
     EventScheduler scheduler_;
-    SystemControl systemControl_;
 
     // Debug
     logging::Logger log_;
 
     // Components
+    SystemControl systemControl_;
     audio::APU apu_;
     BIOSManager biosMgr_;
     cpu::ARM7TDMI cpu_;

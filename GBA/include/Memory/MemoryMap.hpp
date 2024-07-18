@@ -79,3 +79,14 @@ constexpr u32 EEPROM_ADDR_MAX = 0x0DFF'FFFF;
 
 constexpr u32 SRAM_ADDR_MIN = 0x0E00'0000;
 constexpr u32 SRAM_ADDR_MAX = 0x0E00'7FFF;
+
+// System control regions
+
+constexpr uint32_t INT_WAITCNT_ADDR_MIN = 0x0400'0200;
+constexpr uint32_t INT_WAITCNT_ADDR_MAX = 0x0400'020B;
+
+constexpr uint32_t POSTFLG_HALTCNT_ADDR_MIN = 0x0400'0300;
+constexpr uint32_t POSTFLG_HALTCNT_ADDR_MAX = 0x0400'0303;
+
+constexpr uint32_t INTERNAL_MEM_CONTROL_ADDR_MIN = 0x0400'0800;
+constexpr uint32_t INTERNAL_MEM_CONTROL_ADDR_MAX = 0x0400'0803;

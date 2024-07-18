@@ -4,6 +4,47 @@
 #include <fstream>
 #include <string>
 #include <GBA/include/System/EventScheduler.hpp>
+#include <GBA/include/System/SystemControl.hpp>
+
+namespace
+{
+std::string InterruptString(InterruptType interrupt)
+{
+    switch (interrupt)
+    {
+        case InterruptType::LCD_VBLANK:
+            return "LCD_VBLANK";
+        case InterruptType::LCD_HBLANK:
+            return "LCD_HBLANK";
+        case InterruptType::LCD_VCOUNTER_MATCH:
+            return "LCD_VCOUNTER_MATCH";
+        case InterruptType::TIMER_0_OVERFLOW:
+            return "TIMER_0_OVERFLOW";
+        case InterruptType::TIMER_1_OVERFLOW:
+            return "TIMER_1_OVERFLOW";
+        case InterruptType::TIMER_2_OVERFLOW:
+            return "TIMER_2_OVERFLOW";
+        case InterruptType::TIMER_3_OVERFLOW:
+            return "TIMER_3_OVERFLOW";
+        case InterruptType::SERIAL_COMMUNICATION:
+            return "SERIAL_COMMUNICATION";
+        case InterruptType::DMA0:
+            return "DMA0";
+        case InterruptType::DMA1:
+            return "DMA1";
+        case InterruptType::DMA2:
+            return "DMA2";
+        case InterruptType::DMA3:
+            return "DMA3";
+        case InterruptType::KEYPAD:
+            return "KEYPAD";
+        case InterruptType::GAME_PAK:
+            return "GAME_PAK";
+    }
+
+    return "";
+}
+}  // namespace
 
 namespace logging
 {
@@ -45,6 +86,30 @@ void Logger::LogException(std::exception const& error)
     }
 
     AddToLog(error.what());
+}
+
+void Logger::LogInterruptRequest(u16 interrupt, u16 IE, bool IME)
+{
+    std::string message =
+        std::format("Requesting {} interrupt. IE: 0x{:04X}, IME: {}", InterruptString(InterruptType{interrupt}), IE, IME);
+    AddToLog(message);
+}
+
+void Logger::LogHalt(bool halted, u16 IE, u16 IF)
+{
+    std::string message;
+
+    if (halted)
+    {
+        message = std::format("Halted. IE: 0x{:04X}, IF: 0x{:04X}", IE, IF);
+    }
+    else
+    {
+        auto unhaltReason = static_cast<InterruptType>(IE & IF);
+        message = "Unhalted due to " + InterruptString(unhaltReason);
+    }
+
+    AddToLog(message);
 }
 
 void Logger::DumpRemainingBuffer()
