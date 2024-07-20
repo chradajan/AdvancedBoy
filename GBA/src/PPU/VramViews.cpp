@@ -52,8 +52,7 @@ RegularScreenBlockScanlineView::RegularScreenBlockScanlineView(PPU const& ppu, u
     bool doubleHeight = y > 255;
     u8 screenBlockY = (y / 8) % 32;
     u32 screenBlockOffset = screenBlockY * SCREEN_BLOCK_SCANLINE_SIZE;
-
-    u8 leftBaseBlockIndex = baseIndex + (doubleHeight ? 1 : 0);
+    u8 leftBaseBlockIndex = baseIndex;
 
     if (doubleWidth && doubleHeight)
     {
