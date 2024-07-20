@@ -8,6 +8,7 @@
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace graphics
 {
@@ -109,11 +110,11 @@ private:
 
     /// @brief Get the current value of the LCD Control register.
     /// @return Current DISPCNT value.
-    DISPCNT GetDISPCNT() const { DISPCNT reg; std::memcpy(&reg, &registers_[DISPCNT::INDEX], sizeof(DISPCNT)); return reg; }
+    DISPCNT GetDISPCNT() const { return MemCpyInit<DISPCNT>(&registers_[DISPCNT::INDEX]); }
 
     /// @brief Get the current value of the LCD Status register.
     /// @return Current DISPSTAT value.
-    DISPSTAT GetDISPSTAT() const { DISPSTAT reg; std::memcpy(&reg, &registers_[DISPSTAT::INDEX], sizeof(DISPSTAT)); return reg; }
+    DISPSTAT GetDISPSTAT() const { return MemCpyInit<DISPSTAT>(&registers_[DISPSTAT::INDEX]); }
 
     /// @brief Update the value of the DISPSTAT register.
     /// @param reg New value of DISPSTAT.
@@ -121,7 +122,7 @@ private:
 
     /// @brief Get the current value of VCOUNT.
     /// @return Current scanline.
-    u8 GetVCOUNT() const { u8 reg; std::memcpy(&reg, &registers_[VCOUNT::INDEX], sizeof(u8)); return reg; }
+    u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
 
     /// @brief Update the value of the VCOUNT register.
     /// @param reg New value of VCOUNT.
@@ -130,7 +131,7 @@ private:
     /// @brief Get a background control register.
     /// @param bg Which background to get control register for.
     /// @return Background control register.
-    BGCNT GetBGCNT(u8 bg) const { BGCNT reg; std::memcpy(&reg, &registers_[BGCNT::INDEX + (2 * bg)], sizeof(BGCNT)); return reg; }
+    BGCNT GetBGCNT(u8 bg) const { return MemCpyInit<BGCNT>(&registers_[BGCNT::INDEX + (2 * bg)]); }
 
     /// @brief Set internal register corresponding to BG2X.
     void SetBG2RefX();
@@ -164,29 +165,25 @@ private:
     /// @param palette Index of palette.
     /// @param index Index of color within palette.
     /// @return BGR555 value.
-    u16 GetBgColor(u8 palette, u8 index) const {
-        u16 val; std::memcpy(&val, &PRAM_.at(((palette * 16) + index) * 2), sizeof(u16)); return val;
-    }
+    u16 GetBgColor(u8 palette, u8 index) const { return MemCpyInit<u16>(&PRAM_.at(((palette * 16) + index) * sizeof(u16))); }
 
     /// @brief Get a background color in 256/1 color mode.
     /// @param index Index of color.
     /// @return BGR555 value.
-    u16 GetBgColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(index * sizeof(u16)), sizeof(u16)); return val; }
+    u16 GetBgColor(u8 index) const { return MemCpyInit<u16>(&PRAM_.at(index * sizeof(u16))); }
 
     /// @brief Get a sprite color in 16/16 color mode.
     /// @param palette Index of palette.
     /// @param index Index of color within palette.
     /// @return BGR555 value.
     u16 GetSpriteColor(u8 palette, u8 index) const {
-        u16 val; std::memcpy(&val, &PRAM_.at(512 + (((palette * 16) + index) * sizeof(u16))), sizeof(u16)); return val;
+        return MemCpyInit<u16>(&PRAM_.at(512 + (((palette * 16) + index) * sizeof(u16))));
     }
 
     /// @brief Get a sprite color in 256/1 color mode.
     /// @param index Index of color.
     /// @return BGR555 value.
-    u16 GetSpriteColor(u8 index) const {
-        u16 val; std::memcpy(&val, &PRAM_.at(512 + (index * sizeof(u16))), sizeof(u16)); return val;
-    }
+    u16 GetSpriteColor(u8 index) const { return MemCpyInit<u16>(&PRAM_.at(512 + (index * sizeof(u16)))); }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event Handlers

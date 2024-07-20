@@ -4,6 +4,7 @@
 #include <span>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace graphics
 {
@@ -78,7 +79,7 @@ RegularScreenBlockScanlineView::RegularScreenBlockScanlineView(PPU const& ppu, u
         (screenBlockX_ >= SCREEN_BLOCK_WIDTH) ? &right_[(screenBlockX_ - SCREEN_BLOCK_WIDTH) * sizeof(ScreenBlockEntry)] :
                                                 &left_[screenBlockX_ * sizeof(ScreenBlockEntry)];
 
-    ScreenBlockEntry currentEntry; std::memcpy(&currentEntry, currentEntryAddr, sizeof(ScreenBlockEntry));
+    auto currentEntry = MemCpyInit<ScreenBlockEntry>(currentEntryAddr);
     horizontalFlip_ = currentEntry.horizontalFlip;
     verticalFlip_ = currentEntry.verticalFlip;
     palette_ = currentEntry.palette;
@@ -101,7 +102,7 @@ bool RegularScreenBlockScanlineView::Update()
             (screenBlockX_ >= SCREEN_BLOCK_WIDTH) ? &right_[(screenBlockX_ - SCREEN_BLOCK_WIDTH) * sizeof(ScreenBlockEntry)] :
                                                     &left_[screenBlockX_ * sizeof(ScreenBlockEntry)];
 
-        ScreenBlockEntry currentEntry; std::memcpy(&currentEntry, currentEntryAddr, sizeof(ScreenBlockEntry));
+        auto currentEntry = MemCpyInit<ScreenBlockEntry>(currentEntryAddr);
         horizontalFlip_ = currentEntry.horizontalFlip;
         verticalFlip_ = currentEntry.verticalFlip;
         palette_ = currentEntry.palette;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 #include <span>
 #include <GBA/include/Types.hpp>
 
@@ -34,5 +35,12 @@ u32 StandardMirroredAddress(u32 addr, u32 min, u32 max);
 /// @return Sign extended value.
 template <typename T, u8 index>
 T SignExtend(T input);
+
+/// @brief Initialize a variable using std::memcpy and return it.
+/// @tparam T Type to alias memory as.
+/// @param src Address of memory to alias.
+/// @return Aliased instance of some memory location.
+template <typename T>
+inline T MemCpyInit(const void* src) { T val; std::memcpy(&val, src, sizeof(T)); return val; }
 
 #include <GBA/include/Utilities/CommonUtils.tpp>

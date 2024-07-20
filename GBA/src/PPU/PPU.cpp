@@ -218,12 +218,10 @@ void PPU::SetBG3RefY()
 
 void PPU::IncrementAffineBackgroundReferencePoints()
 {
-    i16 delta;
-
-    std::memcpy(&delta, &registers_[0x22], sizeof(i16));    bg2RefX_ += delta;  // PB
-    std::memcpy(&delta, &registers_[0x26], sizeof(i16));    bg2RefY_ += delta;  // PD
-    std::memcpy(&delta, &registers_[0x32], sizeof(i16));    bg3RefX_ += delta;  // PB
-    std::memcpy(&delta, &registers_[0x36], sizeof(i16));    bg3RefY_ += delta;  // PD
+    bg2RefX_ += MemCpyInit<i16>(&registers_[0x22]);
+    bg2RefY_ += MemCpyInit<i16>(&registers_[0x26]);
+    bg3RefX_ += MemCpyInit<i16>(&registers_[0x32]);
+    bg3RefY_ += MemCpyInit<i16>(&registers_[0x36]);
 }
 
 void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
@@ -232,8 +230,7 @@ void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
     if (addr < 0x0400'0006)
     {
         DISPSTAT prevDispStat = GetDISPSTAT();
-        DISPSTAT newDispStat;
-        std::memcpy(&newDispStat, &val, sizeof(DISPSTAT));
+        auto newDispStat = MemCpyInit<DISPSTAT>(&val);
 
         if (length != AccessSize::BYTE)
         {
@@ -467,8 +464,8 @@ void PPU::EvaluateScanline()
     {
         if (dispcnt.window0Display || dispcnt.window1Display || dispcnt.objWindowDisplay)
         {
-            WININ winin;    std::memcpy(&winin, &registers_[WININ::INDEX], sizeof(WININ));
-            WINOUT winout;  std::memcpy(&winout, &registers_[WINOUT::INDEX], sizeof(WINOUT));
+            auto winin = MemCpyInit<WININ>(&registers_[WININ::INDEX]);
+            auto winout = MemCpyInit<WINOUT>(&registers_[WINOUT::INDEX]);
 
             #pragma GCC diagnostic push
             #pragma GCC diagnostic ignored "-Wnarrowing"
@@ -563,9 +560,9 @@ void PPU::EvaluateScanline()
         }
     }
 
-    BLDCNT bldcnt;      std::memcpy(&bldcnt, &registers_[BLDCNT::INDEX], sizeof(BLDCNT));
-    BLDALPHA bldalpha;  std::memcpy(&bldalpha, &registers_[BLDALPHA::INDEX], sizeof(BLDALPHA));
-    BLDY bldy;          std::memcpy(&bldy, &registers_[BLDY::INDEX], sizeof(BLDY));
+    auto bldcnt = MemCpyInit<BLDCNT>(&registers_[BLDCNT::INDEX]);
+    auto bldalpha = MemCpyInit<BLDALPHA>(&registers_[BLDALPHA::INDEX]);
+    auto bldy = MemCpyInit<BLDY>(&registers_[BLDY::INDEX]);
 
     frameBuffer_.RenderScanline(backdropColor, dispcnt.forceBlank, bldcnt, bldalpha, bldy);
     IncrementAffineBackgroundReferencePoints();
@@ -577,29 +574,29 @@ void PPU::RenderMode0Scanline()
 
     if (dispcnt.screenDisplayBg0)
     {
-        u16 xOffset; std::memcpy(&xOffset, &registers_[0x10], sizeof(u16));
-        u16 yOffset; std::memcpy(&yOffset, &registers_[0x12], sizeof(u16));
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x10]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x12]);
         RenderRegularTiledBackgroundScanline(GetBGCNT(0), 0, xOffset & 0x01FF, yOffset & 0x01FF);
     }
 
     if (dispcnt.screenDisplayBg1)
     {
-        u16 xOffset; std::memcpy(&xOffset, &registers_[0x14], sizeof(u16));
-        u16 yOffset; std::memcpy(&yOffset, &registers_[0x16], sizeof(u16));
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x14]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x16]);
         RenderRegularTiledBackgroundScanline(GetBGCNT(1), 1, xOffset & 0x01FF, yOffset & 0x01FF);
     }
 
     if (dispcnt.screenDisplayBg2)
     {
-        u16 xOffset; std::memcpy(&xOffset, &registers_[0x18], sizeof(u16));
-        u16 yOffset; std::memcpy(&yOffset, &registers_[0x1A], sizeof(u16));
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x18]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x1A]);
         RenderRegularTiledBackgroundScanline(GetBGCNT(2), 2, xOffset & 0x01FF, yOffset & 0x01FF);
     }
 
     if (dispcnt.screenDisplayBg3)
     {
-        u16 xOffset; std::memcpy(&xOffset, &registers_[0x1C], sizeof(u16));
-        u16 yOffset; std::memcpy(&yOffset, &registers_[0x1E], sizeof(u16));
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x1C]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x1E]);
         RenderRegularTiledBackgroundScanline(GetBGCNT(3), 3, xOffset & 0x01FF, yOffset & 0x01FF);
     }
 }
@@ -620,7 +617,7 @@ void PPU::RenderMode3Scanline()
 
     for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
     {
-        u16 color; std::memcpy(&color, &VRAM_[bitmapIndex], sizeof(u16));
+        u16 color = MemCpyInit<u16>(&VRAM_[bitmapIndex]);
         frameBuffer_.PushPixel({PixelSrc::BG2, color, priority, false}, dot);
         bitmapIndex += sizeof(u16);
     }
