@@ -6,6 +6,7 @@
 #include <span>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/PPU/Registers.hpp>
+#include <GBA/include/PPU/VramViews.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
@@ -15,6 +16,9 @@ namespace graphics
 {
 PPU::PPU(EventScheduler& scheduler, SystemControl& systemControl) : scheduler_(scheduler), systemControl_(systemControl)
 {
+    window0EnabledOnScanline_ = false;
+    window1EnabledOnScanline_ = false;
+
     bg2RefX_ = 0;
     bg2RefY_ = 0;
     bg3RefX_ = 0;
@@ -212,6 +216,16 @@ void PPU::SetBG3RefY()
     bg3RefY_ = SignExtend<i32, 27>(bg3RefY_);
 }
 
+void PPU::IncrementAffineBackgroundReferencePoints()
+{
+    i16 delta;
+
+    std::memcpy(&delta, &registers_[0x22], sizeof(i16));    bg2RefX_ += delta;  // PB
+    std::memcpy(&delta, &registers_[0x26], sizeof(i16));    bg2RefY_ += delta;  // PD
+    std::memcpy(&delta, &registers_[0x32], sizeof(i16));    bg3RefX_ += delta;  // PB
+    std::memcpy(&delta, &registers_[0x36], sizeof(i16));    bg3RefY_ += delta;  // PD
+}
+
 void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
 {
     // Ignore BYTE or HALFWORD writes to VCOUNT
@@ -344,6 +358,7 @@ void PPU::VBlank(int extraCycles)
     SetDISPSTAT(dispstat);
     SetVCOUNT(scanline);
     CheckVCountSetting();
+    SetNonObjWindowEnabled();
 
     // Schedule next PPU event
     int cyclesUntilEvent = (960 + 46) - extraCycles;
@@ -367,10 +382,76 @@ void PPU::VDraw(int extraCycles)
     SetDISPSTAT(dispstat);
     SetVCOUNT(scanline);
     CheckVCountSetting();
+    SetNonObjWindowEnabled();
 
     // Schedule next PPU event
     int cyclesUntilEvent = (960 + 46) - extraCycles;
     scheduler_.ScheduleEvent(EventType::HBlank, cyclesUntilEvent);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Window control
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void PPU::SetNonObjWindowEnabled()
+{
+    u8 scanline = GetVCOUNT();
+
+    // Window 1 scanline in range check
+    u8 y1 = static_cast<u8>(registers_[0x47]);  // Top
+    u8 y2 = static_cast<u8>(registers_[0x46]);  // Bottom
+
+    if (scanline == y1)
+    {
+        window1EnabledOnScanline_ = true;
+    }
+
+    if (scanline == y2)
+    {
+        window1EnabledOnScanline_ = false;
+    }
+
+    // Window 0 scanline in range check
+    y1 = static_cast<u8>(registers_[0x45]);  // Top
+    y2 = static_cast<u8>(registers_[0x44]);  // Bottom
+
+    if (scanline == y1)
+    {
+        window0EnabledOnScanline_ = true;
+    }
+
+    if (scanline == y2)
+    {
+        window0EnabledOnScanline_ = false;
+    }
+}
+
+void PPU::ConfigureNonObjWindow(u8 leftEdge, u8 rightEdge, WindowSettings const& settings)
+{
+    if (rightEdge > LCD_WIDTH)
+    {
+        rightEdge = LCD_WIDTH;
+    }
+
+    if (leftEdge <= rightEdge)
+    {
+        for (u8 dot = leftEdge; dot < rightEdge; ++dot)
+        {
+            frameBuffer_.GetWindowSettings(dot) = settings;
+        }
+    }
+    else
+    {
+        for (u8 dot = 0; dot < rightEdge; ++dot)
+        {
+            frameBuffer_.GetWindowSettings(dot) = settings;
+        }
+
+        for (u8 dot = leftEdge; dot < LCD_WIDTH; ++dot)
+        {
+            frameBuffer_.GetWindowSettings(dot) = settings;
+        }
+    }
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -382,19 +463,145 @@ void PPU::EvaluateScanline()
     auto dispcnt = GetDISPCNT();
     u16 backdropColor = GetBgColor(0);
 
-    switch (dispcnt.bgMode)
+    if (!dispcnt.forceBlank)
     {
-        case 3:
-            RenderMode3Scanline();
-            break;
-        case 4:
-            RenderMode4Scanline();
-            break;
-        default:
-            break;
+        if (dispcnt.window0Display || dispcnt.window1Display || dispcnt.objWindowDisplay)
+        {
+            WININ winin;    std::memcpy(&winin, &registers_[WININ::INDEX], sizeof(WININ));
+            WINOUT winout;  std::memcpy(&winout, &registers_[WINOUT::INDEX], sizeof(WINOUT));
+
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wnarrowing"
+            WindowSettings outOfWindow = {
+                {winout.outsideBg0Enabled, winout.outsideBg1Enabled, winout.outsideBg2Enabled, winout.outsideBg3Enabled},
+                winout.outsideObjEnabled,
+                winout.outsideSpecialEffect
+            };
+            #pragma GCC diagnostic pop
+
+            frameBuffer_.InitializeWindow(outOfWindow);
+
+            if (dispcnt.screenDisplayObj && dispcnt.objWindowDisplay)
+            {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wnarrowing"
+                WindowSettings objWindow = {
+                    {winout.objWinBg0Enabled, winout.objWinBg1Enabled, winout.objWinBg2Enabled, winout.objWinBg3Enabled},
+                    winout.objWinObjEnabled,
+                    winout.objWinSpecialEffect
+                };
+                #pragma GCC diagnostic pop
+
+                // TODO: Evaluate OAM to setup OBJ window
+                (void)objWindow;
+            }
+
+            if (dispcnt.window1Display)
+            {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wnarrowing"
+                WindowSettings window1 = {
+                    {winin.win1Bg0Enabled, winin.win1Bg1Enabled, winin.win1Bg2Enabled, winin.win1Bg3Enabled},
+                    winin.win1ObjEnabled,
+                    winin.win1SpecialEffect
+                };
+                #pragma GCC diagnostic pop
+
+                u8 x1 = static_cast<u8>(registers_[0x43]);
+                u8 x2 = static_cast<u8>(registers_[0x42]);
+
+                if (window1EnabledOnScanline_)
+                {
+                    ConfigureNonObjWindow(x1, x2, window1);
+                }
+            }
+
+            if (dispcnt.window0Display)
+            {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wnarrowing"
+                WindowSettings window0 = {
+                    {winin.win0Bg0Enabled, winin.win0Bg1Enabled, winin.win0Bg2Enabled, winin.win0Bg3Enabled},
+                    winin.win0ObjEnabled,
+                    winin.win0SpecialEffect
+                };
+                #pragma GCC diagnostic pop
+
+                u8 x1 = static_cast<u8>(registers_[0x41]);
+                u8 x2 = static_cast<u8>(registers_[0x40]);
+
+                if (window0EnabledOnScanline_)
+                {
+                    ConfigureNonObjWindow(x1, x2, window0);
+                }
+            }
+        }
+        else
+        {
+            WindowSettings allEnabled = {
+                {true, true, true, true},
+                true,
+                true
+            };
+
+            frameBuffer_.InitializeWindow(allEnabled);
+        }
+
+        switch (dispcnt.bgMode)
+        {
+            case 0:
+                RenderMode0Scanline();
+                break;
+            case 3:
+                RenderMode3Scanline();
+                break;
+            case 4:
+                RenderMode4Scanline();
+                break;
+            default:
+                break;
+        }
     }
 
-    frameBuffer_.RenderScanline(backdropColor, dispcnt.forceBlank);
+    BLDCNT bldcnt;      std::memcpy(&bldcnt, &registers_[BLDCNT::INDEX], sizeof(BLDCNT));
+    BLDALPHA bldalpha;  std::memcpy(&bldalpha, &registers_[BLDALPHA::INDEX], sizeof(BLDALPHA));
+    BLDY bldy;          std::memcpy(&bldy, &registers_[BLDY::INDEX], sizeof(BLDY));
+
+    frameBuffer_.RenderScanline(backdropColor, dispcnt.forceBlank, bldcnt, bldalpha, bldy);
+    IncrementAffineBackgroundReferencePoints();
+}
+
+void PPU::RenderMode0Scanline()
+{
+    auto dispcnt = GetDISPCNT();
+
+    if (dispcnt.screenDisplayBg0)
+    {
+        u16 xOffset; std::memcpy(&xOffset, &registers_[0x10], sizeof(u16));
+        u16 yOffset; std::memcpy(&yOffset, &registers_[0x12], sizeof(u16));
+        RenderRegularTiledBackgroundScanline(GetBGCNT(0), 0, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+
+    if (dispcnt.screenDisplayBg1)
+    {
+        u16 xOffset; std::memcpy(&xOffset, &registers_[0x14], sizeof(u16));
+        u16 yOffset; std::memcpy(&yOffset, &registers_[0x16], sizeof(u16));
+        RenderRegularTiledBackgroundScanline(GetBGCNT(1), 1, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+
+    if (dispcnt.screenDisplayBg2)
+    {
+        u16 xOffset; std::memcpy(&xOffset, &registers_[0x18], sizeof(u16));
+        u16 yOffset; std::memcpy(&yOffset, &registers_[0x1A], sizeof(u16));
+        RenderRegularTiledBackgroundScanline(GetBGCNT(2), 2, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+
+    if (dispcnt.screenDisplayBg3)
+    {
+        u16 xOffset; std::memcpy(&xOffset, &registers_[0x1C], sizeof(u16));
+        u16 yOffset; std::memcpy(&yOffset, &registers_[0x1E], sizeof(u16));
+        RenderRegularTiledBackgroundScanline(GetBGCNT(3), 3, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
 }
 
 void PPU::RenderMode3Scanline()
@@ -402,18 +609,20 @@ void PPU::RenderMode3Scanline()
     auto dispcnt = GetDISPCNT();
     auto bg2cnt = GetBGCNT(2);
     u8 scanline = GetVCOUNT();
+    u8 priority = bg2cnt.priority;
 
     if (!dispcnt.screenDisplayBg2)
     {
         return;
     }
 
-    std::span<u16> bitmap(reinterpret_cast<u16*>(VRAM_.data()), LCD_WIDTH * LCD_HEIGHT);
-    size_t bitmapIndex = scanline * LCD_WIDTH;
+    size_t bitmapIndex = scanline * LCD_WIDTH * sizeof(u16);
 
     for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
     {
-        frameBuffer_.PushPixel({PixelSrc::BG2, bitmap[bitmapIndex++], bg2cnt.priority, false}, dot);
+        u16 color; std::memcpy(&color, &VRAM_[bitmapIndex], sizeof(u16));
+        frameBuffer_.PushPixel({PixelSrc::BG2, color, priority, false}, dot);
+        bitmapIndex += sizeof(u16);
     }
 }
 
@@ -422,6 +631,7 @@ void PPU::RenderMode4Scanline()
     auto dispcnt = GetDISPCNT();
     auto bg2cnt = GetBGCNT(2);
     u8 scanline = GetVCOUNT();
+    u8 priority = bg2cnt.priority;
 
     if (!dispcnt.screenDisplayBg2)
     {
@@ -440,7 +650,89 @@ void PPU::RenderMode4Scanline()
         u8 paletteIndex = static_cast<u8>(VRAM_[bitmapIndex++]);
         u16 color = GetBgColor(paletteIndex);
         bool transparent = (paletteIndex == 0);
-        frameBuffer_.PushPixel({PixelSrc::BG2, color, bg2cnt.priority, transparent}, dot);
+        frameBuffer_.PushPixel({PixelSrc::BG2, color, priority, transparent}, dot);
+    }
+}
+
+void PPU::RenderRegularTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, u16 xOffset, u16 yOffset)
+{
+    u16 width = (bgcnt.screenSize & 0b01) ? 512 : 256;
+    u16 height = (bgcnt.screenSize & 0b10) ? 512 : 256;
+
+    u16 x = xOffset % width;
+    u16 y = (GetVCOUNT() + yOffset) % height;
+
+    if (bgcnt.palette)
+    {
+        RenderRegular8bppBackground(bgcnt, bgIndex, x, y, width);
+    }
+    else
+    {
+        RenderRegular4bppBackground(bgcnt, bgIndex, x, y, width);
+    }
+}
+
+void PPU::RenderRegular4bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width)
+{
+    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
+    RegularScreenBlockScanlineView screenBlock(*this, bgcnt.screenBaseBlock, x, y, width);
+    CharBlockEntry4 charBlockEntry;
+    charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
+
+    auto src = static_cast<PixelSrc>(bgIndex + 1);
+    u8 priority = bgcnt.priority;
+
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        if (frameBuffer_.GetWindowSettings(dot).bgEnabled[bgIndex])
+        {
+            u8 tileX = screenBlock.TileX();
+            u8 tileY = screenBlock.TileY();
+            bool left = (tileX % 2) == 0;
+
+            auto colors = charBlockEntry.pixels[tileY][tileX / 2];
+            u8 colorIndex = left ? colors.leftNibble : colors.rightNibble;
+            bool transparent = colorIndex == 0;
+            u16 bgr555 = transparent ? GetBgColor(0) : GetBgColor(screenBlock.Palette(), colorIndex);
+
+            frameBuffer_.PushPixel({src, bgr555, priority, transparent}, dot);
+        }
+
+        if (screenBlock.Update())
+        {
+            charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
+        }
+    }
+}
+
+void PPU::RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width)
+{
+    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
+    RegularScreenBlockScanlineView screenBlock(*this, bgcnt.screenBaseBlock, x, y, width);
+    CharBlockEntry8 charBlockEntry;
+    charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
+
+    auto src = static_cast<PixelSrc>(bgIndex + 1);
+    u8 priority = bgcnt.priority;
+
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        if (frameBuffer_.GetWindowSettings(dot).bgEnabled[bgIndex])
+        {
+            u8 tileX = screenBlock.TileX();
+            u8 tileY = screenBlock.TileY();
+
+            auto paletteIndex = charBlockEntry.pixels[tileY][tileX];
+            bool transparent = paletteIndex == 0;
+            u16 bgr555 = GetBgColor(paletteIndex);
+
+            frameBuffer_.PushPixel({src, bgr555, priority, transparent}, dot);
+        }
+
+        if (screenBlock.Update())
+        {
+            charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
+        }
     }
 }
 }  // namespace graphics

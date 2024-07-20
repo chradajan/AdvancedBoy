@@ -28,7 +28,7 @@ public:
 
     /// @brief Get a pointer to the pixel data of the most recently completed frame.
     /// @return Pointer to raw pixel data.
-    u8* GetRawFrameBuffer() { return frameBuffer_.GetRawFrameBuffer(); }
+    uchar* GetRawFrameBuffer() { return frameBuffer_.GetRawFrameBuffer(); }
 
     /// @brief Get the number of frames that have been generated since the last check. Reset the counter.
     /// @return Number of times the PPU has entered VBlank since last check.
@@ -144,6 +144,9 @@ private:
     /// @brief Set internal register corresponding to BG3Y.
     void SetBG3RefY();
 
+    /// @brief Increment BG2 and BG3 reference points after a scanline is rendered.
+    void IncrementAffineBackgroundReferencePoints();
+
     /// @brief Handle writes to the DISPSTAT and VCOUNT registers to avoid writing to read only bits.
     /// @param addr Address of register(s) being written.
     /// @param val Value to write to register(s).
@@ -168,20 +171,22 @@ private:
     /// @brief Get a background color in 256/1 color mode.
     /// @param index Index of color.
     /// @return BGR555 value.
-    u16 GetBgColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(index * 2), sizeof(u16)); return val; }
+    u16 GetBgColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(index * sizeof(u16)), sizeof(u16)); return val; }
 
     /// @brief Get a sprite color in 16/16 color mode.
     /// @param palette Index of palette.
     /// @param index Index of color within palette.
     /// @return BGR555 value.
     u16 GetSpriteColor(u8 palette, u8 index) const {
-        u16 val; std::memcpy(&val, &PRAM_.at(512 + (((palette * 16) + index) * 2)), sizeof(u16)); return val;
+        u16 val; std::memcpy(&val, &PRAM_.at(512 + (((palette * 16) + index) * sizeof(u16))), sizeof(u16)); return val;
     }
 
     /// @brief Get a sprite color in 256/1 color mode.
     /// @param index Index of color.
     /// @return BGR555 value.
-    u16 GetSpriteColor(u8 index) const { u16 val; std::memcpy(&val, &PRAM_.at(512 + (index * 2)), sizeof(u16)); return val; }
+    u16 GetSpriteColor(u8 index) const {
+        u16 val; std::memcpy(&val, &PRAM_.at(512 + (index * sizeof(u16))), sizeof(u16)); return val;
+    }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event Handlers
@@ -192,11 +197,27 @@ private:
     void VDraw(int extraCycles);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Window control
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Determine whether window 0 and window 1 are active on the current scanline.
+    void SetNonObjWindowEnabled();
+
+    /// @brief Apply window settings to pixels within a window on the current scanline.
+    /// @param leftEdge X1 - Left edge of window (inclusive).
+    /// @param rightEdge X2 - Right edge of window (exclusive).
+    /// @param settings Settings for inside this window region.
+    void ConfigureNonObjWindow(u8 leftEdge, u8 rightEdge, WindowSettings const& settings);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Rendering
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Evaluate sprites, window, and background layers on the current scanline.
     void EvaluateScanline();
+
+    /// @brief Render background pixels in mode 0.
+    void RenderMode0Scanline();
 
     /// @brief Render background pixels in mode 3.
     void RenderMode3Scanline();
@@ -204,9 +225,36 @@ private:
     /// @brief Render background pixels in mode 4.
     void RenderMode4Scanline();
 
+    /// @brief Render a regular tiled background scanline.
+    /// @param bgcnt BGCNT register for the background to draw.
+    /// @param bgIndex BG index (0-3).
+    /// @param xOffset X-offset of the background to draw.
+    /// @param yOffset Y-offset of the background to draw.
+    void RenderRegularTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, u16 xOffset, u16 yOffset);
+
+    /// @brief Render a regular tiled text background scanline that uses 4bpp colors.
+    /// @param bgcnt Control register of specified background.
+    /// @param bgIndex Which background to render.
+    /// @param x X-coordinate within background map.
+    /// @param y Y-Coordinate within background map.
+    /// @param width Width of map.
+    void RenderRegular4bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width);
+
+    /// @brief Render a regular tiled text background scanline that uses 8bpp colors.
+    /// @param bgcnt Control register of specified background.
+    /// @param bgIndex Which background to render.
+    /// @param x X-coordinate within background map.
+    /// @param y Y-Coordinate within background map.
+    /// @param width Width of map.
+    void RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
     ///-----------------------------------------------------------------------------------------------------------------------------
+
+    // Window
+    bool window0EnabledOnScanline_;
+    bool window1EnabledOnScanline_;
 
     // Affine BG internal reference registers
     i32 bg2RefX_;
@@ -229,5 +277,9 @@ private:
     // External components
     EventScheduler& scheduler_;
     SystemControl& systemControl_;
+
+    // VRAM views
+    friend class BackgroundCharBlockView;
+    friend class RegularScreenBlockScanlineView;
 };
 }  // namespace graphics

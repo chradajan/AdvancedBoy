@@ -62,13 +62,13 @@ void FillAudioBuffer(u8* stream, size_t len)
     }
 }
 
-u8* GetFrameBuffer()
+uchar* GetFrameBuffer()
 {
     static std::array<u16, 240 * 160> BLANK_SCREEN = {};
 
     if (!GBA)
     {
-        return reinterpret_cast<u8*>(BLANK_SCREEN.data());
+        return reinterpret_cast<uchar*>(BLANK_SCREEN.data());
     }
 
     return GBA->GetRawFrameBuffer();

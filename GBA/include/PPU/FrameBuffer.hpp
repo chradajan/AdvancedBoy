@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace graphics
@@ -46,7 +47,7 @@ public:
     /// @param prio Priority (0-3) of this pixel.
     /// @param transparency Whether this pixel is transparent.
     /// @param semiTransparency If this is an OBJ pixel, then whether this pixel is part of a semi-transparent sprite.
-    Pixel(PixelSrc src, u16 bgr555, int prio, bool transparency, bool semiTransparency = false) :
+    Pixel(PixelSrc src, u16 bgr555, u8 prio, bool transparency, bool semiTransparency = false) :
         source(src),
         color(bgr555),
         priority(prio),
@@ -62,7 +63,7 @@ public:
 
     PixelSrc source;
     u16 color;
-    int priority;
+    u8 priority;
     bool transparent;
     bool semiTransparent;
     bool initialized;
@@ -84,19 +85,31 @@ public:
     /// @brief Add a pixel to be considered for drawing at the specified dot on the current scanline.
     /// @param pixel Pixel to potentially be drawn.
     /// @param dot Dot on the current scanline to add pixel at.
-    void PushPixel(Pixel pixel, int dot);
+    void PushPixel(Pixel pixel, u8 dot);
 
     /// @brief Render the current scanline of pixels to the frame buffer.
     /// @param backdrop Pixel color of backdrop layer.
     /// @param forceBlank If true, make each pixel in the current scanline white.
-    void RenderScanline(u16 backdrop, bool forceBlank);
+    /// @param bldcnt BLDCNT register value.
+    /// @param bldalpha BLDALPHA register value.
+    /// @param bldy BLDY register value.
+    void RenderScanline(u16 backdrop, bool forceBlank, BLDCNT bldcnt, BLDALPHA bldalpha, BLDY bldy);
 
     /// @brief Call on VBlank. Mark the current frame as complete and prepare to render to the next one.
     void ResetFrameIndex();
 
+    /// @brief Initialize the window settings by setting each pixel to the specified default setting.
+    /// @param defaultSettings Settings to apply to each pixel.
+    void InitializeWindow(WindowSettings defaultSettings) { windowScanline_.fill(defaultSettings); }
+
+    /// @brief Get the window settings at the specified pixel.
+    /// @param dot Index of window settings to get.
+    /// @return Reference to window settings.
+    WindowSettings& GetWindowSettings(u8 dot) { return windowScanline_.at(dot); }
+
     /// @brief Get a pointer to the pixel data of the most recently completed frame.
     /// @return Pointer to raw pixel data.
-    u8* GetRawFrameBuffer();
+    uchar* GetRawFrameBuffer();
 
 private:
     // Current scanline data

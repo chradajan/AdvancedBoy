@@ -41,7 +41,7 @@ public:
 
     /// @brief Get a pointer to the pixel data of the most recently completed frame.
     /// @return Pointer to raw pixel data.
-    u8* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
+    uchar* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
 
     /// @brief Get FPS counter from PPU.
     /// @return Number of times the PPU has entered VBlank since last check.

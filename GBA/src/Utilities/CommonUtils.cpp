@@ -16,7 +16,22 @@ u32 ReadMemoryBlock(std::span<const std::byte> memory, u32 readAddr, u32 baseAdd
     }
 
     u32 val = 0;
-    std::memcpy(&val, &memory[index], count);
+
+    switch (length)
+    {
+        case AccessSize::BYTE:
+            std::memcpy(&val, &memory[index], sizeof(u8));
+            break;
+        case AccessSize::HALFWORD:
+            std::memcpy(&val, &memory[index], sizeof(u16));
+            break;
+        case AccessSize::WORD:
+            std::memcpy(&val, &memory[index], sizeof(u32));
+            break;
+        case AccessSize::INVALID:
+            throw std::runtime_error("Illegal memory access size on read");
+    }
+
     return val;
 }
 
@@ -30,7 +45,20 @@ void WriteMemoryBlock(std::span<std::byte> memory, u32 writeAddr, u32 baseAddr, 
         throw std::out_of_range("Bad memory write");
     }
 
-    std::memcpy(&memory[index], &val, count);
+    switch (length)
+    {
+        case AccessSize::BYTE:
+            std::memcpy(&memory[index], &val, sizeof(u8));
+            break;
+        case AccessSize::HALFWORD:
+            std::memcpy(&memory[index], &val, sizeof(u16));
+            break;
+        case AccessSize::WORD:
+            std::memcpy(&memory[index], &val, sizeof(u32));
+            break;
+        case AccessSize::INVALID:
+            throw std::runtime_error("Illegal memory access size on write");
+    }
 }
 
 u32 StandardMirroredAddress(u32 addr, u32 min, u32 max)
