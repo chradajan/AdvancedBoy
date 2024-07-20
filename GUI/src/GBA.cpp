@@ -100,4 +100,12 @@ std::string GetTitle()
 
     return title;
 }
+
+void UpdateKeypad(KEYINPUT keyinput)
+{
+    if (GBA)
+    {
+        GBA->UpdateKeypad(keyinput);
+    }
+}
 }  // namespace gui

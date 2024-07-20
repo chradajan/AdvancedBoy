@@ -19,6 +19,10 @@ public:
     /// @param systemControl Reference to system control to post keypad interrupts to.
     explicit Keypad(SystemControl& systemControl);
 
+    /// @brief Update the KEYINPUT register based on current user input.
+    /// @param keyinput KEYINPUT value.
+    void UpdateKeypad(KEYINPUT keyinput);
+
     /// @brief Read an address mapped to Keypad registers.
     /// @param addr Address of Keypad register(s).
     /// @param length Memory access size of the read.
@@ -33,6 +37,9 @@ public:
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
 private:
+    /// @brief Check if Gamepad IRQ should be requested.
+    void CheckKeypadIRQ();
+
     std::array<std::byte, 0x04> registers_;
 
     // External components

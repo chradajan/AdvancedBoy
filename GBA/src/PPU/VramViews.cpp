@@ -15,7 +15,7 @@ BackgroundCharBlockView::BackgroundCharBlockView(PPU const& ppu, u8 baseIndex) :
 
 void BackgroundCharBlockView::GetCharBlock(CharBlockEntry4& block, u16 index)
 {
-    u16 adjustedIndex = baseIndex_ + (index * sizeof(CharBlockEntry4));
+    u32 adjustedIndex = baseIndex_ + (index * sizeof(CharBlockEntry4));
 
     if (adjustedIndex >= charBlocks_.size())
     {

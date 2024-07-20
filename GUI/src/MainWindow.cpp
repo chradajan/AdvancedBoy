@@ -1,5 +1,7 @@
 #include <GUI/include/MainWindow.hpp>
+#include <cstring>
 #include <filesystem>
+#include <set>
 #include <GBA/include/Types.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
@@ -96,6 +98,44 @@ void MainWindow::dropEvent(QDropEvent* event)
     StartEmulation(romPath);
 }
 
+void MainWindow::keyPressEvent(QKeyEvent* event)
+{
+    if (event)
+    {
+        pressedKeys_.insert(event->key());
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* event)
+{
+    if (event)
+    {
+        pressedKeys_.erase(event->key());
+    }
+}
+
+void MainWindow::RefreshScreen()
+{
+    screen_.update();
+    SendKeyPresses();
+}
+
+void MainWindow::UpdateWindowTitle()
+{
+    std::string title;
+
+    if (romTitle_ == "Advanced Boy")
+    {
+        title = "Advanced Boy";
+    }
+    else
+    {
+        title = std::format("{} ({} fps)", romTitle_, GetFPSCounter());
+    }
+
+    setWindowTitle(QString::fromStdString(title));
+}
+
 void MainWindow::StartEmulation(fs::path romPath)
 {
     if (emuThread_.isRunning())
@@ -114,24 +154,35 @@ void MainWindow::StartEmulation(fs::path romPath)
     SDL_PauseAudioDevice(audioDevice_, 0);
 }
 
-void MainWindow::RefreshScreen()
+void MainWindow::SendKeyPresses()
 {
-    screen_.update();
-}
+    // Hard code gamepad bindings for now
+    // WASD     -> Directions keys
+    // A        -> L
+    // B        -> K
+    // Start    -> Return
+    // Select   -> Backspace
+    // L        -> Q
+    // R        -> E
 
-void MainWindow::UpdateWindowTitle()
-{
-    std::string title;
+    KEYINPUT keyinput;
+    u16 defaultKeyInput = KEYINPUT::DEFAULT_KEYPAD_STATE;
+    std::memcpy(&keyinput, &defaultKeyInput, sizeof(KEYINPUT));
 
-    if (romTitle_ == "Advanced Boy")
-    {
-        title = "Advanced Boy";
-    }
-    else
-    {
-        title = std::format("{} ({} fps)", romTitle_, GetFPSCounter());
-    }
+    if (pressedKeys_.contains(87)) keyinput.Up = 0;
+    if (pressedKeys_.contains(65)) keyinput.Left = 0;
+    if (pressedKeys_.contains(83)) keyinput.Down = 0;
+    if (pressedKeys_.contains(68)) keyinput.Right = 0;
 
-    setWindowTitle(QString::fromStdString(title));
+    if (pressedKeys_.contains(16777220)) keyinput.Start = 0;
+    if (pressedKeys_.contains(16777219)) keyinput.Select = 0;
+
+    if (pressedKeys_.contains(76)) keyinput.A = 0;
+    if (pressedKeys_.contains(75)) keyinput.B = 0;
+
+    if (pressedKeys_.contains(81)) keyinput.L = 0;
+    if (pressedKeys_.contains(69)) keyinput.R = 0;
+
+    UpdateKeypad(keyinput);
 }
 }  // namespace gui

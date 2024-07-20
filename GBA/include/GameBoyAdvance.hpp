@@ -51,6 +51,10 @@ public:
     /// @return Current ROM title.
     std::string GetTitle() const { return gamePak_ ? gamePak_->GetTitle() : ""; }
 
+    /// @brief Update the KEYINPUT register based on current user input.
+    /// @param keyinput KEYINPUT value.
+    void UpdateKeypad(KEYINPUT keyinput) { keypad_.UpdateKeypad(keyinput); }
+
     /// @brief Transfer audio samples from internal buffer to external one.
     /// @param buffer Buffer to transfer samples to.
     /// @param cnt Number of samples to transfer.

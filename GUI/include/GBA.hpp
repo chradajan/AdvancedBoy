@@ -36,4 +36,8 @@ int GetFPSCounter();
 /// @brief Get the title of the ROM currently running.
 /// @return Current ROM title.
 std::string GetTitle();
+
+/// @brief Update the KEYINPUT register based on current user input.
+/// @param keyinput KEYINPUT value.
+void UpdateKeypad(KEYINPUT keyinput);
 }  // namespace gui
