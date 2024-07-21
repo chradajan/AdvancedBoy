@@ -63,7 +63,7 @@ struct BGCNT
     u16 mosaic          : 1;
     u16 palette         : 1;
     u16 screenBaseBlock : 5;
-    u16 wraparound      : 1;
+    u16 wrapAround      : 1;
     u16 screenSize      : 2;
 };
 

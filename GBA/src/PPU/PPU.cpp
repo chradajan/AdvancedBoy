@@ -1,4 +1,5 @@
 #include <GBA/include/PPU/PPU.hpp>
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -194,25 +195,25 @@ int PPU::WriteReg(u32 addr, u32 val, AccessSize length)
 
 void PPU::SetBG2RefX()
 {
-    std::memcpy(&bg2RefX_, &registers_[0x28], sizeof(bg2RefX_));
+    std::memcpy(&bg2RefX_, &registers_[0x28], sizeof(i32));
     bg2RefX_ = SignExtend<i32, 27>(bg2RefX_);
 }
 
 void PPU::SetBG2RefY()
 {
-    std::memcpy(&bg2RefY_, &registers_[0x28], sizeof(bg2RefY_));
+    std::memcpy(&bg2RefY_, &registers_[0x2C], sizeof(i32));
     bg2RefY_ = SignExtend<i32, 27>(bg2RefY_);
 }
 
 void PPU::SetBG3RefX()
 {
-    std::memcpy(&bg3RefX_, &registers_[0x28], sizeof(bg3RefX_));
+    std::memcpy(&bg3RefX_, &registers_[0x38], sizeof(i32));
     bg3RefX_ = SignExtend<i32, 27>(bg3RefX_);
 }
 
 void PPU::SetBG3RefY()
 {
-    std::memcpy(&bg3RefY_, &registers_[0x28], sizeof(bg3RefY_));
+    std::memcpy(&bg3RefY_, &registers_[0x3C], sizeof(i32));
     bg3RefY_ = SignExtend<i32, 27>(bg3RefY_);
 }
 
@@ -549,6 +550,12 @@ void PPU::EvaluateScanline()
             case 0:
                 RenderMode0Scanline();
                 break;
+            case 1:
+                RenderMode1Scanline();
+                break;
+            case 2:
+                RenderMode2Scanline();
+                break;
             case 3:
                 RenderMode3Scanline();
                 break;
@@ -598,6 +605,51 @@ void PPU::RenderMode0Scanline()
         u16 xOffset = MemCpyInit<u16>(&registers_[0x1C]);
         u16 yOffset = MemCpyInit<u16>(&registers_[0x1E]);
         RenderRegularTiledBackgroundScanline(GetBGCNT(3), 3, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+}
+
+void PPU::RenderMode1Scanline()
+{
+    auto dispcnt = GetDISPCNT();
+
+    if (dispcnt.screenDisplayBg0)
+    {
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x10]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x12]);
+        RenderRegularTiledBackgroundScanline(GetBGCNT(0), 0, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+
+    if (dispcnt.screenDisplayBg1)
+    {
+        u16 xOffset = MemCpyInit<u16>(&registers_[0x14]);
+        u16 yOffset = MemCpyInit<u16>(&registers_[0x16]);
+        RenderRegularTiledBackgroundScanline(GetBGCNT(1), 1, xOffset & 0x01FF, yOffset & 0x01FF);
+    }
+
+    if (dispcnt.screenDisplayBg2)
+    {
+        i16 dx = MemCpyInit<i16>(&registers_[0x20]);
+        i16 dy = MemCpyInit<i16>(&registers_[0x24]);
+        RenderAffineTiledBackgroundScanline(GetBGCNT(2), 2, bg2RefX_, bg2RefY_, dx, dy);
+    }
+}
+
+void PPU::RenderMode2Scanline()
+{
+    auto dispcnt = GetDISPCNT();
+
+    if (dispcnt.screenDisplayBg2)
+    {
+        i16 dx = MemCpyInit<i16>(&registers_[0x20]);
+        i16 dy = MemCpyInit<i16>(&registers_[0x24]);
+        RenderAffineTiledBackgroundScanline(GetBGCNT(2), 2, bg2RefX_, bg2RefY_, dx, dy);
+    }
+
+    if (dispcnt.screenDisplayBg3)
+    {
+        i16 dx = MemCpyInit<i16>(&registers_[0x30]);
+        i16 dy = MemCpyInit<i16>(&registers_[0x34]);
+        RenderAffineTiledBackgroundScanline(GetBGCNT(3), 3, bg3RefX_, bg3RefY_, dx, dy);
     }
 }
 
@@ -719,7 +771,7 @@ void PPU::RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16
             u8 tileX = screenBlock.TileX();
             u8 tileY = screenBlock.TileY();
 
-            auto paletteIndex = charBlockEntry.pixels[tileY][tileX];
+            u8 paletteIndex = charBlockEntry.pixels[tileY][tileX];
             bool transparent = paletteIndex == 0;
             u16 bgr555 = GetBgColor(paletteIndex);
 
@@ -730,6 +782,81 @@ void PPU::RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16
         {
             charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
         }
+    }
+}
+
+void PPU::RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i32 y, i16 dx, i16 dy)
+{
+    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
+
+    u8 mapWidthTiles;
+
+    switch (bgcnt.screenSize)
+    {
+        case 0:
+            mapWidthTiles = 16;
+            break;
+        case 1:
+            mapWidthTiles = 32;
+            break;
+        case 2:
+            mapWidthTiles = 64;
+            break;
+        case 3:
+            mapWidthTiles = 128;
+            break;
+    }
+
+    u16 mapWidthPixels = mapWidthTiles * 8;
+
+    auto src = static_cast<PixelSrc>(bgIndex + 1);
+    u8 priority = bgcnt.priority;
+    bool wrap = bgcnt.wrapAround;
+
+    size_t baseAddr = bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE;
+    size_t screenBlockSize = mapWidthTiles * mapWidthTiles;
+    size_t maxAvailableSpace = (32 * SCREEN_BLOCK_SIZE) - baseAddr;
+    screenBlockSize = std::min(screenBlockSize, maxAvailableSpace);
+    auto screenBlock = std::span<const std::byte>(&VRAM_[baseAddr], screenBlockSize);
+
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        if (frameBuffer_.GetWindowSettings(dot).bgEnabled[bgIndex])
+        {
+            i32 screenX = x >> 8;
+            i32 screenY = y >> 8;
+            bool oob = (screenX < 0) || (screenX >= mapWidthPixels) || (screenY < 0) || (screenY >= mapWidthPixels);
+            bool valid = wrap || !oob;
+            u8 paletteIndex = 0;
+
+            if (valid)
+            {
+                if (oob)
+                {
+                    screenX = ((screenX % mapWidthPixels) + mapWidthPixels) % mapWidthPixels;
+                    screenY = ((screenY % mapWidthPixels) + mapWidthPixels) % mapWidthPixels;
+                }
+
+                u32 mapX = screenX / 8;
+                u32 mapY = screenY / 8;
+                u8 tileX = screenX % 8;
+                u8 tileY = screenY % 8;
+                u32 screenBlockIndex = mapX + (mapY * mapWidthTiles);
+
+                if (screenBlockIndex < screenBlock.size())
+                {
+                    u8 tileIndex = static_cast<u8>(screenBlock[screenBlockIndex]);
+                    paletteIndex = charBlock.GetAffinePaletteIndex(tileIndex, tileX, tileY);
+                }
+            }
+
+            bool transparent = paletteIndex == 0;
+            u16 bgr555 = GetBgColor(paletteIndex);
+            frameBuffer_.PushPixel({src, bgr555, priority, transparent}, dot);
+        }
+
+        x += dx;
+        y += dy;
     }
 }
 }  // namespace graphics

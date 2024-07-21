@@ -64,6 +64,13 @@ public:
     /// @param index Tile index to get.
     void GetCharBlock(CharBlockEntry8& block, u16 index);
 
+    /// @brief Get the palette index from an 8bpp char block entry for an affine background.
+    /// @param index Index of tile being accessed.
+    /// @param tileX X-coordinate within the 8x8 char block entry.
+    /// @param tileY Y-coordinate within the 8x8 char block entry.
+    /// @return Palette index.
+    u8 GetAffinePaletteIndex(u16 index, u8 tileX, u8 tileY);
+
 private:
     std::span<const std::byte, BG_CHAR_BLOCKS_SIZE> charBlocks_;
     u32 const baseIndex_;

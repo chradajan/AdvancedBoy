@@ -216,6 +216,12 @@ private:
     /// @brief Render background pixels in mode 0.
     void RenderMode0Scanline();
 
+    /// @brief Render background pixels in mode 1.
+    void RenderMode1Scanline();
+
+    /// @brief Render background pixels in mode 2.
+    void RenderMode2Scanline();
+
     /// @brief Render background pixels in mode 3.
     void RenderMode3Scanline();
 
@@ -244,6 +250,15 @@ private:
     /// @param y Y-Coordinate within background map.
     /// @param width Width of map.
     void RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width);
+
+    /// @brief Render a tiled affined background scanline.
+    /// @param bgcnt Control register of specified background.
+    /// @param bgIndex Which background to render.
+    /// @param x Reference point x-coordinate.
+    /// @param y Reference point y-coordinate.
+    /// @param dx Amount to increment x-coordinate by after each pixel.
+    /// @param dy Amount to increment y-coordinate by after each pixel.
+    void RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i32 y, i16 dx, i16 dy);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
@@ -278,5 +293,6 @@ private:
     // VRAM views
     friend class BackgroundCharBlockView;
     friend class RegularScreenBlockScanlineView;
+    friend class AffineScreenBlockView;
 };
 }  // namespace graphics

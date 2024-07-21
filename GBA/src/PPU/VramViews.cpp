@@ -3,11 +3,15 @@
 #include <cstring>
 #include <span>
 #include <GBA/include/PPU/PPU.hpp>
+#include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace graphics
 {
+///---------------------------------------------------------------------------------------------------------------------------------
+/// BackgroundCharBlockView
+///---------------------------------------------------------------------------------------------------------------------------------
 BackgroundCharBlockView::BackgroundCharBlockView(PPU const& ppu, u8 baseIndex) :
     charBlocks_(ppu.VRAM_.data(), BG_CHAR_BLOCKS_SIZE),
     baseIndex_(baseIndex * CHAR_BLOCK_SIZE)
@@ -41,6 +45,22 @@ void BackgroundCharBlockView::GetCharBlock(CharBlockEntry8& block, u16 index)
         std::memcpy(&block, &charBlocks_[adjustedIndex], sizeof(CharBlockEntry8));
     }
 }
+
+u8 BackgroundCharBlockView::GetAffinePaletteIndex(u16 index, u8 tileX, u8 tileY)
+{
+    u32 adjustedIndex = baseIndex_ + (index * sizeof(CharBlockEntry8)) + (tileY * 8) + tileX;
+
+    if (adjustedIndex >= charBlocks_.size())
+    {
+        return 0;
+    }
+
+    return static_cast<u8>(charBlocks_[adjustedIndex]);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// RegularScreenBlockScanlineView
+///---------------------------------------------------------------------------------------------------------------------------------
 
 RegularScreenBlockScanlineView::RegularScreenBlockScanlineView(PPU const& ppu, u8 baseIndex, u16 x, u16 y, u16 width) :
     x_(x),
