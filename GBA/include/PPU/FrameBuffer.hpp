@@ -87,6 +87,17 @@ public:
     /// @param dot Dot on the current scanline to add pixel at.
     void PushPixel(Pixel pixel, u8 dot);
 
+    /// @brief Get a sprite pixel on the current scanline at a particular dot.
+    /// @param dot Dot to get sprite pixel at.
+    /// @return Reference to pixel at specified dot.
+    Pixel& GetSpritePixel(size_t dot) { return spriteScanline_.at(dot); }
+
+    /// @brief Merge the sprite pixels scanline buffer into the main scanline buffer.
+    void PushSpritePixels();
+
+    /// @brief Uninitialize all pixels in sprite scanline buffer.
+    void ClearSpritePixels();
+
     /// @brief Render the current scanline of pixels to the frame buffer.
     /// @param backdrop Pixel color of backdrop layer.
     /// @param forceBlank If true, make each pixel in the current scanline white.

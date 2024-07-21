@@ -5,6 +5,7 @@
 #include <cstring>
 #include <GBA/include/PPU/FrameBuffer.hpp>
 #include <GBA/include/PPU/Registers.hpp>
+#include <GBA/include/PPU/VramViews.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
@@ -261,6 +262,14 @@ private:
     void RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i32 y, i16 dx, i16 dy);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Sprites
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Render sprites and mix with background.
+    /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprites.
+    void EvaluateOAM(WindowSettings* windowSettingsPtr = nullptr);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
     ///-----------------------------------------------------------------------------------------------------------------------------
 
@@ -276,7 +285,7 @@ private:
 
     // Memory
     std::array<std::byte,  1 * KiB> PRAM_;
-    std::array<std::byte,  1 * KiB> OAM_;
+    alignas(OamEntry) std::array<std::byte,  1 * KiB> OAM_;
     std::array<std::byte, 96 * KiB> VRAM_;
 
     // Registers

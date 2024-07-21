@@ -160,3 +160,80 @@ private:
     u16 tile_;
 };
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// OAM
+///---------------------------------------------------------------------------------------------------------------------------------
+
+/// @brief Representation of an entry in OAM.
+struct OamEntry
+{
+    struct
+    {
+        u16 y           : 8;
+        u16 objMode     : 2;
+        u16 gfxMode     : 2;
+        u16 mosaic      : 1;
+        u16 colorMode   : 1;
+        u16 shape       : 2;
+    } attribute0;
+
+    union
+    {
+        struct
+        {
+            u16 x       : 9;
+            u16         : 5;
+            u16 size    : 2;
+        };
+
+        struct
+        {
+            u16                 : 12;
+            u16 horizontalFlip  : 1;
+            u16 verticalFlip    : 1;
+            u16                 : 2;
+        };
+
+        struct
+        {
+            u16                 : 9;
+            u16 paramSelect     : 5;
+            u16                 : 2;
+        };
+    } attribute1;
+
+    struct
+    {
+        u16 tile        : 10;
+        u16 priority    : 2;
+        u16 palette     : 4;
+    } attribute2;
+
+    u16 padding;
+};
+
+static_assert(sizeof(OamEntry) == sizeof(u64), "OamEntry must be 8 bytes");
+
+using Oam = std::span<const OamEntry, 128>;
+
+/// @brief Representation of a single matrix for OBJ affine transformations.
+struct AffineMatrixEntry
+{
+    uint16_t pad0[3];
+    int16_t pa;
+
+    uint16_t pad1[3];
+    int16_t pb;
+
+    uint16_t pad2[3];
+    int16_t pc;
+
+    uint16_t pad3[3];
+    int16_t pd;
+};
+
+static_assert(sizeof(AffineMatrixEntry) == 4 * sizeof(OamEntry), "AffineMatrixEntry must be 32 bytes");
+static_assert(alignof(AffineMatrixEntry) == alignof(OamEntry), "AffineMatrixEntry and OamEntry must have same alignment");
+
+using AffineMatrix = std::span<const AffineMatrixEntry, 32>;

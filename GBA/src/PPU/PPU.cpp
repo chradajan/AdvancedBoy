@@ -490,8 +490,7 @@ void PPU::EvaluateScanline()
                 };
                 #pragma GCC diagnostic pop
 
-                // TODO: Evaluate OAM to setup OBJ window
-                (void)objWindow;
+                EvaluateOAM(&objWindow);
             }
 
             if (dispcnt.window1Display)
@@ -543,6 +542,13 @@ void PPU::EvaluateScanline()
             };
 
             frameBuffer_.InitializeWindow(allEnabled);
+        }
+
+        if (dispcnt.screenDisplayObj)
+        {
+            frameBuffer_.ClearSpritePixels();
+            EvaluateOAM();
+            frameBuffer_.PushSpritePixels();
         }
 
         switch (dispcnt.bgMode)
@@ -857,6 +863,172 @@ void PPU::RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i3
 
         x += dx;
         y += dy;
+    }
+}
+
+void PPU::EvaluateOAM(WindowSettings* windowSettingsPtr)
+{
+    Oam oam(reinterpret_cast<const OamEntry*>(OAM_.data()), 128);
+    bool windowEval = windowSettingsPtr == nullptr;
+    u8 scanline = GetVCOUNT();
+    auto dispcnt = GetDISPCNT();
+
+    for (u8 i = 0; i < 128; ++i)
+    {
+        OamEntry const& entry = oam[i];
+
+        if ((windowEval && (entry.attribute0.gfxMode != 2)) ||      // Skip window sprites if not evaluating window
+            (!windowEval && (entry.attribute0.gfxMode == 2)) ||     // Skip visible sprites if evaluating window
+            (entry.attribute0.objMode == 2) ||                      // Skip disabled sprites
+            (entry.attribute0.gfxMode == 3))                        // Skip illegal gfx mode
+        {
+            continue;
+        }
+
+        u8 height;
+        u8 width;
+        u8 dimensions = (entry.attribute0.shape << 2) | entry.attribute1.size;
+
+        switch (dimensions)
+        {
+            // Square
+            case 0b0000:
+                height = 8;
+                width = 8;
+                break;
+            case 0b0001:
+                height = 16;
+                width = 16;
+                break;
+            case 0b0010:
+                height = 32;
+                width = 32;
+                break;
+            case 0b0011:
+                height = 64;
+                width = 64;
+                break;
+
+            // Horizontal
+            case 0b0100:
+                height = 8;
+                width = 16;
+                break;
+            case 0b0101:
+                height = 8;
+                width = 32;
+                break;
+            case 0b0110:
+                height = 16;
+                width = 32;
+                break;
+            case 0b0111:
+                height = 32;
+                width = 64;
+                break;
+
+            // Vertical
+            case 0b1000:
+                height = 16;
+                width = 8;
+                break;
+            case 0b1001:
+                height = 32;
+                width = 8;
+                break;
+            case 0b1010:
+                height = 32;
+                width = 16;
+                break;
+            case 0b1011:
+                height = 64;
+                width = 32;
+                break;
+
+            // Illegal combinations
+            default:
+                continue;
+        }
+
+        i16 y = entry.attribute0.y;
+        i16 x = entry.attribute1.x;
+
+        if (y >= 160)
+        {
+            y -= 256;
+        }
+
+        if (x & 0x0100)
+        {
+            x = (~0x01FF) | (x & 0x01FF);
+        }
+
+        i16 topEdge = y;
+        i16 bottomEdge = y + height - 1;
+
+        if (entry.attribute0.objMode == 3)
+        {
+            y += (height / 2);
+            x += (width / 2);
+            topEdge = y - (height / 2);
+            bottomEdge = topEdge + (2 * height) - 1;
+        }
+
+        if ((topEdge > scanline) || (scanline > bottomEdge))
+        {
+            continue;
+        }
+
+        if (dispcnt.objCharacterVramMapping)        // One-dimensional bitmap
+        {
+            if (entry.attribute0.colorMode)         // 8bpp
+            {
+                if (entry.attribute0.objMode == 0)  // Regular
+                {
+
+                }
+                else                                // Affine
+                {
+
+                }
+            }
+            else                                    // 4bpp
+            {
+                if (entry.attribute0.objMode == 0)  // Regular
+                {
+
+                }
+                else                                // Affine
+                {
+
+                }
+            }
+        }
+        else                                        // Two-dimensional bitmap
+        {
+            if (entry.attribute0.colorMode)         // 8bpp
+            {
+                if (entry.attribute0.objMode == 0)  // Regular
+                {
+
+                }
+                else                                // Affine
+                {
+
+                }
+            }
+            else                                    // 4bpp
+            {
+                if (entry.attribute0.objMode == 0)  // Regular
+                {
+
+                }
+                else                                // Affine
+                {
+
+                }
+            }
+        }
     }
 }
 }  // namespace graphics

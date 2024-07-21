@@ -114,6 +114,25 @@ void FrameBuffer::PushPixel(Pixel pixel, u8 dot)
     scanline_.at(dot).push_back(pixel);
 }
 
+void FrameBuffer::PushSpritePixels()
+{
+    for (u8 dot = 0; dot < LCD_WIDTH; ++dot)
+    {
+        if (spriteScanline_[dot].initialized)
+        {
+            scanline_[dot].push_back(spriteScanline_[dot]);
+        }
+    }
+}
+
+void FrameBuffer::ClearSpritePixels()
+{
+    for (Pixel& pixel : spriteScanline_)
+    {
+        pixel.initialized = false;
+    }
+}
+
 void FrameBuffer::RenderScanline(u16 backdrop, bool forceBlank, BLDCNT bldcnt, BLDALPHA bldalpha, BLDY bldy)
 {
     if (forceBlank)
