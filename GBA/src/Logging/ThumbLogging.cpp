@@ -220,6 +220,7 @@ void ARM7TDMI::LogPushPopRegisters(u16 instruction) const
 
     regStream << "}";
     std::string mnemonic = std::format("    {:04X} -> {} {}", instruction, op, regStream.str());
+    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
 void ARM7TDMI::LogLoadStoreHalfword(u16 instruction) const
@@ -331,6 +332,17 @@ void ARM7TDMI::LogHiRegisterOperationsBranchExchange(u16 instruction) const
     auto flags = std::bit_cast<HiRegisterOperationsBranchExchange::Flags>(instruction);
     u8 Rd = flags.RdHd;
     u8 Rs = flags.RsHs;
+
+    if (flags.H1)
+    {
+        Rd += 8;
+    }
+
+    if (flags.H2)
+    {
+        Rs += 8;
+    }
+
     std::string op;
     std::string regStr = std::format("R{}, R{}", Rd, Rs);
 

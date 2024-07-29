@@ -55,16 +55,6 @@ MainWindow::MainWindow(QWidget* parent) :
     biosPath_ = "../bios/gba_bios.bin";
     logDir_ = "";
 
-    QCoreApplication* app = QApplication::instance();
-
-    if (app->arguments().size() > 2)
-    {
-        biosPath_ = app->arguments().at(1).toStdString();
-        fs::path romPath = app->arguments().at(2).toStdString();
-
-        StartEmulation(romPath);
-    }
-
     // Window title
     connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
     fpsTimer_.start(1000);

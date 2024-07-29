@@ -23,6 +23,14 @@ public:
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
 
+    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
+    /// @param romPath Path to GBA ROM.
+    void StartEmulation(fs::path romPath);
+
+    /// @brief Update the path to the BIOS file.
+    /// @param biosPath Path to GBA BIOS.
+    void SetBiosPath(fs::path biosPath) { biosPath_ = biosPath; }
+
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event handlers
@@ -57,10 +65,6 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Emulation management
     ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
-    /// @param romPath Path to GBA ROM.
-    void StartEmulation(fs::path romPath);
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
     void SendKeyPresses();

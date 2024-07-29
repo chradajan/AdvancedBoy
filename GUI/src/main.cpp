@@ -14,5 +14,12 @@ int main(int argv, char** args)
     QApplication app(argv, args);
     gui::MainWindow mainWindow;
     mainWindow.show();
+
+    if (app.arguments().size() > 2)
+    {
+        mainWindow.SetBiosPath(app.arguments().at(1).toStdString());
+        mainWindow.StartEmulation(app.arguments().at(2).toStdString());
+    }
+
     return app.exec();
 }
