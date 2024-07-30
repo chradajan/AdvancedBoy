@@ -269,6 +269,25 @@ private:
     /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprites.
     void EvaluateOAM(WindowSettings* windowSettingsPtr = nullptr);
 
+    /// @brief Render a regular sprite. Handles 4bpp/8bpp and 1d/2d mapping.
+    /// @param oneDim Char block mapping mode. True for 1D, false for 2D.
+    /// @param x X-coordinate of top left corner of sprite.
+    /// @param y Y-coordinate of top left corner of sprite.
+    /// @param width Width of sprite in pixels.
+    /// @param height Height of sprite in pixels.
+    /// @param entry Reference to OAM entry for sprite.
+    /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprite.
+    void RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEntry const& entry, WindowSettings* windowSettingsPtr);
+
+    /// @brief Evaluate whether a sprite pixel should be considered for rendering or for the OBJ window.
+    /// @param dot Dot location of the pixel.
+    /// @param color BGR555 value of the pixel.
+    /// @param priority Priority (0-3) of this pixel.
+    /// @param transparent Whether the pixel is transparent.
+    /// @param semiTransparent Whether the pixel is semi-transparent.
+    /// @param windowSettingsPtr Pointer to window settings to be applied. If nullptr, then consider pixel for rendering instead.
+    void PushSpritePixel(u8 dot, u16 color, u8 priority, bool transparent, bool semiTransparent, WindowSettings* windowSettingsPtr);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -302,6 +321,5 @@ private:
     // VRAM views
     friend class BackgroundCharBlockView;
     friend class RegularScreenBlockScanlineView;
-    friend class AffineScreenBlockView;
 };
 }  // namespace graphics

@@ -9,18 +9,103 @@ namespace graphics { class PPU; }
 namespace graphics
 {
 ///---------------------------------------------------------------------------------------------------------------------------------
-/// Char blocks
+/// General VRAM types
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-static constexpr u32 CHAR_BLOCK_SIZE = 16 * KiB;
+constexpr u32 VRAM_SIZE = 96 * KiB;
+using VramSpan = std::span<const std::byte, VRAM_SIZE>;
+
+constexpr u8 MAX_REG_SPRITE_WIDTH = 64;
+using SpriteRow = std::array<u8, MAX_REG_SPRITE_WIDTH>;
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// OAM
+///---------------------------------------------------------------------------------------------------------------------------------
+
+/// @brief Representation of an entry in OAM.
+struct OamEntry
+{
+    struct
+    {
+        u16 y           : 8;
+        u16 objMode     : 2;
+        u16 gfxMode     : 2;
+        u16 mosaic      : 1;
+        u16 colorMode   : 1;
+        u16 shape       : 2;
+    } attribute0;
+
+    union
+    {
+        struct
+        {
+            u16 x       : 9;
+            u16         : 5;
+            u16 size    : 2;
+        };
+
+        struct
+        {
+            u16                 : 12;
+            u16 horizontalFlip  : 1;
+            u16 verticalFlip    : 1;
+            u16                 : 2;
+        };
+
+        struct
+        {
+            u16                 : 9;
+            u16 paramSelect     : 5;
+            u16                 : 2;
+        };
+    } attribute1;
+
+    struct
+    {
+        u16 tile        : 10;
+        u16 priority    : 2;
+        u16 palette     : 4;
+    } attribute2;
+
+    u16 padding;
+};
+
+static_assert(sizeof(OamEntry) == sizeof(u64), "OamEntry must be 8 bytes");
+
+using Oam = std::span<const OamEntry, 128>;
+
+/// @brief Representation of a single matrix for OBJ affine transformations.
+struct AffineMatrixEntry
+{
+    uint16_t pad0[3];
+    int16_t pa;
+
+    uint16_t pad1[3];
+    int16_t pb;
+
+    uint16_t pad2[3];
+    int16_t pc;
+
+    uint16_t pad3[3];
+    int16_t pd;
+};
+
+static_assert(sizeof(AffineMatrixEntry) == 4 * sizeof(OamEntry), "AffineMatrixEntry must be 32 bytes");
+static_assert(alignof(AffineMatrixEntry) == alignof(OamEntry), "AffineMatrixEntry and OamEntry must have same alignment");
+
+using AffineMatrix = std::span<const AffineMatrixEntry, 32>;
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Char blocks
+///---------------------------------------------------------------------------------------------------------------------------------
 
 /// @brief Representation of a tile bitmap in 4bpp mode.
 struct CharBlockEntry4
 {
     struct ColorIndexes
     {
-        u8 leftNibble   : 4;
-        u8 rightNibble  : 4;
+        u8 leftColorIndex   : 4;
+        u8 rightColorIndex  : 4;
     };
 
     ColorIndexes pixels[8][4];
@@ -35,6 +120,21 @@ struct CharBlockEntry8
 };
 
 static_assert(sizeof(CharBlockEntry8) == 64, "CharBlockEntry8 must be 64 bytes");
+
+// General char block constants
+constexpr u32 CHAR_BLOCK_SIZE = 16 * KiB;  // Size of a single char block in bytes.
+
+constexpr u32 CHAR_BLOCK_4_ROW_SIZE = 4;  // Number of bytes in a row of a 4bpp char block entry.
+constexpr u32 CHAR_BLOCK_8_ROW_SIZE = 8;  // Number of bytes in a row of an 8bpp char block entry.
+
+// OBJ mapping constants
+constexpr u32 OBJ_CHAR_BLOCKS_SIZE = 2 * CHAR_BLOCK_SIZE;  // Size of both OBJ char blocks in bytes.
+constexpr u32 OBJ_CHAR_BLOCK_BASE_ADDR = 4 * CHAR_BLOCK_SIZE;  // Base address of the OBJ char blocks.
+
+constexpr u32 OBJ_CHAR_BLOCK_TILE_COUNT = OBJ_CHAR_BLOCKS_SIZE / sizeof(CharBlockEntry4);  // Number of 4bpp sized OBJ tiles.
+
+constexpr u32 CHAR_BLOCK_2D_ROW_WIDTH = 32;  // Number of CharBlockEntry4 sized tiles in a row/column.
+constexpr u32 CHAR_BLOCK_2D_ROW_SIZE = CHAR_BLOCK_2D_ROW_WIDTH * sizeof(CharBlockEntry4);  // Size of a row of tiles in bytes.
 
 /// @brief View of the background char blocks. Does not alter data in VRAM.
 class BackgroundCharBlockView
@@ -75,6 +175,24 @@ private:
     std::span<const std::byte, BG_CHAR_BLOCKS_SIZE> charBlocks_;
     u32 const baseIndex_;
 };
+
+/// @brief Fetch the color index of each pixel in a single row for a regular sprite that uses 1D mapping.
+/// @param vram Span representing all of VRAM.
+/// @param colors Array of color indexes to populate.
+/// @param entry Reference to OAM entry to fetch data for.
+/// @param width Width of the sprite in pixels.
+/// @param height Height of the sprite in pixels.
+/// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
+void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+
+/// @brief Fetch the color index of each pixel in a single row for a regular sprite that uses 2D mapping.
+/// @param vram Span representing all of VRAM.
+/// @param colors Array of color indexes to populate.
+/// @param entry Reference to OAM entry to fetch data for.
+/// @param width Width of the sprite in pixels.
+/// @param height Height of the sprite in pixels.
+/// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
+void Populate2dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Screen blocks
@@ -160,80 +278,3 @@ private:
     u16 tile_;
 };
 }
-
-///---------------------------------------------------------------------------------------------------------------------------------
-/// OAM
-///---------------------------------------------------------------------------------------------------------------------------------
-
-/// @brief Representation of an entry in OAM.
-struct OamEntry
-{
-    struct
-    {
-        u16 y           : 8;
-        u16 objMode     : 2;
-        u16 gfxMode     : 2;
-        u16 mosaic      : 1;
-        u16 colorMode   : 1;
-        u16 shape       : 2;
-    } attribute0;
-
-    union
-    {
-        struct
-        {
-            u16 x       : 9;
-            u16         : 5;
-            u16 size    : 2;
-        };
-
-        struct
-        {
-            u16                 : 12;
-            u16 horizontalFlip  : 1;
-            u16 verticalFlip    : 1;
-            u16                 : 2;
-        };
-
-        struct
-        {
-            u16                 : 9;
-            u16 paramSelect     : 5;
-            u16                 : 2;
-        };
-    } attribute1;
-
-    struct
-    {
-        u16 tile        : 10;
-        u16 priority    : 2;
-        u16 palette     : 4;
-    } attribute2;
-
-    u16 padding;
-};
-
-static_assert(sizeof(OamEntry) == sizeof(u64), "OamEntry must be 8 bytes");
-
-using Oam = std::span<const OamEntry, 128>;
-
-/// @brief Representation of a single matrix for OBJ affine transformations.
-struct AffineMatrixEntry
-{
-    uint16_t pad0[3];
-    int16_t pa;
-
-    uint16_t pad1[3];
-    int16_t pb;
-
-    uint16_t pad2[3];
-    int16_t pc;
-
-    uint16_t pad3[3];
-    int16_t pd;
-};
-
-static_assert(sizeof(AffineMatrixEntry) == 4 * sizeof(OamEntry), "AffineMatrixEntry must be 32 bytes");
-static_assert(alignof(AffineMatrixEntry) == alignof(OamEntry), "AffineMatrixEntry and OamEntry must have same alignment");
-
-using AffineMatrix = std::span<const AffineMatrixEntry, 32>;

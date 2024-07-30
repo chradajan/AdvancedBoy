@@ -746,7 +746,7 @@ void PPU::RenderRegular4bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16
             bool left = (tileX % 2) == 0;
 
             auto colors = charBlockEntry.pixels[tileY][tileX / 2];
-            u8 colorIndex = left ? colors.leftNibble : colors.rightNibble;
+            u8 colorIndex = left ? colors.leftColorIndex : colors.rightColorIndex;
             bool transparent = colorIndex == 0;
             u16 bgr555 = transparent ? GetBgColor(0) : GetBgColor(screenBlock.Palette(), colorIndex);
 
@@ -869,7 +869,7 @@ void PPU::RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i3
 void PPU::EvaluateOAM(WindowSettings* windowSettingsPtr)
 {
     Oam oam(reinterpret_cast<const OamEntry*>(OAM_.data()), 128);
-    bool windowEval = windowSettingsPtr == nullptr;
+    bool windowEval = windowSettingsPtr != nullptr;
     u8 scanline = GetVCOUNT();
     auto dispcnt = GetDISPCNT();
 
@@ -979,56 +979,76 @@ void PPU::EvaluateOAM(WindowSettings* windowSettingsPtr)
             continue;
         }
 
-        if (dispcnt.objCharacterVramMapping)        // One-dimensional bitmap
+        if (entry.attribute0.objMode == 0)
         {
-            if (entry.attribute0.colorMode)         // 8bpp
-            {
-                if (entry.attribute0.objMode == 0)  // Regular
-                {
-
-                }
-                else                                // Affine
-                {
-
-                }
-            }
-            else                                    // 4bpp
-            {
-                if (entry.attribute0.objMode == 0)  // Regular
-                {
-
-                }
-                else                                // Affine
-                {
-
-                }
-            }
+            RenderRegSprite(dispcnt.objCharacterVramMapping, x, y, width, height, entry, windowSettingsPtr);
         }
-        else                                        // Two-dimensional bitmap
+        else
         {
-            if (entry.attribute0.colorMode)         // 8bpp
-            {
-                if (entry.attribute0.objMode == 0)  // Regular
-                {
-
-                }
-                else                                // Affine
-                {
-
-                }
-            }
-            else                                    // 4bpp
-            {
-                if (entry.attribute0.objMode == 0)  // Regular
-                {
-
-                }
-                else                                // Affine
-                {
-
-                }
-            }
+            // TODO: Affine sprite
         }
+    }
+}
+
+void PPU::RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEntry const& entry, WindowSettings* windowSettingsPtr)
+{
+    i16 leftEdge = std::max(static_cast<i16>(0), x);
+    i16 rightEdge = std::min(static_cast<i16>(239), static_cast<i16>(x + width - 1));
+    i16 horizontalOffset = leftEdge - x;
+    i16 verticalOffset = GetVCOUNT() - y;
+    i16 dot = leftEdge;
+
+    if ((horizontalOffset >= width) || (leftEdge > rightEdge))
+    {
+        return;
+    }
+
+    SpriteRow colors;
+
+    if (oneDim)
+    {
+        Populate1dRegularSpriteRow(VRAM_, colors, entry, width, height, verticalOffset);
+    }
+    else
+    {
+        Populate2dRegularSpriteRow(VRAM_, colors, entry, width, height, verticalOffset);
+    }
+
+    u8 onScreenPixels = rightEdge - leftEdge + 1;
+    std::span<u8> colorSpan(&colors[horizontalOffset], onScreenPixels);
+
+    bool colorMode = entry.attribute0.colorMode;
+    u8 palette = entry.attribute2.palette;
+    u8 priority = entry.attribute2.priority;
+    bool semiTransparent = entry.attribute0.gfxMode == 1;
+    bool horizontalFlip = entry.attribute1.horizontalFlip;
+
+    for (u8 i = 0; i < colorSpan.size(); ++i)
+    {
+        u8 color = horizontalFlip ? colorSpan[colorSpan.size() - 1 - i] : colorSpan[i];
+        u16 bgr555 = colorMode ? GetSpriteColor(color) : GetSpriteColor(palette, color);
+        bool transparent = color == 0;
+        PushSpritePixel(dot++, bgr555, priority, transparent, semiTransparent, windowSettingsPtr);
+    }
+}
+
+void PPU::PushSpritePixel(u8 dot, u16 color, u8 priority, bool transparent, bool semiTransparent, WindowSettings* windowSettingsPtr)
+{
+    if (windowSettingsPtr == nullptr)
+    {
+        // Visible Sprite
+        Pixel& currentPixel = frameBuffer_.GetSpritePixel(dot);
+
+        if (frameBuffer_.GetWindowSettings(dot).objEnabled && !transparent &&
+            (!currentPixel.initialized || (priority < currentPixel.priority) || currentPixel.transparent))
+        {
+            currentPixel = Pixel(PixelSrc::OBJ, color, priority, transparent, semiTransparent);
+        }
+    }
+    else if (!transparent)
+    {
+        // Opaque OBJ window sprite pixel
+        frameBuffer_.GetWindowSettings(dot) = *windowSettingsPtr;
     }
 }
 }  // namespace graphics

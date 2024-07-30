@@ -59,6 +59,110 @@ u8 BackgroundCharBlockView::GetAffinePaletteIndex(u16 index, u8 tileX, u8 tileY)
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
+/// Sprite views
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+{
+    u8 widthTiles = width / 8;
+    u8 heightTiles = height / 8;
+    bool verticalFlip = entry.attribute1.verticalFlip;
+
+    u32 baseTileIndex = verticalFlip ?
+        entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * widthTiles) :
+        entry.attribute2.tile + ((verticalOffset / 8) * widthTiles);
+
+    u32 tileY = verticalFlip ?
+        (verticalOffset % 8) ^ 7 :
+        verticalOffset % 8;
+
+    bool colorMode = entry.attribute0.colorMode;
+    u8 tileOffset = tileY * (colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE);
+    u32 vramAddr = OBJ_CHAR_BLOCK_BASE_ADDR + (baseTileIndex * sizeof(CharBlockEntry4)) + tileOffset;
+    u8 colorIndex = 0;
+
+    for (u8 i = 0; i < widthTiles; ++i)
+    {
+        if (vramAddr >= vram.size())
+        {
+            vramAddr -= OBJ_CHAR_BLOCKS_SIZE;
+        }
+
+        if (colorMode)
+        {
+            std::memcpy(&colors[colorIndex], &vram[vramAddr], CHAR_BLOCK_8_ROW_SIZE);
+            colorIndex += 8;
+            vramAddr += sizeof(CharBlockEntry8);
+        }
+        else
+        {
+            for (u8 j = 0; j < 4; ++j)
+            {
+                u8 val = static_cast<u8>(vram[vramAddr + j]);
+                colors[colorIndex++] = val & 0x0F;
+                colors[colorIndex++] = val >> 4;
+            }
+
+            vramAddr += sizeof(CharBlockEntry4);
+        }
+    }
+}
+
+void Populate2dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+{
+    u8 widthTiles = width / 8;
+    u8 heightTiles = height / 8;
+    bool verticalFlip = entry.attribute1.verticalFlip;
+
+    u32 baseTileIndex = verticalFlip ?
+        entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * 32) :
+        entry.attribute2.tile + ((verticalOffset / 8) * 32);
+
+    if (baseTileIndex >= OBJ_CHAR_BLOCK_TILE_COUNT)
+    {
+        baseTileIndex -= OBJ_CHAR_BLOCK_TILE_COUNT;
+    }
+
+    u8 row = baseTileIndex / CHAR_BLOCK_2D_ROW_WIDTH;
+    u32 maxRowAddress = OBJ_CHAR_BLOCK_BASE_ADDR + ((row + 1) * CHAR_BLOCK_2D_ROW_SIZE) - 1;
+
+    u32 tileY = verticalFlip ?
+        (verticalOffset % 8) ^ 7 :
+        verticalOffset % 8;
+
+    bool colorMode = entry.attribute0.colorMode;
+    u8 tileOffset = tileY * (colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE);
+    u32 vramAddr = OBJ_CHAR_BLOCK_BASE_ADDR + (baseTileIndex * sizeof(CharBlockEntry4)) + tileOffset;
+    u8 colorIndex = 0;
+
+    for (u8 i = 0; i < widthTiles; ++i)
+    {
+        if (vramAddr > maxRowAddress)
+        {
+            vramAddr -= CHAR_BLOCK_2D_ROW_SIZE;
+        }
+
+        if (colorMode)
+        {
+            std::memcpy(&colors[colorIndex], &vram[vramAddr], CHAR_BLOCK_8_ROW_SIZE);
+            colorIndex += 8;
+            vramAddr += sizeof(CharBlockEntry8);
+        }
+        else
+        {
+            for (u8 j = 0; j < 4; ++j)
+            {
+                u8 val = static_cast<u8>(vram[vramAddr + j]);
+                colors[colorIndex++] = val & 0x0F;
+                colors[colorIndex++] = val >> 4;
+            }
+
+            vramAddr += sizeof(CharBlockEntry4);
+        }
+    }
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
 /// RegularScreenBlockScanlineView
 ///---------------------------------------------------------------------------------------------------------------------------------
 

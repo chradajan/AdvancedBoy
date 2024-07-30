@@ -52,7 +52,8 @@ public:
         color(bgr555),
         priority(prio),
         transparent(transparency),
-        semiTransparent(semiTransparency)
+        semiTransparent(semiTransparency),
+        initialized(true)
     {
     }
 
