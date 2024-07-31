@@ -985,7 +985,7 @@ void PPU::EvaluateOAM(WindowSettings* windowSettingsPtr)
         }
         else
         {
-            // TODO: Affine sprite
+            RenderAffSprite(dispcnt.objCharacterVramMapping, x, y, width, height, entry, windowSettingsPtr);
         }
     }
 }
@@ -1004,31 +1004,97 @@ void PPU::RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEnt
     }
 
     SpriteRow colors;
+    ObjSpan objCharBlocks(&VRAM_[OBJ_CHAR_BLOCK_BASE_ADDR], OBJ_CHAR_BLOCKS_SIZE);
 
     if (oneDim)
     {
-        Populate1dRegularSpriteRow(VRAM_, colors, entry, width, height, verticalOffset);
+        Populate1dRegularSpriteRow(objCharBlocks, colors, entry, width, height, verticalOffset);
     }
     else
     {
-        Populate2dRegularSpriteRow(VRAM_, colors, entry, width, height, verticalOffset);
+        Populate2dRegularSpriteRow(objCharBlocks, colors, entry, width, height, verticalOffset);
     }
 
     u8 onScreenPixels = rightEdge - leftEdge + 1;
-    std::span<u8> colorSpan(&colors[horizontalOffset], onScreenPixels);
+    std::span<u8> colorIndexes(&colors[horizontalOffset], onScreenPixels);
 
-    bool colorMode = entry.attribute0.colorMode;
     u8 palette = entry.attribute2.palette;
     u8 priority = entry.attribute2.priority;
+    bool colorMode = entry.attribute0.colorMode;
     bool semiTransparent = entry.attribute0.gfxMode == 1;
     bool horizontalFlip = entry.attribute1.horizontalFlip;
 
-    for (u8 i = 0; i < colorSpan.size(); ++i)
+    for (u8 i = 0; i < colorIndexes.size(); ++i)
     {
-        u8 color = horizontalFlip ? colorSpan[colorSpan.size() - 1 - i] : colorSpan[i];
-        u16 bgr555 = colorMode ? GetSpriteColor(color) : GetSpriteColor(palette, color);
-        bool transparent = color == 0;
+        u8 colorIndex = horizontalFlip ? colorIndexes[colorIndexes.size() - 1 - i] : colorIndexes[i];
+        u16 bgr555 = colorMode ? GetSpriteColor(colorIndex) : GetSpriteColor(palette, colorIndex);
+        bool transparent = colorIndex == 0;
         PushSpritePixel(dot++, bgr555, priority, transparent, semiTransparent, windowSettingsPtr);
+    }
+}
+
+void PPU::RenderAffSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEntry const& entry, WindowSettings* windowSettingsPtr)
+{
+    // Matrix parameters
+    AffineMatrices matrices(reinterpret_cast<AffineMatrix*>(&OAM_[0]), AFFINE_MATRIX_COUNT);
+    AffineMatrix const& matrix = matrices[entry.attribute1.paramSelect];
+
+    // Bounds
+    u8 widthTiles = width / 8;
+    i16 leftEdge = x;
+    i16 rightEdge = x + width - 1;
+    i16 topEdge = y;
+    u8 halfWidth = width / 2;
+    u8 halfHeight = height / 2;
+    bool doubleSize = entry.attribute0.objMode == 3;
+
+    if (doubleSize)
+    {
+        leftEdge -= halfWidth;
+        rightEdge += halfWidth;
+        topEdge -= halfHeight;
+    }
+
+    // Rotation center
+    i16 x0 = doubleSize ? width : halfWidth;
+    i16 y0 = doubleSize ? height : halfHeight;
+
+    // Screen/affine positions
+    i16 x1 = 0;
+    i16 y1 = GetVCOUNT() - topEdge;
+
+    i32 affineX = (matrix.pa * (x1 - x0)) + (matrix.pb * (y1 - y0)) + (halfWidth << 8);
+    i32 affineY = (matrix.pc * (x1 - x0)) + (matrix.pd * (y1 - y0)) + (halfHeight << 8);
+
+    // OAM entry parameters
+    u8 palette = entry.attribute2.palette;
+    u8 priority = entry.attribute2.priority;
+    u16 baseTile = entry.attribute2.tile;
+    bool colorMode = entry.attribute0.colorMode;
+    bool semiTransparent = entry.attribute0.gfxMode == 1;
+
+    // VRAM
+    ObjSpan objCharBlocks(&VRAM_[OBJ_CHAR_BLOCK_BASE_ADDR], OBJ_CHAR_BLOCKS_SIZE);
+
+    for (i16 dot = leftEdge; (dot <= rightEdge) && (dot < LCD_WIDTH); ++dot)
+    {
+        i32 textureX = affineX >> 8;
+        i32 textureY = affineY >> 8;
+        affineX += matrix.pa;
+        affineY += matrix.pc;
+
+        if ((dot < 0) || (textureX < 0) || (textureX >= width) || (textureY < 0) || (textureY >= height))
+        {
+            continue;
+        }
+
+        u8 colorIndex = oneDim ?
+            Get1dAffineColorIndex(objCharBlocks, baseTile, textureX, textureY, widthTiles, colorMode) :
+            Get2dAffineColorIndex(objCharBlocks, baseTile, textureX, textureY, colorMode);
+
+        u16 bgr555 = colorMode ? GetSpriteColor(colorIndex) : GetSpriteColor(palette, colorIndex);
+        bool transparent = colorIndex == 0;
+        PushSpritePixel(dot, bgr555, priority, transparent, semiTransparent, windowSettingsPtr);
     }
 }
 

@@ -269,7 +269,7 @@ private:
     /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprites.
     void EvaluateOAM(WindowSettings* windowSettingsPtr = nullptr);
 
-    /// @brief Render a regular sprite. Handles 4bpp/8bpp and 1d/2d mapping.
+    /// @brief Render a regular sprite. Handles 4bpp/8bpp and 1D/2D mapping.
     /// @param oneDim Char block mapping mode. True for 1D, false for 2D.
     /// @param x X-coordinate of top left corner of sprite.
     /// @param y Y-coordinate of top left corner of sprite.
@@ -278,6 +278,16 @@ private:
     /// @param entry Reference to OAM entry for sprite.
     /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprite.
     void RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEntry const& entry, WindowSettings* windowSettingsPtr);
+
+    /// @brief Render an affine sprite. Handles 4bpp/8bpp and 1D/2D mapping.
+    /// @param oneDim Char block mapping mode. True for 1D, false for 2D.
+    /// @param x X-coordinate of top left corner of sprite.
+    /// @param y Y-coordinate of top left corner of sprite.
+    /// @param width Width of sprite in pixels.
+    /// @param height Height of sprite in pixels.
+    /// @param entry Reference to OAM entry for sprite.
+    /// @param windowSettingsPtr Pointer to OBJ window settings, or nullptr if rendering a visible sprite.
+    void RenderAffSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEntry const& entry, WindowSettings* windowSettingsPtr);
 
     /// @brief Evaluate whether a sprite pixel should be considered for rendering or for the OBJ window.
     /// @param dot Dot location of the pixel.
@@ -303,9 +313,9 @@ private:
     i32 bg3RefY_;
 
     // Memory
-    std::array<std::byte,  1 * KiB> PRAM_;
-    alignas(OamEntry) std::array<std::byte,  1 * KiB> OAM_;
-    std::array<std::byte, 96 * KiB> VRAM_;
+    std::array<std::byte,  PRAM_SIZE> PRAM_;
+    alignas(OamEntry) std::array<std::byte,  OAM_SIZE> OAM_;
+    std::array<std::byte, VRAM_SIZE> VRAM_;
 
     // Registers
     std::array<std::byte, 0x58> registers_;

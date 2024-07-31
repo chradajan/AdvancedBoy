@@ -7,8 +7,8 @@
 
 namespace graphics
 {
-constexpr size_t LCD_WIDTH = 240;
-constexpr size_t LCD_HEIGHT = 160;
+constexpr i16 LCD_WIDTH = 240;
+constexpr i16 LCD_HEIGHT = 160;
 
 enum class PixelSrc : u8
 {

@@ -1,4 +1,5 @@
 #include <GBA/include/PPU/VramViews.hpp>
+#include <bit>
 #include <cstddef>
 #include <cstring>
 #include <span>
@@ -62,13 +63,13 @@ u8 BackgroundCharBlockView::GetAffinePaletteIndex(u16 index, u8 tileX, u8 tileY)
 /// Sprite views
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
 {
     u8 widthTiles = width / 8;
     u8 heightTiles = height / 8;
     bool verticalFlip = entry.attribute1.verticalFlip;
 
-    u32 baseTileIndex = verticalFlip ?
+    u32 baseTile = verticalFlip ?
         entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * widthTiles) :
         entry.attribute2.tile + ((verticalOffset / 8) * widthTiles);
 
@@ -78,12 +79,12 @@ void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const
 
     bool colorMode = entry.attribute0.colorMode;
     u8 tileOffset = tileY * (colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE);
-    u32 vramAddr = OBJ_CHAR_BLOCK_BASE_ADDR + (baseTileIndex * sizeof(CharBlockEntry4)) + tileOffset;
+    u32 vramAddr = (baseTile * sizeof(CharBlockEntry4)) + tileOffset;
     u8 colorIndex = 0;
 
     for (u8 i = 0; i < widthTiles; ++i)
     {
-        if (vramAddr >= vram.size())
+        if (vramAddr >= OBJ_CHAR_BLOCKS_SIZE)
         {
             vramAddr -= OBJ_CHAR_BLOCKS_SIZE;
         }
@@ -98,9 +99,9 @@ void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const
         {
             for (u8 j = 0; j < 4; ++j)
             {
-                u8 val = static_cast<u8>(vram[vramAddr + j]);
-                colors[colorIndex++] = val & 0x0F;
-                colors[colorIndex++] = val >> 4;
+                ColorIndexes4 indexes = std::bit_cast<ColorIndexes4>(vram[vramAddr + j]);
+                colors[colorIndex++] = indexes.leftColorIndex;
+                colors[colorIndex++] = indexes.rightColorIndex;
             }
 
             vramAddr += sizeof(CharBlockEntry4);
@@ -108,31 +109,32 @@ void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const
     }
 }
 
-void Populate2dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
 {
     u8 widthTiles = width / 8;
     u8 heightTiles = height / 8;
+    bool colorMode = entry.attribute0.colorMode;
     bool verticalFlip = entry.attribute1.verticalFlip;
+    u32 baseTile = colorMode ? (entry.attribute2.tile & ~0x01) : entry.attribute2.tile;
 
-    u32 baseTileIndex = verticalFlip ?
-        entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * 32) :
-        entry.attribute2.tile + ((verticalOffset / 8) * 32);
+    baseTile += verticalFlip ?
+        ((heightTiles - (verticalOffset / 8) - 1) * CHAR_BLOCK_2D_TILES_PER_ROW) :
+        ((verticalOffset / 8) * CHAR_BLOCK_2D_TILES_PER_ROW);
 
-    if (baseTileIndex >= OBJ_CHAR_BLOCK_TILE_COUNT)
+    if (baseTile >= OBJ_CHAR_BLOCK_TILE_COUNT)
     {
-        baseTileIndex -= OBJ_CHAR_BLOCK_TILE_COUNT;
+        baseTile -= OBJ_CHAR_BLOCK_TILE_COUNT;
     }
 
-    u8 row = baseTileIndex / CHAR_BLOCK_2D_ROW_WIDTH;
-    u32 maxRowAddress = OBJ_CHAR_BLOCK_BASE_ADDR + ((row + 1) * CHAR_BLOCK_2D_ROW_SIZE) - 1;
+    u8 row = baseTile / CHAR_BLOCK_2D_TILES_PER_ROW;
+    u32 maxRowAddress = ((row + 1) * CHAR_BLOCK_2D_ROW_SIZE) - 1;
 
     u32 tileY = verticalFlip ?
         (verticalOffset % 8) ^ 7 :
         verticalOffset % 8;
 
-    bool colorMode = entry.attribute0.colorMode;
     u8 tileOffset = tileY * (colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE);
-    u32 vramAddr = OBJ_CHAR_BLOCK_BASE_ADDR + (baseTileIndex * sizeof(CharBlockEntry4)) + tileOffset;
+    u32 vramAddr = (baseTile * sizeof(CharBlockEntry4)) + tileOffset;
     u8 colorIndex = 0;
 
     for (u8 i = 0; i < widthTiles; ++i)
@@ -152,14 +154,97 @@ void Populate2dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const
         {
             for (u8 j = 0; j < 4; ++j)
             {
-                u8 val = static_cast<u8>(vram[vramAddr + j]);
-                colors[colorIndex++] = val & 0x0F;
-                colors[colorIndex++] = val >> 4;
+                ColorIndexes4 indexes = std::bit_cast<ColorIndexes4>(vram[vramAddr + j]);
+                colors[colorIndex++] = indexes.leftColorIndex;
+                colors[colorIndex++] = indexes.rightColorIndex;
             }
 
             vramAddr += sizeof(CharBlockEntry4);
         }
     }
+}
+
+u8 Get1dAffineColorIndex(ObjSpan vram, u16 baseTile, i32 textureX, i32 textureY, u8 widthTiles, bool colorMode)
+{
+    u8 horizontalTileOffset = textureX / 8;
+    u8 verticalTileOffset = textureY / 8;
+    u8 tileX = textureX % 8;
+    u8 tileY = textureY % 8;
+
+    u8 tileSizeBytes = colorMode ? sizeof(CharBlockEntry8) : sizeof(CharBlockEntry4);
+    u8 tileRowSizeBytes = colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE;
+
+    u32 tileOffset = ((verticalTileOffset * widthTiles) + horizontalTileOffset) * tileSizeBytes;
+    u32 offsetWithinTile = (tileY * tileRowSizeBytes) + (colorMode ? tileX : (tileX / 2));
+    u32 vramAddr = (baseTile * sizeof(CharBlockEntry4)) + tileOffset + offsetWithinTile;
+
+    if (vramAddr >= OBJ_CHAR_BLOCKS_SIZE)
+    {
+        vramAddr -= OBJ_CHAR_BLOCKS_SIZE;
+    }
+
+    u8 colorIndex;
+
+    if (colorMode)
+    {
+        colorIndex = static_cast<u8>(vram[vramAddr]);
+    }
+    else
+    {
+        bool left = (tileX % 2) == 0;
+        ColorIndexes4 indexes = std::bit_cast<ColorIndexes4>(vram[vramAddr]);
+        colorIndex = left ? indexes.leftColorIndex : indexes.rightColorIndex;
+    }
+
+    return colorIndex;
+}
+
+u8 Get2dAffineColorIndex(ObjSpan vram, u16 baseTile, i32 textureX, i32 textureY, bool colorMode)
+{
+    u8 horizontalTileOffset = textureX / 8;
+    u8 verticalTileOffset = textureY / 8;
+    u8 tileX = textureX % 8;
+    u8 tileY = textureY % 8;
+
+    if (colorMode)
+    {
+        baseTile &= ~0x01;
+        horizontalTileOffset *= 2;
+    }
+
+    u16 tile = baseTile + (verticalTileOffset * CHAR_BLOCK_2D_TILES_PER_ROW);
+
+    if (tile >= OBJ_CHAR_BLOCK_TILE_COUNT)
+    {
+        tile -= OBJ_CHAR_BLOCK_TILE_COUNT;
+    }
+
+    u8 row = tile / CHAR_BLOCK_2D_TILES_PER_ROW;
+    tile += horizontalTileOffset;
+
+    if ((tile / CHAR_BLOCK_2D_TILES_PER_ROW) != row)
+    {
+        tile -= CHAR_BLOCK_2D_TILES_PER_ROW;
+    }
+
+    u8 tileRowSizeBytes = colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE;
+    u8 offsetWithinTile = (tileY * tileRowSizeBytes) + (colorMode ? tileX : (tileX / 2));
+    u32 vramAddr = (tile * sizeof(CharBlockEntry4)) + offsetWithinTile;
+
+    u8 colorIndex;
+
+    if (colorMode)
+    {
+        colorIndex = static_cast<u8>(vram[vramAddr]);
+    }
+    else
+    {
+        bool left = (tileX % 2) == 0;
+        ColorIndexes4 indexes = std::bit_cast<ColorIndexes4>(vram[vramAddr]);
+        colorIndex = left ? indexes.leftColorIndex : indexes.rightColorIndex;
+    }
+
+    return colorIndex;
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------

@@ -12,7 +12,10 @@ namespace graphics
 /// General VRAM types
 ///---------------------------------------------------------------------------------------------------------------------------------
 
+constexpr u32 PRAM_SIZE = 1 * KiB;
+constexpr u32 OAM_SIZE = 1 * KiB;
 constexpr u32 VRAM_SIZE = 96 * KiB;
+
 using VramSpan = std::span<const std::byte, VRAM_SIZE>;
 
 constexpr u8 MAX_REG_SPRITE_WIDTH = 64;
@@ -75,7 +78,7 @@ static_assert(sizeof(OamEntry) == sizeof(u64), "OamEntry must be 8 bytes");
 using Oam = std::span<const OamEntry, 128>;
 
 /// @brief Representation of a single matrix for OBJ affine transformations.
-struct AffineMatrixEntry
+struct AffineMatrix
 {
     uint16_t pad0[3];
     int16_t pa;
@@ -90,25 +93,29 @@ struct AffineMatrixEntry
     int16_t pd;
 };
 
-static_assert(sizeof(AffineMatrixEntry) == 4 * sizeof(OamEntry), "AffineMatrixEntry must be 32 bytes");
-static_assert(alignof(AffineMatrixEntry) == alignof(OamEntry), "AffineMatrixEntry and OamEntry must have same alignment");
+static_assert(sizeof(AffineMatrix) == 4 * sizeof(OamEntry), "AffineMatrix must be 32 bytes");
+static_assert(alignof(AffineMatrix) == alignof(OamEntry), "AffineMatrix and OamEntry must have same alignment");
 
-using AffineMatrix = std::span<const AffineMatrixEntry, 32>;
+constexpr u32 AFFINE_MATRIX_COUNT = OAM_SIZE / sizeof(AffineMatrix);
+using AffineMatrices = std::span<const AffineMatrix, AFFINE_MATRIX_COUNT>;
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Char blocks
 ///---------------------------------------------------------------------------------------------------------------------------------
 
+/// @brief Representation of two color indexes in a 4bpp char block entry.
+struct ColorIndexes4
+{
+    u8 leftColorIndex   : 4;
+    u8 rightColorIndex  : 4;
+};
+
+static_assert(sizeof(ColorIndexes4) == sizeof(u8), "ColorIndexes4 must be 1 byte");
+
 /// @brief Representation of a tile bitmap in 4bpp mode.
 struct CharBlockEntry4
 {
-    struct ColorIndexes
-    {
-        u8 leftColorIndex   : 4;
-        u8 rightColorIndex  : 4;
-    };
-
-    ColorIndexes pixels[8][4];
+    ColorIndexes4 pixels[8][4];
 };
 
 static_assert(sizeof(CharBlockEntry4) == 32, "CharBlockEntry4 must be 32 bytes");
@@ -130,11 +137,12 @@ constexpr u32 CHAR_BLOCK_8_ROW_SIZE = 8;  // Number of bytes in a row of an 8bpp
 // OBJ mapping constants
 constexpr u32 OBJ_CHAR_BLOCKS_SIZE = 2 * CHAR_BLOCK_SIZE;  // Size of both OBJ char blocks in bytes.
 constexpr u32 OBJ_CHAR_BLOCK_BASE_ADDR = 4 * CHAR_BLOCK_SIZE;  // Base address of the OBJ char blocks.
+using ObjSpan = std::span<const std::byte, OBJ_CHAR_BLOCKS_SIZE>;
 
 constexpr u32 OBJ_CHAR_BLOCK_TILE_COUNT = OBJ_CHAR_BLOCKS_SIZE / sizeof(CharBlockEntry4);  // Number of 4bpp sized OBJ tiles.
 
-constexpr u32 CHAR_BLOCK_2D_ROW_WIDTH = 32;  // Number of CharBlockEntry4 sized tiles in a row/column.
-constexpr u32 CHAR_BLOCK_2D_ROW_SIZE = CHAR_BLOCK_2D_ROW_WIDTH * sizeof(CharBlockEntry4);  // Size of a row of tiles in bytes.
+constexpr u32 CHAR_BLOCK_2D_TILES_PER_ROW = 32;  // Number of CharBlockEntry4 sized tiles in a row/column.
+constexpr u32 CHAR_BLOCK_2D_ROW_SIZE = CHAR_BLOCK_2D_TILES_PER_ROW * sizeof(CharBlockEntry4);  // Size of a row of tiles in bytes.
 
 /// @brief View of the background char blocks. Does not alter data in VRAM.
 class BackgroundCharBlockView
@@ -177,22 +185,41 @@ private:
 };
 
 /// @brief Fetch the color index of each pixel in a single row for a regular sprite that uses 1D mapping.
-/// @param vram Span representing all of VRAM.
+/// @param vram Span representing the OBJ char blocks.
 /// @param colors Array of color indexes to populate.
 /// @param entry Reference to OAM entry to fetch data for.
 /// @param width Width of the sprite in pixels.
 /// @param height Height of the sprite in pixels.
 /// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
-void Populate1dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
 
 /// @brief Fetch the color index of each pixel in a single row for a regular sprite that uses 2D mapping.
-/// @param vram Span representing all of VRAM.
+/// @param vram Span representing the OBJ char blocks.
 /// @param colors Array of color indexes to populate.
 /// @param entry Reference to OAM entry to fetch data for.
 /// @param width Width of the sprite in pixels.
 /// @param height Height of the sprite in pixels.
 /// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
-void Populate2dRegularSpriteRow(VramSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+
+/// @brief Get the color index of a pixel within an OBJ char block using 1D mapping.
+/// @param vram Span representing the OBJ char blocks.
+/// @param baseTile Base tile of the sprite.
+/// @param textureX X-coordinate within the sprite.
+/// @param textureY Y-coordinate within the sprite.
+/// @param widthTiles Width of the sprite in tiles (same regardless of 4bpp vs 8bpp).
+/// @param colorMode True for 8bpp, false for 4bpp.
+/// @return Color index within a sprite.
+u8 Get1dAffineColorIndex(ObjSpan vram, u16 baseTile, i32 textureX, i32 textureY, u8 widthTiles, bool colorMode);
+
+/// @brief Get the color index of a pixel within an OBJ char block using 2D mapping.
+/// @param vram Span representing the OBJ char blocks.
+/// @param baseTile Base tile of the sprite.
+/// @param textureX X-coordinate within the sprite.
+/// @param textureY Y-coordinate within the sprite.
+/// @param colorMode True for 8bpp, false for 4bpp.
+/// @return Color index within a sprite.
+u8 Get2dAffineColorIndex(ObjSpan vram, u16 baseTile, i32 textureX, i32 textureY, bool colorMode);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Screen blocks
