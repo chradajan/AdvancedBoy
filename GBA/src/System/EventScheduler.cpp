@@ -1,6 +1,7 @@
 #include <GBA/include/System/EventScheduler.hpp>
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
@@ -68,4 +69,22 @@ void EventScheduler::CheckEventQueue()
         callback(totalCycles_ - nextEvent.cycleToExecute_);
         nextEvent = queue_.front();
     }
+}
+
+std::optional<int> EventScheduler::UnscheduleEvent(EventType event)
+{
+    std::optional<int> remainingCycles = {};
+
+    for (auto it = queue_.begin(); it != queue_.end(); ++it)
+    {
+        if (it->eventType_ == event)
+        {
+            remainingCycles = it->cycleToExecute_ - totalCycles_;
+            queue_.erase(it);
+            std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
+            break;
+        }
+    }
+
+    return remainingCycles;
 }

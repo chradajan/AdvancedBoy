@@ -40,7 +40,7 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
     cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, log_),
-    dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, systemControl_),
+    dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
     timerMgr_(scheduler_, systemControl_),
@@ -56,6 +56,7 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
         }
     }
 
+    dmaMgr_.ConnectGamePak(gamePak_.get());
     EWRAM_.fill(std::byte{0});
     IWRAM_.fill(std::byte{0});
 
@@ -95,11 +96,7 @@ void GameBoyAdvance::MainLoop(size_t samples)
 
     while (apu_.GetSampleCounter() < samples)
     {
-        if (dmaMgr_.DmaRunning())
-        {
-            // TODO: Execute DMA transfers.
-        }
-        else if (systemControl_.Halted())
+        if (dmaMgr_.DmaRunning() || systemControl_.Halted())
         {
             scheduler_.FireNextEvent();
         }
@@ -360,12 +357,18 @@ void GameBoyAdvance::HBlank(int extraCycles)
 {
     ppu_.HBlank(extraCycles);
 
-    // TODO: Check DMA HBlank timed channels
+    if (ppu_.GetVCOUNT() < 160)
+    {
+        dmaMgr_.CheckHBlank();
+    }
 }
 
 void GameBoyAdvance::VBlank(int extraCycles)
 {
     ppu_.VBlank(extraCycles);
 
-    // TODO: Check DMA VBlank timed channels
+    if (ppu_.GetVCOUNT() == 160)
+    {
+        dmaMgr_.CheckVBlank();
+    }
 }

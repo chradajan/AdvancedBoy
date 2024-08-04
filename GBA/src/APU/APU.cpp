@@ -2,8 +2,10 @@
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace audio
 {
@@ -17,16 +19,13 @@ APU::APU(EventScheduler& scheduler) : scheduler_(scheduler)
 
 MemReadData APU::ReadReg(u32 addr, AccessSize length)
 {
-    (void)addr;
-    (void)length;
-    return {1, 0, false};
+    u32 val = ReadMemoryBlock(registers_, addr, SOUND_IO_ADDR_MIN, length);
+    return {1, val, false};
 }
 
 int APU::WriteReg(u32 addr, u32 val, AccessSize length)
 {
-    (void)addr;
-    (void)val;
-    (void)length;
+    WriteMemoryBlock(registers_, addr, SOUND_IO_ADDR_MIN, val, length);
     return 1;
 }
 

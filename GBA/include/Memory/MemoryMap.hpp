@@ -71,6 +71,25 @@ constexpr u32 SERIAL_IO_2_ADDR_MAX = 0x0400'015B;
 constexpr u32 SYSTEM_CONTROL_IO_ADDR_MIN = 0x0400'0200;
 constexpr u32 SYSTEM_CONTROL_IO_ADDR_MAX = 0x0400'0803;
 
+// APU registers
+
+constexpr u32 FIFO_A_ADDR = 0x0400'00A0;
+constexpr u32 FIFO_B_ADDR = 0x0400'00A4;
+
+// DMA registers
+
+constexpr u32 DMA0_ADDR_MIN = 0x0400'00B0;
+constexpr u32 DMA0_ADDR_MAX = 0x0400'00BB;
+
+constexpr u32 DMA1_ADDR_MIN = 0x0400'00BC;
+constexpr u32 DMA1_ADDR_MAX = 0x0400'00C7;
+
+constexpr u32 DMA2_ADDR_MIN = 0x0400'00C8;
+constexpr u32 DMA2_ADDR_MAX = 0x0400'00D3;
+
+constexpr u32 DMA3_ADDR_MIN = 0x0400'00D4;
+constexpr u32 DMA3_ADDR_MAX = 0x0400'00DF;
+
 // GamePak Regions
 
 constexpr u32 EEPROM_SMALL_CART_ADDR_MIN = 0x0D00'0000;

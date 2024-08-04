@@ -57,6 +57,11 @@ public:
     /// @return Current ROM title.
     std::string GetTitle() const { return title_; }
 
+    /// @brief TODO: Check if a read/write is accessing memory in EEPROM.
+    /// @param addr Address being accessed.
+    /// @return True if accessing EEPROM.
+    bool EepromAccess(u32 addr) const { (void)addr; return false; }
+
 private:
     std::vector<std::byte> ROM_;
     std::unique_ptr<BackupMedia> backupMedia_;

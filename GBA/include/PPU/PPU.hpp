@@ -104,6 +104,14 @@ public:
     /// @param extraCycles Cycles since this event was scheduled to execute.
     void VBlank(int extraCycles);
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Register access/updates
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get the current value of VCOUNT.
+    /// @return Current scanline.
+    u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
+
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Register access/updates
@@ -120,10 +128,6 @@ private:
     /// @brief Update the value of the DISPSTAT register.
     /// @param reg New value of DISPSTAT.
     void SetDISPSTAT(DISPSTAT reg) { std::memcpy(&registers_[DISPSTAT::INDEX], &reg, sizeof(DISPSTAT)); }
-
-    /// @brief Get the current value of VCOUNT.
-    /// @return Current scanline.
-    u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
 
     /// @brief Update the value of the VCOUNT register.
     /// @param reg New value of VCOUNT.

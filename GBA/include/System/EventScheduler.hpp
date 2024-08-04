@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 #include <GBA/include/Types.hpp>
@@ -15,6 +16,9 @@ enum class EventType
     VDraw,
     HBlank,
     VBlank,
+
+    // DMA
+    DmaComplete,
 
     // Total number of events. Do not schedule this, and do not place events below this.
     COUNT
@@ -68,6 +72,11 @@ public:
     /// @brief Get the total number of CPU cycles that have elapsed since system startup.
     /// @return Total cycle count.
     u64 GetTotalElapsedCycles() const { return totalCycles_; }
+
+    /// @brief Remove an event from the current event queue.
+    /// @param event Event type to be unscheduled.
+    /// @return If the event was in the queue, return how many cycles it had left until it would have been fired.
+    std::optional<int> UnscheduleEvent(EventType event);
 
 private:
     /// @brief Execute any scheduled events which were scheduled to execute at or before the current total cycle count.

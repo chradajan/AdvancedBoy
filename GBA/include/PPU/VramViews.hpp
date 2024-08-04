@@ -80,17 +80,17 @@ using Oam = std::span<const OamEntry, 128>;
 /// @brief Representation of a single matrix for OBJ affine transformations.
 struct AffineMatrix
 {
-    uint16_t pad0[3];
-    int16_t pa;
+    u16 pad0[3];
+    i16 pa;
 
-    uint16_t pad1[3];
-    int16_t pb;
+    u16 pad1[3];
+    i16 pb;
 
-    uint16_t pad2[3];
-    int16_t pc;
+    u16 pad2[3];
+    i16 pc;
 
-    uint16_t pad3[3];
-    int16_t pd;
+    u16 pad3[3];
+    i16 pd;
 };
 
 static_assert(sizeof(AffineMatrix) == 4 * sizeof(OamEntry), "AffineMatrix must be 32 bytes");
