@@ -98,7 +98,7 @@ void ARM7TDMI::LogConditionalBranch(u16 instruction) const
 {
     auto flags = std::bit_cast<ConditionalBranch::Flags>(instruction);
     std::string cond = ConditionMnemonic(flags.Cond);
-    u16 offset = flags.SOffset8 << 1;
+    i16 offset = flags.SOffset8 << 1;
     offset = SignExtend<i16, 8>(offset);
     u32 pc = registers_.GetPC() + offset;
     std::string mnemonic = std::format("    {:04X} -> B{} 0x{:08X}", instruction, cond, pc);
@@ -267,6 +267,7 @@ void ARM7TDMI::LogLoadStoreWithOffset(u16 instruction) const
         auto flags = std::bit_cast<LoadStoreWithImmOffset::Flags>(instruction);
         op = flags.L ? "LDR" : "STR";
         b = flags.B ? "B" : "";
+        op += b;
         u8 offset = flags.B ? flags.Offset5 : (flags.Offset5 << 2);
         offsetStr = std::format("#{}", offset);
         Rd = flags.Rd;
@@ -277,6 +278,7 @@ void ARM7TDMI::LogLoadStoreWithOffset(u16 instruction) const
         auto flags = std::bit_cast<LoadStoreWithRegOffset::Flags>(instruction);
         op = flags.L ? "LDR" : "STR";
         b = flags.B ? "B" : "";
+        op += b;
         u8 Ro = flags.Ro;
         offsetStr = std::format("R{}", Ro);
         Rd = flags.Rd;
