@@ -23,8 +23,6 @@ Registers::Registers()
     SetIrqDisabled(true);
     SetFiqDisabled(true);
     SetPC(RESET_VECTOR);
-
-    SkipBIOS();
 }
 
 u32 Registers::ReadRegister(u8 index) const

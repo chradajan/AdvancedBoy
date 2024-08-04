@@ -226,7 +226,7 @@ void SystemControl::WritePostFlgAndHaltcntRegisters(u32 addr, u32 val, AccessSiz
             length = AccessSize::HALFWORD;
             checkHalt = true;
         }
-        else if ((length == AccessSize::HALFWORD) || (addr = 0x0400'0301))
+        else if ((length == AccessSize::HALFWORD) || (addr == 0x0400'0301))
         {
             checkHalt = true;
         }
