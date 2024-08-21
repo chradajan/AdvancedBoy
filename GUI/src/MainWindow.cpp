@@ -104,6 +104,20 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     }
 }
 
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (emuThread_.isRunning())
+    {
+        SDL_LockAudioDevice(audioDevice_);
+        SDL_PauseAudioDevice(audioDevice_, 1);
+        emuThread_.requestInterruption();
+        emuThread_.wait();
+    }
+
+    PowerOff();
+    event->accept();
+}
+
 void MainWindow::RefreshScreen()
 {
     screen_.update();

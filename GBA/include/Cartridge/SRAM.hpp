@@ -1,10 +1,13 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <GBA/include/Cartridge/BackupMedia.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace fs = std::filesystem;
+class SystemControl;
 
 namespace cartridge
 {
@@ -19,7 +22,8 @@ public:
 
     /// @brief Initialize SRAM backup media.
     /// @param savePath Path to file to save to.
-    explicit SRAM(fs::path savePath);
+    /// @param systemControl Reference to system control to access wait state timing.
+    explicit SRAM(fs::path savePath, SystemControl& systemControl);
 
     /// @brief Check if a memory read/write is trying to access SRAM.
     /// @param addr Address being read or written.
@@ -41,5 +45,11 @@ public:
 
     /// @brief Save backup media to the saved path.
     void Save() const override;
+
+private:
+    std::array<std::byte, 32 * KiB> sram_;
+
+    // External components
+    SystemControl& systemControl_;
 };
 }  // namespace cartridge

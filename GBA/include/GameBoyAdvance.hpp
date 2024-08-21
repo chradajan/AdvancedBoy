@@ -36,7 +36,7 @@ public:
     /// @param logDir Path to directory where log file should be generated. Pass empty path to disable logging.
     explicit GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir);
 
-    /// @brief Dump any unlogged entries.
+    /// @brief Save backup media to disk and dump any unlogged entries.
     ~GameBoyAdvance();
 
     /// @brief Get a pointer to the pixel data of the most recently completed frame.

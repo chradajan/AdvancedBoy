@@ -1,4 +1,5 @@
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <bit>
 #include <cstddef>
 #include <cstring>
 #include <span>
@@ -67,4 +68,25 @@ u32 StandardMirroredAddress(u32 addr, u32 min, u32 max)
     u32 regionSize = exclusiveMax - min;
     addr = ((addr - exclusiveMax) % regionSize) + min;
     return addr;
+}
+
+u32 Read8BitBus(u8 byte, AccessSize length)
+{
+    u32 val = byte;
+
+    if (length == AccessSize::HALFWORD)
+    {
+        val *= 0x0101;
+    }
+    else if (length == AccessSize::WORD)
+    {
+        val *= 0x0101'0101;
+    }
+
+    return val;
+}
+
+u8 Write8BitBus(u32 addr, u32 val)
+{
+    return std::rotr(val, (addr & 0x03) * 8) & U8_MAX;
 }

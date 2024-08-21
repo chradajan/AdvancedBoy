@@ -70,6 +70,11 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
 
 GameBoyAdvance::~GameBoyAdvance()
 {
+    if (gamePak_)
+    {
+        gamePak_->Save();
+    }
+
     log_.DumpRemainingBuffer();
 }
 

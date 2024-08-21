@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <filesystem>
 #include <GBA/include/Types.hpp>
 
@@ -7,6 +8,15 @@ namespace fs = std::filesystem;
 
 namespace cartridge
 {
+enum class BackupType
+{
+    NONE,
+    SRAM,
+    EEPROM,
+    FLASH_64,
+    FLASH_128
+};
+
 /// @brief Abstract base class that SRAM, EEPROM, and Flash inherit from.
 class BackupMedia
 {

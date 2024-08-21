@@ -52,6 +52,10 @@ private:
     /// @param event Key release event.
     void keyReleaseEvent(QKeyEvent* event) override;
 
+    /// @brief Stop emulation and shut down GBA when window is closed.
+    /// @param event Close event.
+    void closeEvent(QCloseEvent* event) override;
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Window management
     ///-----------------------------------------------------------------------------------------------------------------------------

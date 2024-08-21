@@ -43,4 +43,16 @@ T SignExtend(T input);
 template <typename T>
 inline T MemCpyInit(const void* src) { T val; std::memcpy(&val, src, sizeof(T)); return val; }
 
+/// @brief Rotate a byte read from an 8-bit bus without doing a byte sized access.
+/// @param byte Value at address being read.
+/// @param length Memory access size of the read.
+/// @return Rotated value.
+u32 Read8BitBus(u8 byte, AccessSize length);
+
+/// @brief Rotate a value written to an address on an 8-bit bus.
+/// @param addr Address being written.
+/// @param val Value to write to address.
+/// @return Rotated value to actually write.
+u8 Write8BitBus(u32 addr, u32 val);
+
 #include <GBA/include/Utilities/CommonUtils.tpp>

@@ -55,8 +55,20 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
 
     title_ = titleStream.str();
 
-    // TODO: Implement backup media
-    backupMedia_ = nullptr;
+    // Determine backup type and load save file if present
+    auto backupType = DetectBackupType();
+    fs::path savePath = romPath;
+    savePath.replace_extension("sav");
+
+    switch (backupType)
+    {
+        case BackupType::SRAM:
+            backupMedia_ = std::make_unique<SRAM>(savePath, systemControl);
+            break;
+        default:
+            backupMedia_ = nullptr;
+            break;
+    }
 
     gamePakLoaded_ = true;
 }
@@ -125,5 +137,45 @@ MemReadData GamePak::ReadUnloadedGamePakMem(u32 addr, AccessSize length)
     }
 
     return {1, val, false};
+}
+
+void GamePak::Save() const
+{
+    if (backupMedia_)
+    {
+        backupMedia_->Save();
+    }
+}
+
+BackupType GamePak::DetectBackupType() const
+{
+    for (size_t i = 0; (i + 11) < ROM_.size(); i += 4)
+    {
+        auto start = reinterpret_cast<const char*>(&ROM_[i]);
+        std::string idString;
+        idString.assign(start, 12);
+
+        if (idString.starts_with("EEPROM_V"))
+        {
+            return BackupType::EEPROM;
+        }
+        else if (idString.starts_with("SRAM_V"))
+        {
+            return BackupType::SRAM;
+        }
+        else if (idString.starts_with("FLASH"))
+        {
+            if (idString.starts_with("FLASH_V") || idString.starts_with("FLASH512_V"))
+            {
+                return BackupType::FLASH_64;
+            }
+            else if (idString.starts_with("FLASH1M_V"))
+            {
+                return BackupType::FLASH_128;
+            }
+        }
+    }
+
+    return BackupType::NONE;
 }
 }  // namespace cartridge

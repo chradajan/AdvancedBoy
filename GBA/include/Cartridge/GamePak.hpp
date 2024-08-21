@@ -62,7 +62,14 @@ public:
     /// @return True if accessing EEPROM.
     bool EepromAccess(u32 addr) const { (void)addr; return false; }
 
+    /// @brief Save backup media to disk.
+    void Save() const;
+
 private:
+    /// @brief Determine the backup type used by a ROM.
+    /// @return Backup type if one was detected.
+    BackupType DetectBackupType() const;
+
     std::vector<std::byte> ROM_;
     std::unique_ptr<BackupMedia> backupMedia_;
     std::string title_;
