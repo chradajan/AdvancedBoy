@@ -45,19 +45,19 @@ void DmaManager::ConnectGamePak(cartridge::GamePak* gamePakPtr)
 
 MemReadData DmaManager::ReadReg(u32 addr, AccessSize length)
 {
-    if ((DMA0_ADDR_MIN <= addr) && (addr <= DMA0_ADDR_MAX))
+    if (addr <= DMA0_ADDR_MAX)
     {
         return dmaChannels_[0].ReadReg(addr, length);
     }
-    else if ((DMA1_ADDR_MIN <= addr) && (addr <= DMA1_ADDR_MAX))
+    else if (addr <= DMA1_ADDR_MAX)
     {
         return dmaChannels_[1].ReadReg(addr, length);
     }
-    else if ((DMA2_ADDR_MIN <= addr) && (addr <= DMA2_ADDR_MAX))
+    else if (addr <= DMA2_ADDR_MAX)
     {
         return dmaChannels_[2].ReadReg(addr, length);
     }
-    else if ((DMA3_ADDR_MIN <= addr) && (addr <= DMA3_ADDR_MAX))
+    else if (addr <= DMA3_ADDR_MAX)
     {
         return dmaChannels_[3].ReadReg(addr, length);
     }
@@ -69,19 +69,19 @@ int DmaManager::WriteReg(u32 addr, u32 val, AccessSize length)
 {
     u8 index;
 
-    if ((DMA0_ADDR_MIN <= addr) && (addr <= DMA0_ADDR_MAX))
+    if (addr <= DMA0_ADDR_MAX)
     {
         index = 0;
     }
-    else if ((DMA1_ADDR_MIN <= addr) && (addr <= DMA1_ADDR_MAX))
+    else if (addr <= DMA1_ADDR_MAX)
     {
         index = 1;
     }
-    else if ((DMA2_ADDR_MIN <= addr) && (addr <= DMA2_ADDR_MAX))
+    else if (addr <= DMA2_ADDR_MAX)
     {
         index = 2;
     }
-    else if ((DMA3_ADDR_MIN <= addr) && (addr <= DMA3_ADDR_MAX))
+    else if (addr <= DMA3_ADDR_MAX)
     {
         index = 3;
     }

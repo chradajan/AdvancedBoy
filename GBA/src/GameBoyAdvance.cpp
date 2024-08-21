@@ -62,6 +62,10 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
 
     scheduler_.RegisterEvent(EventType::HBlank, std::bind(&GameBoyAdvance::HBlank, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::VBlank, std::bind(&GameBoyAdvance::VBlank, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Timer0Overflow, std::bind(&GameBoyAdvance::Timer0Overflow, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Timer1Overflow, std::bind(&GameBoyAdvance::Timer1Overflow, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
 }
 
 GameBoyAdvance::~GameBoyAdvance()
@@ -370,5 +374,21 @@ void GameBoyAdvance::VBlank(int extraCycles)
     if (ppu_.GetVCOUNT() == 160)
     {
         dmaMgr_.CheckVBlank();
+    }
+}
+
+void GameBoyAdvance::TimerOverflow(u8 index, int extraCycles)
+{
+    timerMgr_.TimerOverflow(index, extraCycles);
+    auto [replenishA, replenishB] = apu_.TimerOverflow(index);
+
+    if (replenishA)
+    {
+        dmaMgr_.CheckFifoA();
+    }
+
+    if (replenishB)
+    {
+        dmaMgr_.CheckFifoB();
     }
 }

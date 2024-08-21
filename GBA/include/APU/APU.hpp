@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <utility>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
@@ -35,6 +36,11 @@ public:
     /// @param length Memory access size of the write.
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
+
+    /// @brief TODO: Update DMA audio channels on timer overflow.
+    /// @param index Index of timer that overflowed.
+    /// @return Pair of bools indicating whether FIFO A and B need to be refilled.
+    std::pair<bool, bool> TimerOverflow(u8 index) { (void)index; return {false, false}; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Producer thread functions

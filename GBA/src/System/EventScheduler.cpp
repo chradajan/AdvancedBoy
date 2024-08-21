@@ -45,9 +45,22 @@ void EventScheduler::ScheduleEvent(EventType event, int cycles)
     std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
 }
 
+void EventScheduler::ScheduleEvent(EventType event, int offset, u32 length)
+{
+    u64 cycleQueued = totalCycles_ + offset;
+    u64 cycleToExecute = cycleQueued + length;
+    queue_.push_back({event, cycleQueued, cycleToExecute});
+    std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
+}
+
 void EventScheduler::Step(int cycles)
 {
-    totalCycles_ += cycles;
+    if (cycles <= 0)
+    {
+        throw std::runtime_error("Illegal step count");
+    }
+
+    totalCycles_ += static_cast<u64>(cycles);
     CheckEventQueue();
 }
 
@@ -87,4 +100,17 @@ std::optional<int> EventScheduler::UnscheduleEvent(EventType event)
     }
 
     return remainingCycles;
+}
+
+std::optional<int> EventScheduler::ElapsedCycles(EventType event)
+{
+    for (Event const& scheduledEvent : queue_)
+    {
+        if (event == scheduledEvent.eventType_)
+        {
+            return totalCycles_ - scheduledEvent.cycleQueued_;
+        }
+    }
+
+    return {};
 }

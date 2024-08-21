@@ -12,13 +12,19 @@ enum class EventType
     // APU
     SampleAPU,
 
+    // Timers
+    Timer0Overflow,
+    Timer1Overflow,
+    Timer2Overflow,
+    Timer3Overflow,
+
+    // DMA
+    DmaComplete,
+
     // PPU
     VDraw,
     HBlank,
     VBlank,
-
-    // DMA
-    DmaComplete,
 
     // Total number of events. Do not schedule this, and do not place events below this.
     COUNT
@@ -62,6 +68,12 @@ public:
     /// @param cycles Number of cycles from now to fire event.
     void ScheduleEvent(EventType event, int cycles);
 
+    /// @brief Schedule an event with an offset cycleQueued_ value.
+    /// @param event Event type to schedule.
+    /// @param offset How many cycles from the current value of totalCycles_ to schedule the event.
+    /// @param length Number of cycles from the relative start time that the event should fire.
+    void ScheduleEvent(EventType event, int offset, u32 length);
+
     /// @brief Advance the scheduler by some number of cycles and execute any scheduled events that have occurred.
     /// @param cycles Number of cycles to advance the scheduler by.
     void Step(int cycles);
@@ -77,6 +89,11 @@ public:
     /// @param event Event type to be unscheduled.
     /// @return If the event was in the queue, return how many cycles it had left until it would have been fired.
     std::optional<int> UnscheduleEvent(EventType event);
+
+    /// @brief Get the number of cycles that have passed since an event was scheduled.
+    /// @param event Event type to check.
+    /// @return If the event is currently in the queue, return the number of cycles since it was queued.
+    std::optional<int> ElapsedCycles(EventType event);
 
 private:
     /// @brief Execute any scheduled events which were scheduled to execute at or before the current total cycle count.

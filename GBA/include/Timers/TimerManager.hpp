@@ -2,9 +2,11 @@
 
 #include <array>
 #include <cstddef>
-#include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/System/SystemControl.hpp>
+#include <GBA/include/Timers/Timer.hpp>
 #include <GBA/include/Types.hpp>
+
+class EventScheduler;
+class SystemControl;
 
 namespace timers
 {
@@ -36,11 +38,12 @@ public:
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
-private:
-    std::array<std::byte, 0x10> registers_;
+    /// @brief Handle a timer overflow event.
+    /// @param index Index of timer that overflowed.
+    /// @param extraCycles How many cycles have passed since the overflow event.
+    void TimerOverflow(u8 index, int extraCycles);
 
-    // External components
-    EventScheduler& scheduler_;
-    SystemControl& systemControl_;
+private:
+    std::array<Timer, 4> timers_;
 };
 }  // namespace timers

@@ -140,6 +140,18 @@ private:
     /// @param extraCycles Cycles since this event was scheduled to execute.
     void VBlank(int extraCycles);
 
+    /// @brief Timer overflow event handlers.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void Timer0Overflow(int extraCycles) { TimerOverflow(0, extraCycles); }
+    void Timer1Overflow(int extraCycles) { TimerOverflow(1, extraCycles); }
+    void Timer2Overflow(int extraCycles) { TimerOverflow(2, extraCycles); }
+    void Timer3Overflow(int extraCycles) { TimerOverflow(3, extraCycles); }
+
+    /// @brief Start FIFO DMA transfers if necessary and notify timer manager of the overflow event.
+    /// @param index Index of timer that overflowed.
+    /// @param extraCycles Cycles since this event was scheduled to execute.
+    void TimerOverflow(u8 index, int extraCycles);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
     ///-----------------------------------------------------------------------------------------------------------------------------
