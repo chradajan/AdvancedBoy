@@ -333,7 +333,6 @@ private:
     SystemControl& systemControl_;
 
     // VRAM views
-    friend class BackgroundCharBlockView;
     friend class RegularScreenBlockScanlineView;
 };
 }  // namespace graphics

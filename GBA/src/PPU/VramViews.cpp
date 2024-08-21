@@ -13,8 +13,8 @@ namespace graphics
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// BackgroundCharBlockView
 ///---------------------------------------------------------------------------------------------------------------------------------
-BackgroundCharBlockView::BackgroundCharBlockView(PPU const& ppu, u8 baseIndex) :
-    charBlocks_(ppu.VRAM_.data(), BG_CHAR_BLOCKS_SIZE),
+BackgroundCharBlockView::BackgroundCharBlockView(VramSpan vram, u8 baseIndex) :
+    charBlocks_(vram.data(), BG_CHAR_BLOCKS_SIZE),
     baseIndex_(baseIndex * CHAR_BLOCK_SIZE)
 {
 }
@@ -264,9 +264,14 @@ RegularScreenBlockScanlineView::RegularScreenBlockScanlineView(PPU const& ppu, u
     u32 screenBlockOffset = screenBlockY * SCREEN_BLOCK_SCANLINE_SIZE;
     u8 leftBaseBlockIndex = baseIndex;
 
-    if (doubleWidth && doubleHeight)
+    if (doubleHeight)
     {
-        leftBaseBlockIndex += 2;
+        ++leftBaseBlockIndex;
+
+        if (doubleWidth)
+        {
+            ++leftBaseBlockIndex;
+        }
     }
 
     ScreenBlock leftScreenBlock(&ppu.VRAM_.at(leftBaseBlockIndex * SCREEN_BLOCK_SIZE), SCREEN_BLOCK_SIZE);

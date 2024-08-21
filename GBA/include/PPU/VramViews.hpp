@@ -158,9 +158,9 @@ public:
     BackgroundCharBlockView& operator=(BackgroundCharBlockView&&) = delete;
 
     /// @brief Initialize a char block view for the background char blocks.
-    /// @param ppu Reference to PPU needed for VRAM access.
+    /// @param vram Span representing all of VRAM.
     /// @param baseIndex Base char block index in the range [0, 3].
-    explicit BackgroundCharBlockView(PPU const& ppu, u8 baseIndex);
+    explicit BackgroundCharBlockView(VramSpan vram, u8 baseIndex);
 
     /// @brief Get the 4bpp char block entry at the specified index.
     /// @param block Reference to char block entry to set.

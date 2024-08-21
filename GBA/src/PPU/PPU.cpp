@@ -230,45 +230,32 @@ void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
     // Ignore BYTE or HALFWORD writes to VCOUNT
     if (addr < 0x0400'0006)
     {
-        DISPSTAT prevDispStat = GetDISPSTAT();
-        auto newDispStat = MemCpyInit<DISPSTAT>(&val);
+        u16 writableMask;
 
         if (length != AccessSize::BYTE)
         {
-            // Write to both bytes of DISPSTAT, restore all read only fields
-            newDispStat.vBlank = prevDispStat.vBlank;
-            newDispStat.hBlank = prevDispStat.hBlank;
-            newDispStat.vCounter = prevDispStat.vCounter;
-            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
+            // Write both bytes of DISPSTAT
+            writableMask = 0xFFB8;
+            val = (val & U16_MAX) & writableMask;
         }
         else if (addr == 0x0400'0004)
         {
-            // Write to lower byte of DISPSTAT, restore all read only fields and upper byte
-            newDispStat.vBlank = prevDispStat.vBlank;
-            newDispStat.hBlank = prevDispStat.hBlank;
-            newDispStat.vCounter = prevDispStat.vCounter;
-            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
-            newDispStat.vCountSetting = prevDispStat.vCountSetting;
+            // Write to lower byte of DISPSTAT
+            writableMask = 0x00B8;
+            val = (val & U8_MAX) & writableMask;
         }
         else
         {
-            // Write to upper byte of DISPSTAT, restore all fields in the lower byte
-            newDispStat.vBlank = prevDispStat.vBlank;
-            newDispStat.hBlank = prevDispStat.hBlank;
-            newDispStat.vCounter = prevDispStat.vCounter;
-            newDispStat.vBlankIrqEnable = prevDispStat.vBlankIrqEnable;
-            newDispStat.hBlankIrqEnable = prevDispStat.hBlankIrqEnable;
-            newDispStat.vCounterIrqEnable = prevDispStat.vCounterIrqEnable;
-            newDispStat.unusedReadOnly = prevDispStat.unusedReadOnly;
-            newDispStat.unusedReadWrite = prevDispStat.unusedReadWrite;
+            // Write to upper byte of DISPSTAT
+            writableMask = 0xFF00;
+            val = ((val & U8_MAX) << 8) & writableMask;
         }
 
-        SetDISPSTAT(newDispStat);
-
-        if (prevDispStat.vCountSetting != newDispStat.vCountSetting)
-        {
-            CheckVCountSetting();
-        }
+        u16 prevDispStat = std::bit_cast<u16, DISPSTAT>(GetDISPSTAT());
+        prevDispStat &= ~writableMask;
+        u16 newDispStat = prevDispStat | val;
+        SetDISPSTAT(std::bit_cast<DISPSTAT, u16>(newDispStat));
+        CheckVCountSetting();
     }
 }
 
@@ -729,7 +716,7 @@ void PPU::RenderRegularTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, u16 xOff
 
 void PPU::RenderRegular4bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width)
 {
-    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
+    BackgroundCharBlockView charBlock(VRAM_, bgcnt.charBaseBlock);
     RegularScreenBlockScanlineView screenBlock(*this, bgcnt.screenBaseBlock, x, y, width);
     CharBlockEntry4 charBlockEntry;
     charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
@@ -762,7 +749,7 @@ void PPU::RenderRegular4bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16
 
 void PPU::RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16 width)
 {
-    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
+    BackgroundCharBlockView charBlock(VRAM_, bgcnt.charBaseBlock);
     RegularScreenBlockScanlineView screenBlock(*this, bgcnt.screenBaseBlock, x, y, width);
     CharBlockEntry8 charBlockEntry;
     charBlock.GetCharBlock(charBlockEntry, screenBlock.TileIndex());
@@ -793,8 +780,7 @@ void PPU::RenderRegular8bppBackground(BGCNT bgcnt, u8 bgIndex, u16 x, u16 y, u16
 
 void PPU::RenderAffineTiledBackgroundScanline(BGCNT bgcnt, u8 bgIndex, i32 x, i32 y, i16 dx, i16 dy)
 {
-    BackgroundCharBlockView charBlock(*this, bgcnt.charBaseBlock);
-
+    BackgroundCharBlockView charBlock(VRAM_, bgcnt.charBaseBlock);
     u8 mapWidthTiles;
 
     switch (bgcnt.screenSize)
