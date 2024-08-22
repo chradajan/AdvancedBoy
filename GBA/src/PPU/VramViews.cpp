@@ -1,4 +1,5 @@
 #include <GBA/include/PPU/VramViews.hpp>
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstring>
@@ -68,6 +69,7 @@ void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
     u8 widthTiles = width / 8;
     u8 heightTiles = height / 8;
     bool verticalFlip = entry.attribute1.verticalFlip;
+    bool horizontalFlip = entry.attribute1.horizontalFlip;
 
     u32 baseTile = verticalFlip ?
         entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * widthTiles) :
@@ -107,6 +109,11 @@ void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
             vramAddr += sizeof(CharBlockEntry4);
         }
     }
+
+    if (horizontalFlip)
+    {
+        std::reverse(colors.begin(), colors.begin() + colorIndex);
+    }
 }
 
 void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
@@ -115,6 +122,7 @@ void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
     u8 heightTiles = height / 8;
     bool colorMode = entry.attribute0.colorMode;
     bool verticalFlip = entry.attribute1.verticalFlip;
+    bool horizontalFlip = entry.attribute1.horizontalFlip;
     u32 baseTile = colorMode ? (entry.attribute2.tile & ~0x01) : entry.attribute2.tile;
 
     baseTile += verticalFlip ?
@@ -161,6 +169,11 @@ void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
 
             vramAddr += sizeof(CharBlockEntry4);
         }
+    }
+
+    if (horizontalFlip)
+    {
+        std::reverse(colors.begin(), colors.begin() + colorIndex);
     }
 }
 

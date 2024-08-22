@@ -1008,11 +1008,10 @@ void PPU::RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEnt
     u8 priority = entry.attribute2.priority;
     bool colorMode = entry.attribute0.colorMode;
     bool semiTransparent = entry.attribute0.gfxMode == 1;
-    bool horizontalFlip = entry.attribute1.horizontalFlip;
 
     for (u8 i = 0; i < colorIndexes.size(); ++i)
     {
-        u8 colorIndex = horizontalFlip ? colorIndexes[colorIndexes.size() - 1 - i] : colorIndexes[i];
+        u8 colorIndex = colorIndexes[i];
         u16 bgr555 = colorMode ? GetSpriteColor(colorIndex) : GetSpriteColor(palette, colorIndex);
         bool transparent = colorIndex == 0;
         PushSpritePixel(dot++, bgr555, priority, transparent, semiTransparent, windowSettingsPtr);
