@@ -70,16 +70,23 @@ void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
     u8 heightTiles = height / 8;
     bool verticalFlip = entry.attribute1.verticalFlip;
     bool horizontalFlip = entry.attribute1.horizontalFlip;
+    bool colorMode = entry.attribute0.colorMode;
 
-    u32 baseTile = verticalFlip ?
-        entry.attribute2.tile + ((heightTiles - (verticalOffset / 8) - 1) * widthTiles) :
-        entry.attribute2.tile + ((verticalOffset / 8) * widthTiles);
+    u32 baseTileOffset = verticalFlip ?
+        (heightTiles - (verticalOffset / 8) - 1) * widthTiles :
+        (verticalOffset / 8) * widthTiles;
+
+    if (colorMode)
+    {
+        baseTileOffset *= 2;
+    }
+
+    u32 baseTile = entry.attribute2.tile + baseTileOffset;
 
     u32 tileY = verticalFlip ?
         (verticalOffset % 8) ^ 7 :
         verticalOffset % 8;
 
-    bool colorMode = entry.attribute0.colorMode;
     u8 tileOffset = tileY * (colorMode ? CHAR_BLOCK_8_ROW_SIZE : CHAR_BLOCK_4_ROW_SIZE);
     u32 vramAddr = (baseTile * sizeof(CharBlockEntry4)) + tileOffset;
     u8 colorIndex = 0;
