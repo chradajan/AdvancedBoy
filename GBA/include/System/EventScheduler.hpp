@@ -12,6 +12,9 @@ enum class EventType
     // APU
     SampleAPU,
 
+    // IRQs
+    SetIRQ,
+
     // Timers
     Timer0Overflow,
     Timer1Overflow,

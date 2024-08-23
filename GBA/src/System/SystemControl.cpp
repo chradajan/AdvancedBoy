@@ -3,15 +3,17 @@
 #include <bit>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/Logging/Logger.hpp>
+#include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 static constexpr int NonSequentialWaitStates[4] = {4, 3, 2, 8};
 static constexpr int SequentialWaitStates[3][2] = { {2, 1}, {4, 1}, {8, 1} };
 
-SystemControl::SystemControl(logging::Logger& log) : log_(log)
+SystemControl::SystemControl(EventScheduler& scheduler, logging::Logger& log) : scheduler_(scheduler), log_(log)
 {
     irqPending_ = false;
     halted_ = false;
@@ -19,6 +21,8 @@ SystemControl::SystemControl(logging::Logger& log) : log_(log)
     interruptAndWaitcntRegisters_.fill(std::byte{0});
     postFlgAndHaltcntRegisters_.fill(std::byte{0});
     memoryControlRegisters_.fill(std::byte{0});
+
+    scheduler_.RegisterEvent(EventType::SetIRQ, std::bind(&SystemControl::SetIRQLine, this, std::placeholders::_1));
 }
 
 MemReadData SystemControl::ReadReg(u32 addr, AccessSize length)
@@ -132,12 +136,11 @@ int SystemControl::WaitStates(WaitStateRegion region, bool sequential, AccessSiz
 
 void SystemControl::CheckForInterrupt()
 {
-    irqPending_ = false;
+    bool irq = irqPending_;
 
     if ((GetIE() & GetIF()) != 0)
     {
-        // TODO: Instead of instantly setting IRQ line, delay by however many cycles this should actually take.
-        irqPending_ = GetIME();
+        irq = GetIME();
 
         if (halted_)
         {
@@ -148,6 +151,19 @@ void SystemControl::CheckForInterrupt()
 
             halted_ = false;
         }
+    }
+    else
+    {
+        irq = false;
+    }
+
+    if (!irqPending_ && irq)
+    {
+        scheduler_.ScheduleEvent(EventType::SetIRQ, 3);
+    }
+    else if (irqPending_ && !irq)
+    {
+        irqPending_ = false;
     }
 }
 

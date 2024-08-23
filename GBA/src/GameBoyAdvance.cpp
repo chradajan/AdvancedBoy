@@ -36,7 +36,7 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir) :
     scheduler_(),
     log_(logDir, scheduler_),
-    systemControl_(log_),
+    systemControl_(scheduler_, log_),
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
     cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, log_),

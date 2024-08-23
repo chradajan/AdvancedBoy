@@ -6,6 +6,8 @@
 #include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/Types.hpp>
 
+class EventScheduler;
+
 /// @brief Possible waitstate regions to use for GamePak access.
 enum class WaitStateRegion
 {
@@ -44,8 +46,9 @@ public:
     SystemControl& operator=(SystemControl&&) = delete;
 
     /// @brief Initialize the system control registers.
+    /// @param scheduler Reference to event scheduler to post IRQ events to.
     /// @param log Logger to log interrupts and halts.
-    explicit SystemControl(logging::Logger& log);
+    explicit SystemControl(EventScheduler& scheduler, logging::Logger& log);
 
     /// @brief Read an address mapped to system control registers.
     /// @param addr Address of system control register(s).
@@ -110,6 +113,9 @@ private:
 
     /// @brief Check if interrupts are enabled and an enabled interrupt type has been requested. Also unhalt if needed.
     void CheckForInterrupt();
+
+    /// @brief Callback to set IRQ line to high.
+    void SetIRQLine(int) { irqPending_ = true; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Special R/W functionality
@@ -189,5 +195,6 @@ private:
     std::array<std::byte, 0x04> memoryControlRegisters_;
 
     // External components
+    EventScheduler& scheduler_;
     logging::Logger& log_;
 };
