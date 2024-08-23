@@ -2,10 +2,14 @@
 
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
+#include <GBA/include/APU/DmaAudio.hpp>
+#include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/RingBuffer.hpp>
 
 namespace audio
@@ -37,10 +41,10 @@ public:
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
 
-    /// @brief TODO: Update DMA audio channels on timer overflow.
+    /// @brief Update DMA audio channels on timer overflow.
     /// @param index Index of timer that overflowed.
     /// @return Pair of bools indicating whether FIFO A and B need to be refilled.
-    std::pair<bool, bool> TimerOverflow(u8 index) { (void)index; return {false, false}; }
+    std::pair<bool, bool> TimerOverflow(u8 index) { return dmaFifos_.TimerOverflow(index, GetSOUNDCNT_H()); }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Producer thread functions
@@ -71,11 +75,52 @@ public:
     size_t AvailableSamples() const { return sampleBuffer_.GetAvailable(); }
 
 private:
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Register access/updates
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// SOUNDCNT_L getter/setter
+    SOUNDCNT_L GetSOUNDCNT_L() const { return MemCpyInit<SOUNDCNT_L>(&registers_[SOUNDCNT_L::INDEX]); }
+    void SetSOUNDCNT_L(SOUNDCNT_L reg) { std::memcpy(&registers_[SOUNDCNT_L::INDEX], &reg, sizeof(SOUNDCNT_L)); }
+
+    /// SOUNDCNT_H getter/setter
+    SOUNDCNT_H GetSOUNDCNT_H() const { return MemCpyInit<SOUNDCNT_H>(&registers_[SOUNDCNT_H::INDEX]); }
+    void SetSOUNDCNT_H(SOUNDCNT_H reg) { std::memcpy(&registers_[SOUNDCNT_H::INDEX], &reg, sizeof(SOUNDCNT_H)); }
+
+    /// SOUNDCNT_X getter/setter
+    SOUNDCNT_X GetSOUNDCNT_X() const { return MemCpyInit<SOUNDCNT_X>(&registers_[SOUNDCNT_X::INDEX]); }
+    void SetSOUNDCNT_X(SOUNDCNT_X reg) { std::memcpy(&registers_[SOUNDCNT_X::INDEX], &reg, sizeof(SOUNDCNT_X)); }
+
+    /// SOUNDBIAS getter/setter
+    SOUNDBIAS GetSOUNDBIAS() const { return MemCpyInit<SOUNDBIAS>(&registers_[SOUNDBIAS::INDEX]); }
+    void SetSOUNDBIAS(SOUNDBIAS reg) { std::memcpy(&registers_[SOUNDBIAS::INDEX], &reg, sizeof(SOUNDBIAS)); }
+
+    /// @brief Read the APU control registers.
+    /// @param addr Address of register(s) to read.
+    /// @param val Value to write to register(s).
+    /// @param length Memory access size of the write.
+    void WriteCntRegisters(u32 addr, u32 val, AccessSize length);
+
     /// @brief Callback function to collect sample from APU and store to internal sample buffer.
     /// @param extraCycles Cycles since this event was scheduled to execute.
     void Sample(int extraCycles);
 
-    std::array<std::byte, 0x48> registers_;
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Channels
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    DmaAudio dmaFifos_;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Register data
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    std::array<std::byte, 0x48> unimplementedRegisters_;
+    std::array<std::byte, 12> registers_;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Other data
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Internal sample buffer
     RingBuffer<float, BUFFER_SIZE> sampleBuffer_;

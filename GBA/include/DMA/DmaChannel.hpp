@@ -138,14 +138,21 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Execute a DMA transfer to/from EEPROM.
+    /// @param dmacnt DMACNT register value.
     /// @param read True if this transfer is reading from EEPROM and writing to system memory.
     /// @param write True if this transfer is reading from system memory and writing to EEPROM.
     /// @return Number of cycles taken to complete the transfer.
-    int ExecuteEepromXfer(bool read, bool write);
+    int ExecuteEepromXfer(DMACNT dmacnt, bool read, bool write);
+
+    /// @brief Execute a DMA audio FIFO transfer.
+    /// @param dmacnt DMACNT register value.
+    /// @return Number of cycles taken to complete the transfer.
+    int ExecuteFifoXfer(DMACNT dmacnt);
 
     /// @brief Execute a normal DMA transfer (any transfer except to EEPROM or an audio FIFO).
+    /// @param dmacnt DMACNT register value.
     /// @return Number of cycles taken to perform the transfer.
-    int ExecuteNormalXfer();
+    int ExecuteNormalXfer(DMACNT dmacnt);
 
     /// @brief Read a bit from memory as part of an EEPROM transfer and update internal registers.
     /// @return Next value from the bitstream (only LSB) and number of cycles taken to read.

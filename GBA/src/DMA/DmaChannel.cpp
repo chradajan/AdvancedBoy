@@ -94,15 +94,15 @@ ExecuteResult DmaChannel::Execute()
 
     if (eepromRead || eepromWrite)
     {
-        xferCycles = ExecuteEepromXfer(eepromRead, eepromWrite);
+        xferCycles = ExecuteEepromXfer(dmacnt, eepromRead, eepromWrite);
     }
     else if (fifoXfer)
     {
-        // TODO
+        xferCycles = ExecuteFifoXfer(dmacnt);
     }
     else
     {
-        xferCycles = ExecuteNormalXfer();
+        xferCycles = ExecuteNormalXfer(dmacnt);
     }
 
     if (dmacnt.repeat)
@@ -177,7 +177,7 @@ bool DmaChannel::IsFifoXfer(DMACNT dmacnt) const
            ((channelIndex_ == 1) || (channelIndex_ == 2));
 }
 
-int DmaChannel::ExecuteEepromXfer(bool read, bool write)
+int DmaChannel::ExecuteEepromXfer(DMACNT dmacnt, bool read, bool write)
 {
     if ((read && write) || (gamePakPtr_ == nullptr))
     {
@@ -185,7 +185,6 @@ int DmaChannel::ExecuteEepromXfer(bool read, bool write)
     }
 
     int xferCycles = 0;
-    auto dmacnt = GetDMACNT();
 
     if (read)
     {
@@ -297,10 +296,38 @@ int DmaChannel::ExecuteEepromXfer(bool read, bool write)
     return xferCycles;
 }
 
-int DmaChannel::ExecuteNormalXfer()
+int DmaChannel::ExecuteFifoXfer(DMACNT dmacnt)
 {
     int xferCycles = 0;
-    auto dmacnt = GetDMACNT();
+    i8 srcAddrDelta = 0;
+
+    switch (dmacnt.srcAddrCnt)
+    {
+        case 0:
+            srcAddrDelta = 4;
+            break;
+        case 1:
+            srcAddrDelta = -4;
+            break;
+        case 2:
+        case 3:
+            break;
+    }
+
+    for (u8 i = 0; i < 4; ++i)
+    {
+        auto [val, readCycles] = ReadMemory(internalSrcAddr_, AccessSize::WORD);
+        int writeCycles = WriteMemory(internalDestAddr_, val, AccessSize::WORD);
+        xferCycles += readCycles + writeCycles;
+        internalSrcAddr_ += srcAddrDelta;
+    }
+
+    return xferCycles;
+}
+
+int DmaChannel::ExecuteNormalXfer(DMACNT dmacnt)
+{
+    int xferCycles = 0;
     auto length = dmacnt.xferType ? AccessSize::WORD : AccessSize::HALFWORD;
     i8 srcAddrDelta = 0;
     i8 destAddrDelta = 0;
