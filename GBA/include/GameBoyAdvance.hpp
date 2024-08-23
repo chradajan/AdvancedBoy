@@ -178,4 +178,7 @@ private:
     // System memory
     std::array<std::byte, 256 * KiB> EWRAM_;
     std::array<std::byte, 32 * KiB> IWRAM_;
+
+    // Open bus
+    u32 lastSuccessfulFetch_;
 };

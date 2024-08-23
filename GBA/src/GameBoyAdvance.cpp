@@ -44,7 +44,8 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
     timerMgr_(scheduler_, systemControl_),
-    gamePak_(nullptr)
+    gamePak_(nullptr),
+    lastSuccessfulFetch_(0)
 {
     if (!romPath.empty() && fs::exists(romPath))
     {
@@ -168,9 +169,12 @@ std::pair<u32, int> GameBoyAdvance::ReadMem(u32 addr, AccessSize length)
 
     if (readData.OpenBus)
     {
-        // TODO
-        readData.Value = 0;
+        readData.Value = lastSuccessfulFetch_;
         readData.Cycles = 1;
+    }
+    else
+    {
+        lastSuccessfulFetch_ = readData.Value;
     }
 
     return {readData.Value, readData.Cycles};
