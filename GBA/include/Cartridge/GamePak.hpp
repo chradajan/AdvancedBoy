@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include <GBA/include/Cartridge/BackupMedia.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -57,10 +58,27 @@ public:
     /// @return Current ROM title.
     std::string GetTitle() const { return title_; }
 
-    /// @brief TODO: Check if a read/write is accessing memory in EEPROM.
+    /// @brief Check if a read/write is accessing memory in EEPROM.
     /// @param addr Address being accessed.
     /// @return True if accessing EEPROM.
-    bool EepromAccess(u32 addr) const { (void)addr; return false; }
+    bool EepromAccess(u32 addr) const { return containsEeprom_ && backupMedia_->IsBackupMediaAccess(addr); }
+
+    /// @brief Set the index of the next value to be read from EEPROM.
+    /// @param index Index that will be read from.
+    /// @param indexSize Number of bits in index.
+    /// @return Number of cycles taken to set the index.
+    int SetEepromIndex(u16 index, u8 indexSize);
+
+    /// @brief Read a DWord from EEPROM at the previously set index.
+    /// @return Value from EEPROM and number of cycles taken to read.
+    std::pair<u64, int> ReadEepromDWord();
+
+    /// @brief Write a DWord into EEPROM.
+    /// @param index Index to write to.
+    /// @param indexSize Number of bits in index.
+    /// @param val Value to write to EEPROM.
+    /// @return Number of cycles taken to write.
+    int WriteEepromDWord(u16 index, u8 indexSize, u64 val);
 
     /// @brief Save backup media to disk.
     void Save() const;
@@ -74,6 +92,7 @@ private:
     std::unique_ptr<BackupMedia> backupMedia_;
     std::string title_;
     bool gamePakLoaded_;
+    bool containsEeprom_;
 
     // External components
     EventScheduler& scheduler_;

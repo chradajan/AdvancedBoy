@@ -22,6 +22,7 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
 {
     title_ = "";
     gamePakLoaded_ = false;
+    containsEeprom_ = false;
 
     if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath))
     {
@@ -70,6 +71,10 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
             break;
         case BackupType::FLASH_128:
             backupMedia_ = std::make_unique<Flash>(savePath, true, systemControl);
+            break;
+        case BackupType::EEPROM:
+            backupMedia_ = std::make_unique<EEPROM>(savePath, ROM_.size() > (16 * MiB), systemControl);
+            containsEeprom_ = true;
             break;
         default:
             backupMedia_ = nullptr;
@@ -143,6 +148,36 @@ MemReadData GamePak::ReadUnloadedGamePakMem(u32 addr, AccessSize length)
     }
 
     return {1, val, false};
+}
+
+int GamePak::SetEepromIndex(u16 index, u8 indexSize)
+{
+    if (containsEeprom_)
+    {
+        return dynamic_cast<EEPROM*>(backupMedia_.get())->SetIndex(index, indexSize);
+    }
+
+    return 1;
+}
+
+std::pair<u64, int> GamePak::ReadEepromDWord()
+{
+    if (containsEeprom_)
+    {
+        return dynamic_cast<EEPROM*>(backupMedia_.get())->ReadDWord();
+    }
+
+    return {U64_MAX, 1};
+}
+
+int GamePak::WriteEepromDWord(u16 index, u8 indexSize, u64 val)
+{
+    if (containsEeprom_)
+    {
+        return dynamic_cast<EEPROM*>(backupMedia_.get())->WriteDWord(index, indexSize, val);
+    }
+
+    return 1;
 }
 
 void GamePak::Save() const

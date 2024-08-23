@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <optional>
+#include <utility>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
@@ -136,9 +137,19 @@ private:
     /// Execution
     ///-----------------------------------------------------------------------------------------------------------------------------
 
+    /// @brief Execute a DMA transfer to/from EEPROM.
+    /// @param read True if this transfer is reading from EEPROM and writing to system memory.
+    /// @param write True if this transfer is reading from system memory and writing to EEPROM.
+    /// @return Number of cycles taken to complete the transfer.
+    int ExecuteEepromXfer(bool read, bool write);
+
     /// @brief Execute a normal DMA transfer (any transfer except to EEPROM or an audio FIFO).
     /// @return Number of cycles taken to perform the transfer.
     int ExecuteNormalXfer();
+
+    /// @brief Read a bit from memory as part of an EEPROM transfer and update internal registers.
+    /// @return Next value from the bitstream (only LSB) and number of cycles taken to read.
+    std::pair<u8, int> ReadForEepromXfer();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data

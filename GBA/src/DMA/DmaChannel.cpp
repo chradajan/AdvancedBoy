@@ -94,7 +94,7 @@ ExecuteResult DmaChannel::Execute()
 
     if (eepromRead || eepromWrite)
     {
-        // TODO
+        xferCycles = ExecuteEepromXfer(eepromRead, eepromWrite);
     }
     else if (fifoXfer)
     {
@@ -177,6 +177,126 @@ bool DmaChannel::IsFifoXfer(DMACNT dmacnt) const
            ((channelIndex_ == 1) || (channelIndex_ == 2));
 }
 
+int DmaChannel::ExecuteEepromXfer(bool read, bool write)
+{
+    if ((read && write) || (gamePakPtr_ == nullptr))
+    {
+        return 0;
+    }
+
+    int xferCycles = 0;
+    auto dmacnt = GetDMACNT();
+
+    if (read)
+    {
+        if ((channelIndex_ == 3) &&
+            (dmacnt.destAddrCnt == 0) && (dmacnt.srcAddrCnt == 0) &&
+            (dmacnt.xferType == 0) &&
+            (internalWordCount_ == 68))
+        {
+            auto [dWord, readCycles] = gamePakPtr_->ReadEepromDWord();
+            xferCycles += readCycles;
+
+            for (u8 i = 0; i < 4; ++i)
+            {
+                xferCycles += WriteMemory(internalDestAddr_, 0, AccessSize::HALFWORD);
+                internalDestAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+                internalSrcAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+                --internalWordCount_;
+            }
+
+            while (internalWordCount_ > 0)
+            {
+                u16 val = (dWord & U64_MSB) >> 63;
+                dWord <<= 1;
+                xferCycles += WriteMemory(internalDestAddr_, val, AccessSize::HALFWORD);
+                internalDestAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+                internalSrcAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+                --internalWordCount_;
+            }
+        }
+    }
+    else if (write)
+    {
+        if ((channelIndex_ == 3) &&
+            (dmacnt.destAddrCnt == 0) && (dmacnt.srcAddrCnt == 0) &&
+            (dmacnt.xferType == 0) &&
+            ((internalWordCount_ == 9) || (internalWordCount_ == 17) || (internalWordCount_ == 73) || (internalWordCount_ == 81)))
+        {
+            if ((internalWordCount_ == 9) || (internalWordCount_ == 17))
+            {
+                // Initializing read index
+                u16 index = 0;
+                u8 indexSize = internalWordCount_ - 3;
+
+                for (u8 i = 0; i < 2; ++i)
+                {
+                    // Read and discard first 2 bits
+                    auto [val, readCycles] = ReadForEepromXfer();
+                    xferCycles += readCycles;
+                }
+
+                for (u8 i = 0; i < indexSize; ++i)
+                {
+                    // Get index from bitstream
+                    index <<= 1;
+                    auto [val, readCycles] = ReadForEepromXfer();
+                    index |= val;
+                    xferCycles += readCycles;
+                }
+
+                // Read and discard final bit
+                auto [val, readCycles] = ReadForEepromXfer();
+                xferCycles += readCycles;
+
+                // Send index to EEPROM
+                xferCycles += gamePakPtr_->SetEepromIndex(index, indexSize);
+            }
+            else
+            {
+                // Writing data to EEPROM
+                u16 index = 0;
+                u8 indexSize = internalWordCount_ - 67;
+                u64 dWord = 0;
+
+                for (u8 i = 0; i < 2; ++i)
+                {
+                    // Read and discard first 2 bits
+                    auto [val, readCycles] = ReadForEepromXfer();
+                    xferCycles += readCycles;
+                }
+
+                for (u8 i = 0; i < indexSize; ++i)
+                {
+                    // Get index from bitstream
+                    index <<= 1;
+                    auto [val, readCycles] = ReadForEepromXfer();
+                    index |= val;
+                    xferCycles += readCycles;
+                }
+
+                for (int i = 0; i < 64; ++i)
+                {
+                    // Get dword from bitstream
+                    dWord <<= 1;
+                    auto [val, readCycles] = ReadForEepromXfer();
+                    dWord |= val;
+                    xferCycles += readCycles;
+                }
+
+                // Read and discard final bit
+                auto [val, readCycles] = ReadForEepromXfer();
+                xferCycles += readCycles;
+
+                // Send index and dword to EEPROM
+                xferCycles += gamePakPtr_->WriteEepromDWord(index, indexSize, dWord);
+            }
+        }
+    }
+
+    return xferCycles;
+}
+
 int DmaChannel::ExecuteNormalXfer()
 {
     int xferCycles = 0;
@@ -224,5 +344,14 @@ int DmaChannel::ExecuteNormalXfer()
     }
 
     return xferCycles;
+}
+
+std::pair<u8, int> DmaChannel::ReadForEepromXfer()
+{
+    auto [val, readCycles] = ReadMemory(internalSrcAddr_, AccessSize::HALFWORD);
+    internalDestAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+    internalSrcAddr_ += static_cast<u32>(AccessSize::HALFWORD);
+    --internalWordCount_;
+    return {val & 0x01, readCycles};
 }
 }  // namespace dma
