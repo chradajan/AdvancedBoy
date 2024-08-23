@@ -65,6 +65,12 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
         case BackupType::SRAM:
             backupMedia_ = std::make_unique<SRAM>(savePath, systemControl);
             break;
+        case BackupType::FLASH_64:
+            backupMedia_ = std::make_unique<Flash>(savePath, false, systemControl);
+            break;
+        case BackupType::FLASH_128:
+            backupMedia_ = std::make_unique<Flash>(savePath, true, systemControl);
+            break;
         default:
             backupMedia_ = nullptr;
             break;

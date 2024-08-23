@@ -99,6 +99,9 @@ constexpr u32 EEPROM_ADDR_MAX = 0x0DFF'FFFF;
 constexpr u32 SRAM_ADDR_MIN = 0x0E00'0000;
 constexpr u32 SRAM_ADDR_MAX = 0x0E00'7FFF;
 
+constexpr u32 FLASH_ADDR_MIN = 0x0E00'0000;
+constexpr u32 FLASH_ADDR_MAX = 0x0E00'FFFF;
+
 // System control regions
 
 constexpr u32 INT_WAITCNT_ADDR_MIN = 0x0400'0200;
