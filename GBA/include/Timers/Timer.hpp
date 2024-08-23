@@ -81,9 +81,10 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Reset the internal timer value and schedule an overflow event if not in cascade mode.
+    /// @param timcnt TIMCNT register value.
     /// @param firstTime True if this timer was just enabled, false when the timer is restarting after an overflow.
     /// @param extraCycles How many cycles have passed since this timer was supposed to have started.
-    void StartTimer(bool firstTime, int extraCycles);
+    void StartTimer(TIMCNT timcnt, bool firstTime, int extraCycles);
 
     /// @brief Update the internal counter based on how many cycles have elapsed since it started. Does nothing in cascade mode.
     /// @param divider Clock divider based on the prescaler selection.

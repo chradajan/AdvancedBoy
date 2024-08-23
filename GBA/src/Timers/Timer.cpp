@@ -67,7 +67,7 @@ MemReadData Timer::ReadReg(u32 addr, AccessSize length)
                 val = internalTimer_;
                 break;
             case AccessSize::WORD:
-                val = std::bit_cast<u16, TIMCNT>(GetTIMCNT()) | internalTimer_;
+                val = std::bit_cast<u16, TIMCNT>(timcnt) | internalTimer_;
                 break;
             default:
                 throw std::runtime_error("Bad access size");
@@ -90,7 +90,7 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
 
     if (!prevTimCnt.enable && currTimCnt.enable)
     {
-        StartTimer(true, 0);
+        StartTimer(currTimCnt, true, 0);
     }
     else if (prevTimCnt.enable && !currTimCnt.enable)
     {
@@ -101,7 +101,7 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
     {
         if (prevTimCnt.countUpTiming && !currTimCnt.countUpTiming)
         {
-            StartTimer(true, 0);
+            StartTimer(currTimCnt, true, 0);
         }
         else if (!prevTimCnt.countUpTiming && currTimCnt.countUpTiming)
         {
@@ -115,9 +115,11 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
 
 void Timer::HandleOverflow(int extraCycles)
 {
-    StartTimer(false, extraCycles);
+    auto timcnt = GetTIMCNT();
 
-    if (GetTIMCNT().irq)
+    StartTimer(timcnt, false, extraCycles);
+
+    if (timcnt.irq)
     {
         systemControl_.RequestInterrupt(interruptType_);
     }
@@ -133,14 +135,14 @@ void Timer::CascadeIncrement()
     }
 }
 
-void Timer::StartTimer(bool firstTime, int extraCycles)
+void Timer::StartTimer(TIMCNT timcnt, bool firstTime, int extraCycles)
 {
     internalTimer_ = GetReload();
 
     if (!CascadeMode())
     {
         int schedulingOffset = extraCycles * -1;
-        u16 divider = GetDivider(GetTIMCNT().prescalerSelection);
+        u16 divider = GetDivider(timcnt.prescalerSelection);
         u32 timerLength = (0x0001'0000 - internalTimer_) * divider;
 
         if (firstTime)
