@@ -1,4 +1,5 @@
 #include <GBA/include/Cartridge/GamePak.hpp>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -23,6 +24,10 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
     title_ = "";
     gamePakLoaded_ = false;
     containsEeprom_ = false;
+
+    nextSequentialAddr_ = U32_MAX;
+    lastReadCompletionCycle_ = 0;
+    prefetchedWaitStates_ = 0;
 
     if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath))
     {
@@ -111,14 +116,48 @@ MemReadData GamePak::ReadMem(u32 addr, AccessSize length)
             return {1, 0, true};
     }
 
-    // TODO: Calculate actual cycles based on waitstate region and prefetcher buffer settings
-    (void)region;
-    int cycles = 1;
-
     if ((addr - GAMEPAK_ROM_ADDR_MIN) >= ROM_.size())
     {
         return {1, 0, true};
     }
+
+    int cycles = 1;
+    bool sequential = addr == nextSequentialAddr_;
+    u64 currentCycle = scheduler_.GetTotalElapsedCycles();
+    int waitStates = systemControl_.WaitStates(region, sequential, length);
+
+    if (systemControl_.GamePakPrefetchEnabled())
+    {
+        if (sequential)
+        {
+            int maxPrefetchedWaitStates = 8 * systemControl_.WaitStates(region, true, AccessSize::HALFWORD);
+            prefetchedWaitStates_ = std::min(prefetchedWaitStates_ + (currentCycle - lastReadCompletionCycle_),
+                                             static_cast<u64>(maxPrefetchedWaitStates));
+
+            if (prefetchedWaitStates_ >= waitStates)
+            {
+                prefetchedWaitStates_ -= waitStates;
+                waitStates = 0;
+            }
+            else
+            {
+                waitStates -= prefetchedWaitStates_;
+                prefetchedWaitStates_ = 0;
+            }
+        }
+        else
+        {
+            prefetchedWaitStates_ = 0;
+        }
+    }
+    else
+    {
+        prefetchedWaitStates_ = 0;
+    }
+
+    nextSequentialAddr_ = addr + static_cast<u8>(length);
+    cycles += waitStates;
+    lastReadCompletionCycle_ = currentCycle + cycles;
 
     u32 val = ReadMemoryBlock(ROM_, addr, GAMEPAK_ROM_ADDR_MIN, length);
     return {cycles, val, false};

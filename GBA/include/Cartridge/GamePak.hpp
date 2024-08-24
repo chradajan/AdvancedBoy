@@ -94,6 +94,11 @@ private:
     bool gamePakLoaded_;
     bool containsEeprom_;
 
+    // Prefetch buffer
+    u32 nextSequentialAddr_;
+    u64 lastReadCompletionCycle_;
+    int prefetchedWaitStates_;
+
     // External components
     EventScheduler& scheduler_;
     SystemControl& systemControl_;
