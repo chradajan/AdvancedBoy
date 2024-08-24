@@ -47,12 +47,13 @@ Timer::Timer(u8 index, EventType event, InterruptType interrupt, EventScheduler&
 
 MemReadData Timer::ReadReg(u32 addr, AccessSize length)
 {
-    auto timcnt = GetTIMCNT();
     u8 index = addr & 0x03;
     u32 val;
 
     if (index < 2)
     {
+        auto timcnt = GetTIMCNT();
+
         if (timcnt.enable)
         {
             UpdateInternalCounter(GetDivider(timcnt.prescalerSelection));
@@ -67,7 +68,7 @@ MemReadData Timer::ReadReg(u32 addr, AccessSize length)
                 val = internalTimer_;
                 break;
             case AccessSize::WORD:
-                val = std::bit_cast<u16, TIMCNT>(timcnt) | internalTimer_;
+                val = (std::bit_cast<u16, TIMCNT>(timcnt) << 16) | internalTimer_;
                 break;
             default:
                 throw std::runtime_error("Bad access size");
@@ -83,8 +84,14 @@ MemReadData Timer::ReadReg(u32 addr, AccessSize length)
 
 int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
 {
-    u8 index = addr & 0x03;
     auto prevTimCnt = GetTIMCNT();
+
+    if (prevTimCnt.enable)
+    {
+        UpdateInternalCounter(GetDivider(prevTimCnt.prescalerSelection));
+    }
+
+    u8 index = addr & 0x03;
     WriteMemoryBlock(registers_, index, 0, val, length);
     auto currTimCnt = GetTIMCNT();
 
@@ -94,7 +101,6 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
     }
     else if (prevTimCnt.enable && !currTimCnt.enable)
     {
-        UpdateInternalCounter(GetDivider(prevTimCnt.prescalerSelection));
         scheduler_.UnscheduleEvent(eventType_);
     }
     else if (prevTimCnt.enable && currTimCnt.enable)
@@ -105,7 +111,6 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
         }
         else if (!prevTimCnt.countUpTiming && currTimCnt.countUpTiming)
         {
-            UpdateInternalCounter(GetDivider(prevTimCnt.prescalerSelection));
             scheduler_.UnscheduleEvent(eventType_);
         }
     }
@@ -116,7 +121,6 @@ int Timer::WriteReg(u32 addr, u32 val, AccessSize length)
 void Timer::HandleOverflow(int extraCycles)
 {
     auto timcnt = GetTIMCNT();
-
     StartTimer(timcnt, false, extraCycles);
 
     if (timcnt.irq)

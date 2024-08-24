@@ -251,11 +251,19 @@ void PPU::WriteDispstatVcount(u32 addr, u32 val, AccessSize length)
             val = ((val & U8_MAX) << 8) & writableMask;
         }
 
-        u16 prevDispStat = std::bit_cast<u16, DISPSTAT>(GetDISPSTAT());
-        prevDispStat &= ~writableMask;
-        u16 newDispStat = prevDispStat | val;
-        SetDISPSTAT(std::bit_cast<DISPSTAT, u16>(newDispStat));
-        CheckVCountSetting();
+        auto prevDispStat = GetDISPSTAT();
+        u16 prevDispStatValue = std::bit_cast<u16, DISPSTAT>(prevDispStat);
+        prevDispStatValue &= ~writableMask;
+
+        u16 newDispStatValue = prevDispStatValue | val;
+        auto newDispStat = std::bit_cast<DISPSTAT, u16>(newDispStatValue);
+
+        SetDISPSTAT(newDispStat);
+
+        if (prevDispStat.vCountSetting != newDispStat.vCountSetting)
+        {
+            CheckVCountSetting();
+        }
     }
 }
 
