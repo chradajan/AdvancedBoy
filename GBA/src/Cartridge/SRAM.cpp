@@ -33,6 +33,11 @@ bool SRAM::IsBackupMediaAccess(u32 addr) const
 
 MemReadData SRAM::ReadMem(u32 addr, AccessSize length)
 {
+    if (addr >= SRAM_ADDR_MIN + sram_.size())
+    {
+        addr = SRAM_ADDR_MIN + (addr % sram_.size());
+    }
+
     int cycles = 1 + systemControl_.WaitStates(WaitStateRegion::SRAM, false, length);
     u32 val = ReadMemoryBlock(sram_, addr, SRAM_ADDR_MIN, AccessSize::BYTE);
 
@@ -46,6 +51,11 @@ MemReadData SRAM::ReadMem(u32 addr, AccessSize length)
 
 int SRAM::WriteMem(u32 addr, u32 val, AccessSize length)
 {
+    if (addr >= SRAM_ADDR_MIN + sram_.size())
+    {
+        addr = SRAM_ADDR_MIN + (addr % sram_.size());
+    }
+
     int cycles = 1 + systemControl_.WaitStates(WaitStateRegion::SRAM, false, length);
 
     if (length != AccessSize::BYTE)
