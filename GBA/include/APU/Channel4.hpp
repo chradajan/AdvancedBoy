@@ -10,67 +10,72 @@ class EventScheduler;
 
 namespace audio
 {
-class Channel2
+class Channel4
 {
 public:
-    Channel2() = delete;
-    Channel2(Channel2 const&) = delete;
-    Channel2& operator=(Channel2 const&) = delete;
-    Channel2(Channel2&&) = delete;
-    Channel2& operator=(Channel2&&) = delete;
+    Channel4() = delete;
+    Channel4(Channel4 const&) = delete;
+    Channel4& operator=(Channel4 const&) = delete;
+    Channel4(Channel4&&) = delete;
+    Channel4& operator=(Channel4&&) = delete;
 
-    /// @brief Initialize channel 2.
+    /// @brief Initialize channel 4.
     /// @param scheduler Reference to scheduler to post audio events to.
-    Channel2(EventScheduler& scheduler);
+    Channel4(EventScheduler& scheduler);
 
-    /// @brief Read a Channel 2 register.
+    /// @brief Read a Channel 4 register.
     /// @param addr Address of register(s) to read.
     /// @param length Memory access size of the read.
     /// @return Value of register and whether this read triggered open bus behavior.
     std::pair<u32, bool> ReadReg(u32 addr, AccessSize length);
 
-    /// @brief Write a Channel 2 register.
+    /// @brief Write a Channel 4 register.
     /// @param addr Address of register(s) to write.
     /// @param value Value to write to register(s).
     /// @param length Memory access size of the write.
     /// @return Whether this write triggered this channel to start/restart.
     bool WriteReg(u32 addr, u32 val, AccessSize length);
 
-    /// @brief Sample Channel 2's current output.
-    /// @return Channel 2 output value.
+    /// @brief Sample Channel 4's current output.
+    /// @return Channel 4 output value.
     u8 Sample() const;
 
-    /// @brief Check if Channel 2 has turned off due to its length timer expiring.
+    /// @brief Check if Channel 4 has turned off due to its length timer expiring.
     /// @return True if length timer has expired.
     bool Expired() const { return lengthTimerExpired_; }
 
 private:
-    /// @brief Start Channel 2 processing.
-    /// @param sound2cnt SOUND2CNT register value.
-    void Start(SOUND2CNT sound2cnt);
+    /// @brief Start Channel 4 processing.
+    /// @param sound4cnt SOUND4CNT register value.
+    void Start(SOUND4CNT sound4cnt);
+
+    /// @brief Calculate how many CPU cycles until Channel 4 should be clocked again based on its frequency.
+    /// @param sound4cnt SOUND4CNT register value.
+    /// @return Number of cycles between clocks.
+    int EventCycles(SOUND4CNT sound4cnt) const;
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event callbacks
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    /// @brief Callback function to advance Channel 2's duty cycle step.
+    /// @brief Callback function to advance Channel 4's shift register.
     /// @param extraCycles Number of cycles since this callback was supposed to execute.
     void Clock(int extraCycles);
 
-    /// @brief Callback function to advance Channel 2's envelope.
+    /// @brief Callback function to advance Channel 4's envelope.
     /// @param extraCycles Number of cycles since this callback was supposed to execute.
     void Envelope(int extraCycles);
 
-    /// @brief Callback function to disable Channel 2 if its length timer was enabled when it was triggered.
+    /// @brief Callback function to disable Channel 4 if its length timer was enabled when it was triggered.
     void LengthTimer(int) { lengthTimerExpired_ = true; };
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Register access/updates
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    /// SOUND2CNT L/H/X getter/setter
-    SOUND2CNT GetSOUND2CNT() const { return std::bit_cast<SOUND2CNT, std::array<std::byte, 8>>(registers_); }
-    void SetSOUND2CNT(SOUND2CNT reg) { registers_ = std::bit_cast<std::array<std::byte, 8>, SOUND2CNT>(reg); }
+    /// SOUND4CNT L/H/X getter/setter
+    SOUND4CNT GetSOUND4CNT() const { return std::bit_cast<SOUND4CNT, std::array<std::byte, 8>>(registers_); }
+    void SetSOUND4CNT(SOUND4CNT reg) { registers_ = std::bit_cast<std::array<std::byte, 8>, SOUND4CNT>(reg); }
 
     // Registers
     std::array<std::byte, 8> registers_;
@@ -81,8 +86,10 @@ private:
 
     // State
     u8 currentVolume_;
-    u8 dutyCycleIndex_;
     bool lengthTimerExpired_;
+
+    // Shift register
+    u16 lsfr_;
 
     // External components
     EventScheduler& scheduler_;

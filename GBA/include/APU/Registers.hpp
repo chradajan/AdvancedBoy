@@ -64,6 +64,36 @@ struct SOUND2CNT
 static_assert(sizeof(SOUND2CNT) == 8, "SOUND2CNT must be 8 bytes");
 
 ///---------------------------------------------------------------------------------------------------------------------------------
+/// Channel 4 registers
+///---------------------------------------------------------------------------------------------------------------------------------
+
+struct SOUND4CNT
+{
+    // Lo
+    u64 initialLengthTimer  : 6;
+    u64                     : 2;
+    u64 envelopePace        : 3;
+    u64 envelopeDirection   : 1;
+    u64 initialVolume       : 4;
+
+    // Unused
+    u64 : 16;
+
+    // Hi
+    u64 dividingRatio       : 3;
+    u64 countWidth          : 1;
+    u64 shiftClockFrequency : 4;
+    u64                     : 6;
+    u64 lengthEnable        : 1;
+    u64 trigger             : 1;
+
+    // Unused
+    u64 : 16;
+};
+
+static_assert(sizeof(SOUND4CNT) == 8, "SOUND4CNT must be 8 bytes");
+
+///---------------------------------------------------------------------------------------------------------------------------------
 /// Control registers
 ///---------------------------------------------------------------------------------------------------------------------------------
 

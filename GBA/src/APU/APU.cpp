@@ -16,6 +16,7 @@ namespace audio
 APU::APU(EventScheduler& scheduler) :
     channel1_(scheduler),
     channel2_(scheduler),
+    channel4_(scheduler),
     scheduler_(scheduler)
 {
     unimplementedRegisters_.fill(std::byte{0});
@@ -39,9 +40,11 @@ MemReadData APU::ReadReg(u32 addr, AccessSize length)
             std::tie(val, openBus) = channel2_.ReadReg(addr, length);
             break;
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
-        case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
             val = ReadMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, length);
             openBus = false;
+            break;
+        case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
+            std::tie(val, openBus) = channel4_.ReadReg(addr, length);
             break;
         case APU_CONTROL_ADDR_MIN ... APU_CONTROL_ADDR_MAX:
             std::tie(val, openBus) = ReadCntRegisters(addr, length);
@@ -89,9 +92,19 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
             break;
         }
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
-        case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
             WriteMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, val, length);
             break;
+        case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
+        {
+            if (channel4_.WriteReg(addr, val, length))
+            {
+                auto soundCnt_X = GetSOUNDCNT_X();
+                soundCnt_X.chan4On = 1;
+                SetSOUNDCNT_X(soundCnt_X);
+            }
+
+            break;
+        }
         case APU_CONTROL_ADDR_MIN ... APU_CONTROL_ADDR_MAX:
             WriteCntRegisters(addr, val, length);
             break;
@@ -120,6 +133,11 @@ std::pair<u32, bool> APU::ReadCntRegisters(u32 addr, AccessSize length)
     if (channel2_.Expired())
     {
         soundCnt_X.chan2On = 0;
+    }
+
+    if (channel4_.Expired())
+    {
+        soundCnt_X.chan4On = 0;
     }
 
     SetSOUNDCNT_X(soundCnt_X);
@@ -208,7 +226,7 @@ void APU::Sample(int extraCycles)
         }
 
         // Channel 4
-        u8 channel4Sample = 0;  // TODO
+        u8 channel4Sample = channel4_.Sample();
 
         if (soundCnt_L.chan4EnableLeft)
         {

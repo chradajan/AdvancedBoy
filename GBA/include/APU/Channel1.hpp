@@ -46,6 +46,7 @@ public:
 
 private:
     /// @brief Start Channel 1 processing.
+    /// @param sound1cnt SOUND1CNT register value.
     void Start(SOUND1CNT sound1cnt);
 
     ///-----------------------------------------------------------------------------------------------------------------------------

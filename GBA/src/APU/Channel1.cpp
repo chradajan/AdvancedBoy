@@ -1,5 +1,6 @@
 #include <GBA/include/APU/Channel1.hpp>
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
