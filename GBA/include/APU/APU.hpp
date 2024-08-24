@@ -5,6 +5,7 @@
 #include <cstring>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
+#include <GBA/include/APU/Channel1.hpp>
 #include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -97,6 +98,12 @@ private:
 
     /// @brief Read the APU control registers.
     /// @param addr Address of register(s) to read.
+    /// @param length Memory access size of the write.
+    /// @return Value at specified register(s) and whether this read triggered open bus behavior.
+    std::pair<u32, bool> ReadCntRegisters(u32 addr, AccessSize length);
+
+    /// @brief Write the APU control registers.
+    /// @param addr Address of register(s) to write.
     /// @param val Value to write to register(s).
     /// @param length Memory access size of the write.
     void WriteCntRegisters(u32 addr, u32 val, AccessSize length);
@@ -109,6 +116,7 @@ private:
     /// Channels
     ///-----------------------------------------------------------------------------------------------------------------------------
 
+    Channel1 channel1_;
     DmaAudio dmaFifos_;
 
     ///-----------------------------------------------------------------------------------------------------------------------------

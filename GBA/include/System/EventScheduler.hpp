@@ -15,6 +15,12 @@ enum class EventType
     // IRQs
     SetIRQ,
 
+    // APU
+    Channel1Clock,
+    Channel1Envelope,
+    Channel1LengthTimer,
+    Channel1FrequencySweep,
+
     // Timers
     Timer0Overflow,
     Timer1Overflow,
