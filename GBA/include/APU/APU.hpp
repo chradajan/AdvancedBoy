@@ -6,6 +6,7 @@
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Channel1.hpp>
+#include <GBA/include/APU/Channel2.hpp>
 #include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -117,6 +118,7 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     Channel1 channel1_;
+    Channel2 channel2_;
     DmaAudio dmaFifos_;
 
     ///-----------------------------------------------------------------------------------------------------------------------------

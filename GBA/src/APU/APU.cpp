@@ -15,6 +15,7 @@ namespace audio
 {
 APU::APU(EventScheduler& scheduler) :
     channel1_(scheduler),
+    channel2_(scheduler),
     scheduler_(scheduler)
 {
     unimplementedRegisters_.fill(std::byte{0});
@@ -35,6 +36,8 @@ MemReadData APU::ReadReg(u32 addr, AccessSize length)
             std::tie(val, openBus) = channel1_.ReadReg(addr, length);
             break;
         case CHANNEL_2_ADDR_MIN ... CHANNEL_2_ADDR_MAX:
+            std::tie(val, openBus) = channel2_.ReadReg(addr, length);
+            break;
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
         case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
             val = ReadMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, length);
@@ -75,6 +78,16 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
             break;
         }
         case CHANNEL_2_ADDR_MIN ... CHANNEL_2_ADDR_MAX:
+        {
+            if (channel2_.WriteReg(addr, val, length))
+            {
+                auto soundCnt_X = GetSOUNDCNT_X();
+                soundCnt_X.chan2On = 1;
+                SetSOUNDCNT_X(soundCnt_X);
+            }
+
+            break;
+        }
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
         case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
             WriteMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, val, length);
@@ -102,6 +115,11 @@ std::pair<u32, bool> APU::ReadCntRegisters(u32 addr, AccessSize length)
     if (channel1_.Expired())
     {
         soundCnt_X.chan1On = 0;
+    }
+
+    if (channel2_.Expired())
+    {
+        soundCnt_X.chan2On = 0;
     }
 
     SetSOUNDCNT_X(soundCnt_X);
@@ -164,7 +182,7 @@ void APU::Sample(int extraCycles)
         }
 
         // Channel 2
-        u8 channel2Sample = 0;  // TODO
+        u8 channel2Sample = channel2_.Sample();
 
         if (soundCnt_L.chan2EnableLeft)
         {

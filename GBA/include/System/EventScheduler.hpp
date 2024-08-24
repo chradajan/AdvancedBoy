@@ -21,6 +21,10 @@ enum class EventType
     Channel1LengthTimer,
     Channel1FrequencySweep,
 
+    Channel2Clock,
+    Channel2Envelope,
+    Channel2LengthTimer,
+
     // Timers
     Timer0Overflow,
     Timer1Overflow,
