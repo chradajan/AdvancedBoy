@@ -1,8 +1,10 @@
 #include <GUI/include/MainWindow.hpp>
 #include <cstring>
 #include <filesystem>
+#include <functional>
 #include <set>
 #include <GBA/include/Types.hpp>
+#include <GUI/include/BackgroundViewer.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
 #include <QtWidgets/QApplication>
@@ -26,15 +28,14 @@ MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     emuThread_(this),
     screen_(this),
-    screenTimer_(this),
     fpsTimer_(this),
     romTitle_("Advanced Boy")
 {
     // Initialize screen
     setCentralWidget(&screen_);
-    screenTimer_.setTimerType(Qt::TimerType::PreciseTimer);
-    connect(&screenTimer_, &QTimer::timeout, this, &MainWindow::RefreshScreen);
-    screenTimer_.start(16);
+
+    // Initialize menus
+    InitializeMenuBar();
 
     // Temporarily set scale to 4x manually
     int width = 240 * 4;
@@ -58,6 +59,9 @@ MainWindow::MainWindow(QWidget* parent) :
     // Window title
     connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
     fpsTimer_.start(1000);
+
+    // Debug options
+    bgMapsWindow_ = nullptr;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
@@ -115,6 +119,12 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
 
     PowerOff();
+
+    if (bgMapsWindow_ && bgMapsWindow_->isVisible())
+    {
+        bgMapsWindow_->close();
+    }
+
     event->accept();
 }
 
@@ -140,6 +150,16 @@ void MainWindow::UpdateWindowTitle()
     setWindowTitle(QString::fromStdString(title));
 }
 
+void MainWindow::VBlankCallback(int)
+{
+    RefreshScreen();
+
+    if (bgMapsWindow_ && bgMapsWindow_->isVisible())
+    {
+        bgMapsWindow_->UpdateBackgroundView(gui::GetBgDebugInfo(bgMapsWindow_->GetSelectedBg()));
+    }
+}
+
 void MainWindow::StartEmulation(fs::path romPath)
 {
     if (emuThread_.isRunning())
@@ -151,7 +171,7 @@ void MainWindow::StartEmulation(fs::path romPath)
     }
 
     PowerOff();
-    InitializeGBA(biosPath_, romPath, logDir_);
+    InitializeGBA(biosPath_, romPath, logDir_, std::bind(&MainWindow::VBlankCallback, this, std::placeholders::_1));
     romTitle_ = GetTitle();
     emuThread_.start();
     SDL_UnlockAudioDevice(audioDevice_);
@@ -188,5 +208,28 @@ void MainWindow::SendKeyPresses()
     if (pressedKeys_.contains(69)) keyinput.R = 0;
 
     UpdateKeypad(keyinput);
+}
+
+void MainWindow::InitializeMenuBar()
+{
+    fileMenu_ = menuBar()->addMenu("File");
+    emulationMenu_ = menuBar()->addMenu("Emulation");
+    debugMenu_ = menuBar()->addMenu("Debug");
+    optionsMenu_ = menuBar()->addMenu("Options");
+
+    // Debug
+    QAction* bgMaps = new QAction("View BG Maps", this);
+    connect(bgMaps, &QAction::triggered, this, &OpenBgMapsWindow);
+    debugMenu_->addAction(bgMaps);
+}
+
+void MainWindow::OpenBgMapsWindow()
+{
+    if (bgMapsWindow_ == nullptr)
+    {
+        bgMapsWindow_ = new BackgroundViewer;
+    }
+
+    bgMapsWindow_->show();
 }
 }  // namespace gui

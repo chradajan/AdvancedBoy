@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <GBA/include/APU/APU.hpp>
@@ -12,6 +13,7 @@
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <GBA/include/Keypad/Keypad.hpp>
 #include <GBA/include/Logging/Logger.hpp>
+#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
@@ -34,7 +36,8 @@ public:
     /// @param biosPath Path to BIOS ROM file.
     /// @param romPath Path to GamePak ROM file.
     /// @param logDir Path to directory where log file should be generated. Pass empty path to disable logging.
-    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir);
+    /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
+    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback);
 
     /// @brief Save backup media to disk and dump any unlogged entries.
     ~GameBoyAdvance();
@@ -66,6 +69,11 @@ public:
 
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
+
+    /// @brief Get debug info needed to draw a fully isolated background layer.
+    /// @param bgIndex Index of background to display in debugger.
+    /// @return Debug info needed to display a background layer.
+    graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppu_.GetBackgroundDebugInfo(bgIndex); }
 
 private:
     /// @brief Main emulation loop.

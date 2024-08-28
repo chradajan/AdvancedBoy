@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <vector>
+#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/PPU/FrameBuffer.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/PPU/VramViews.hpp>
@@ -111,6 +113,43 @@ public:
     /// @brief Get the current value of VCOUNT.
     /// @return Current scanline.
     u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Draw full background and get background info for debugger.
+    /// @param bgIndex Index of background to display in debugger.
+    /// @return Background debug info.
+    BackgroundDebugInfo GetBackgroundDebugInfo(u8 bgIndex) const;
+
+    /// @brief Get debug info for a regular tiled background.
+    /// @param bgIndex Selected background index.
+    /// @param bgcnt Selected background control register.
+    /// @param debugInfo Reference to debug info to update.
+    void DebugRenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Helper function for rendering regular backgrounds. Draws a single screen block.
+    /// @param bgcnt Selected background control register.
+    /// @param screenBlockIndex Index of screen block to draw.
+    /// @param bufferBaseIndex Index in debug buffer to start drawing to.
+    /// @param debugInfo Reference to debug info to update.
+    void DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bufferBaseIndex, BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Get debug info for an affine background.
+    /// @param bgIndex Selected background index.
+    /// @param bgcnt Selected background control register.
+    /// @param debugInfo Reference to debug info to update.
+    void DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Get debug info for a bitmap background in mode 3.
+    /// @param debugInfo Reference to debug info to update.
+    void DebugRenderMode3Background(BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Get debug info for a bitmap background in mode 4.
+    /// @param frameSelect Which bitmap frame to draw.
+    /// @param debugInfo Reference to debug info to update.
+    void DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const;
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 #include <QtWidgets/QMainWindow>
 
 namespace fs = std::filesystem;
+namespace gui { class BackgroundViewer; }
 
 namespace gui
 {
@@ -66,12 +67,29 @@ private:
     /// @brief Update the window title with the ROM name and current internal FPS.
     void UpdateWindowTitle();
 
+    /// @brief Callback function for whenever the GBA enters VBlank.
+    void VBlankCallback(int);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Emulation management
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
     void SendKeyPresses();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Menu bars
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Initialize the menu bar options.
+    void InitializeMenuBar();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug options
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Action for clicking "View BG Maps" menu item.
+    void OpenBgMapsWindow();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
@@ -84,7 +102,6 @@ private:
 
     // Screen control
     LCD screen_;
-    QTimer screenTimer_;
 
     // Audio control
     SDL_AudioDeviceID audioDevice_;
@@ -95,5 +112,14 @@ private:
 
     // Keypad
     std::set<int> pressedKeys_;
+
+    // Menu bar
+    QMenu* fileMenu_;
+    QMenu* emulationMenu_;
+    QMenu* debugMenu_;
+    QMenu* optionsMenu_;
+
+    // Debug menus
+    BackgroundViewer* bgMapsWindow_;
 };
 }  // namespace gui

@@ -43,6 +43,9 @@ enum class EventType
     HBlank,
     VBlank,
 
+    // External
+    NotifyVBlank,
+
     // Total number of events. Do not schedule this, and do not place events below this.
     COUNT
 };

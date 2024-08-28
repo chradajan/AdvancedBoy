@@ -4,20 +4,21 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/GameBoyAdvance.hpp>
 
 std::unique_ptr<GameBoyAdvance> GBA;
 
 namespace gui
 {
-void InitializeGBA(fs::path biosPath, fs::path romPath, fs::path logDir)
+void InitializeGBA(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback)
 {
     if (GBA)
     {
         return;
     }
 
-    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, logDir);
+    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, logDir, vBlankCallback);
 }
 
 void RunEmulationLoop()
@@ -107,5 +108,15 @@ void UpdateKeypad(KEYINPUT keyinput)
     {
         GBA->UpdateKeypad(keyinput);
     }
+}
+
+graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
+{
+    if (GBA)
+    {
+        return GBA->GetBgDebugInfo(bgIndex);
+    }
+
+    return {};
 }
 }  // namespace gui

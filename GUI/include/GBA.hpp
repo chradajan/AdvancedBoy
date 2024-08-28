@@ -1,7 +1,9 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <string>
+#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/Types.hpp>
 
 namespace fs = std::filesystem;
@@ -12,7 +14,8 @@ namespace gui
 /// @param biosPath Path to BIOS ROM file to load.
 /// @param romPath Path to GBA ROM file to load.
 /// @param logDir Path to directory to store logs. Pass an empty path to disable logging.
-void InitializeGBA(fs::path biosPath, fs::path romPath, fs::path logDir);
+/// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
+void InitializeGBA(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback);
 
 /// @brief Delete the current GBA instance if it exists.
 void PowerOff();
@@ -40,4 +43,9 @@ std::string GetTitle();
 /// @brief Update the KEYINPUT register based on current user input.
 /// @param keyinput KEYINPUT value.
 void UpdateKeypad(KEYINPUT keyinput);
+
+/// @brief Get debug info needed to draw a fully isolated background layer.
+/// @param bgIndex Index of background to display in debugger.
+/// @return Debug info needed to display a background layer.
+graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex);
 }  // namespace gui

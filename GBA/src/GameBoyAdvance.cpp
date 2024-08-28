@@ -33,7 +33,7 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 }
 }
 
-GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir) :
+GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback) :
     scheduler_(),
     log_(logDir, scheduler_),
     systemControl_(scheduler_, log_),
@@ -67,6 +67,7 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
     scheduler_.RegisterEvent(EventType::Timer1Overflow, std::bind(&GameBoyAdvance::Timer1Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::NotifyVBlank, vBlankCallback);
 }
 
 GameBoyAdvance::~GameBoyAdvance()
