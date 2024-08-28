@@ -424,6 +424,11 @@ void PPU::ConfigureNonObjWindow(u8 leftEdge, u8 rightEdge, WindowSettings const&
 {
     if (rightEdge > LCD_WIDTH)
     {
+        if (leftEdge >= LCD_WIDTH)
+        {
+            return;
+        }
+
         rightEdge = LCD_WIDTH;
     }
 
