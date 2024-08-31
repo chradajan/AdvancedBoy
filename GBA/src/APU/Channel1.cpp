@@ -80,7 +80,7 @@ void Channel1::Start(SOUND1CNT sound1cnt)
     scheduler_.UnscheduleEvent(EventType::Channel1FrequencySweep);
 
     // Schedule relevant events
-    scheduler_.ScheduleEvent(EventType::Channel1Clock, ((0x800 - sound1cnt.period) * CPU_CYCLES_PER_GB_CYCLE));
+    scheduler_.ScheduleEvent(EventType::Channel1Clock, ((0x0800 - sound1cnt.period) * CPU_CYCLES_PER_GB_CYCLE));
 
     if (sound1cnt.envelopePace != 0)
     {
@@ -105,7 +105,7 @@ void Channel1::Clock(int extraCycles)
     }
 
     dutyCycleIndex_ = (dutyCycleIndex_ + 1) % 8;
-    int cyclesUntilNextEvent =  ((0x800 - GetSOUND1CNT().period) * CPU_CYCLES_PER_GB_CYCLE) - extraCycles;
+    int cyclesUntilNextEvent =  ((0x0800 - GetSOUND1CNT().period) * CPU_CYCLES_PER_GB_CYCLE) - extraCycles;
     scheduler_.ScheduleEvent(EventType::Channel1Clock, cyclesUntilNextEvent);
 }
 
@@ -175,6 +175,7 @@ void Channel1::FrequencySweep(int extraCycles)
     if (sweepPace != 0)
     {
         sound1cnt.period = updatedPeriod;
+        SetSOUND1CNT(sound1cnt);
     }
 
     sweepPace = std::max(sweepPace, static_cast<u8>(1));
