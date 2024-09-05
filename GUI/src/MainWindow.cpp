@@ -3,7 +3,8 @@
 #include <filesystem>
 #include <functional>
 #include <set>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Keypad/Registers.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GUI/include/BackgroundViewer.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
@@ -219,7 +220,7 @@ void MainWindow::InitializeMenuBar()
 
     // Debug
     QAction* bgMaps = new QAction("View BG Maps", this);
-    connect(bgMaps, &QAction::triggered, this, &OpenBgMapsWindow);
+    connect(bgMaps, &QAction::triggered, this, &MainWindow::OpenBgMapsWindow);
     debugMenu_->addAction(bgMaps);
 }
 

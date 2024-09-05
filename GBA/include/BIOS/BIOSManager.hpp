@@ -3,7 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
-#include <GBA/include/Types.hpp>
+#include <span>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
 
 namespace cpu { class ARM7TDMI; }
@@ -38,6 +39,14 @@ public:
     /// @brief Check if BIOS was successfully loaded into memory.
     /// @return True if BIOS is loaded.
     bool BiosLoaded() const { return biosLoaded_; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Return a span of BIOS ROM for debug purposes.
+    /// @return BIOS ROM.
+    std::span<const std::byte> GetBIOS() const { return biosROM_; }
 
 private:
     GetPCCallback GetPC;

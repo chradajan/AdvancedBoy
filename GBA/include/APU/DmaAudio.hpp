@@ -2,8 +2,8 @@
 
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
-#include <GBA/include/Utilities/CicrularBuffer.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Utilities/CircularBuffer.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace audio
 {

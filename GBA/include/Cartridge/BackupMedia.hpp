@@ -2,7 +2,7 @@
 
 #include <bit>
 #include <filesystem>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 template <typename T, size_t len>
 class CircularBuffer
@@ -32,7 +32,11 @@ public:
 
     /// @brief Check the value that would next be popped from the buffer. Illegal when empty.
     /// @return Const reference to next element to be popped.
-    T const& Peak() const;
+    T const& PeakTail() const;
+
+    /// @brief Check the value that was most recently pushed to the buffer. Illegal when empty.
+    /// @return Const reference to most recently pushed element.
+    T const& PeakHead() const;
 
     /// @brief Reset the buffer to an empty state.
     void Clear() noexcept;

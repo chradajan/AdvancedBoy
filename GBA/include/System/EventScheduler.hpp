@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_map>
 #include <vector>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 /// @brief Enum of various event types that can be scheduled to execute. Must be registered before scheduling.
 enum class EventType

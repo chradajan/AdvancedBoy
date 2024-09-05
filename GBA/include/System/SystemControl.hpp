@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <GBA/include/Logging/Logger.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 class EventScheduler;
 

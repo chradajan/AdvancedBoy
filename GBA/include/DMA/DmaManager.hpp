@@ -6,7 +6,7 @@
 #include <GBA/include/DMA/DmaChannel.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
 
 class GameBoyAdvance;

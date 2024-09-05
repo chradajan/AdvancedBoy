@@ -3,7 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <GBA/include/Timers/Timer.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 class EventScheduler;
 class SystemControl;

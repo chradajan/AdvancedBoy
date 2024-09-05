@@ -7,7 +7,7 @@
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 static constexpr int NonSequentialWaitStates[4] = {4, 3, 2, 8};

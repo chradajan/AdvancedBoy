@@ -2,7 +2,7 @@
 #include <GBA/include/Cartridge/GamePak.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace dma

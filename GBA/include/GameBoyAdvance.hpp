@@ -12,13 +12,14 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <GBA/include/Keypad/Keypad.hpp>
+#include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Logging/Logger.hpp>
-#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 
@@ -73,7 +74,7 @@ public:
     /// @brief Get debug info needed to draw a fully isolated background layer.
     /// @param bgIndex Index of background to display in debugger.
     /// @return Debug info needed to display a background layer.
-    graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppu_.GetBackgroundDebugInfo(bgIndex); }
+    debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppu_.GetBackgroundDebugInfo(bgIndex); }
 
 private:
     /// @brief Main emulation loop.
@@ -159,6 +160,15 @@ private:
     /// @param index Index of timer that overflowed.
     /// @param extraCycles Cycles since this event was scheduled to execute.
     void TimerOverflow(u8 index, int extraCycles);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get the span of memory that PC currently points to and a function to convert PC to an index within that span.
+    /// @param addr Address that the CPU PC currently points to.
+    /// @return Fast memory access for CPU debugging.
+    debug::cpu::CpuFastMemAccess GetDebugMemAccess(u32 addr);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data

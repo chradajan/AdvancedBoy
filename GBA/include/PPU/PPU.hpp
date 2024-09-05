@@ -4,17 +4,19 @@
 #include <cstddef>
 #include <cstring>
 #include <vector>
-#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/PPU/FrameBuffer.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/PPU/VramViews.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace graphics
 {
+using namespace debug::graphics;
+
 /// @brief Pixel Processing Unit.
 class PPU
 {
@@ -150,6 +152,18 @@ public:
     /// @param frameSelect Which bitmap frame to draw.
     /// @param debugInfo Reference to debug info to update.
     void DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Return a span of PRAM for debug purposes.
+    /// @return PRAM.
+    std::span<const std::byte> GetPRAM() const { return PRAM_; }
+
+    /// @brief Return a span of OAM for debug purposes.
+    /// @return OAM.
+    std::span<const std::byte> GetOAM() const { return OAM_; }
+
+    /// @brief Return a span of VRAM for debug purposes.
+    /// @return VRAM.
+    std::span<const std::byte> GetVRAM() const { return VRAM_; }
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------

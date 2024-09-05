@@ -4,8 +4,9 @@
 #include <stdexcept>
 #include <utility>
 #include <GBA/include/CPU/ARM.hpp>
+#include <GBA/include/CPU/ArmDisassembler.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace
@@ -78,80 +79,71 @@ namespace cpu
 {
 using namespace arm;
 
-void ARM7TDMI::DecodeAndExecuteARM(u32 instruction, bool log)
+void ARM7TDMI::DecodeAndExecuteARM(u32 instruction)
 {
     u8 conditionCode = (instruction & 0xF000'0000) >> 28;
     bool conditionMet = (conditionCode == 0x0E) || ConditionSatisfied(conditionCode);
 
+    if (!conditionMet)
+    {
+        return;
+    }
+
     if (BranchAndExchange::IsInstanceOf(instruction))
     {
-        if (log) LogBranchAndExchange(instruction);
-        if (conditionMet) ExecuteBranchAndExchange(instruction);
+        ExecuteBranchAndExchange(instruction);
     }
     else if (BlockDataTransfer::IsInstanceOf(instruction))
     {
-        if (log) LogBlockDataTransfer(instruction);
-        if (conditionMet) ExecuteBlockDataTransfer(instruction);
+        ExecuteBlockDataTransfer(instruction);
     }
     else if (Branch::IsInstanceOf(instruction))
     {
-        if (log) LogBranch(instruction);
-        if (conditionMet) ExecuteBranch(instruction);
+        ExecuteBranch(instruction);
     }
     else if (SoftwareInterrupt::IsInstanceOf(instruction))
     {
-        if (log) LogArmSoftwareInterrupt(instruction);
-        if (conditionMet) ExecuteArmSoftwareInterrupt(instruction);
+        ExecuteArmSoftwareInterrupt(instruction);
     }
     else if (Undefined::IsInstanceOf(instruction))
     {
-        if (log) LogUndefined(instruction);
-        if (conditionMet) ExecuteUndefined(instruction);
+        ExecuteUndefined(instruction);
     }
     else if (SingleDataTransfer::IsInstanceOf(instruction))
     {
-        if (log) LogSingleDataTransfer(instruction);
-        if (conditionMet) ExecuteSingleDataTransfer(instruction);
+        ExecuteSingleDataTransfer(instruction);
     }
     else if (SingleDataSwap::IsInstanceOf(instruction))
     {
-        if (log) LogSingleDataSwap(instruction);
-        if (conditionMet) ExecuteSingleDataSwap(instruction);
+        ExecuteSingleDataSwap(instruction);
     }
     else if (Multiply::IsInstanceOf(instruction))
     {
-        if (log) LogMultiply(instruction);
-        if (conditionMet) ExecuteMultiply(instruction);
+        ExecuteMultiply(instruction);
     }
     else if (MultiplyLong::IsInstanceOf(instruction))
     {
-        if (log) LogMultiplyLong(instruction);
-        if (conditionMet) ExecuteMultiplyLong(instruction);
+        ExecuteMultiplyLong(instruction);
     }
     else if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
     {
-        if (log) LogHalfwordDataTransfer(instruction);
-        if (conditionMet) ExecuteHalfwordDataTransfer(instruction);
+        ExecuteHalfwordDataTransfer(instruction);
     }
     else if (HalfwordDataTransferImmOffset::IsInstanceOf(instruction))
     {
-        if (log) LogHalfwordDataTransfer(instruction);
-        if (conditionMet) ExecuteHalfwordDataTransfer(instruction);
+        ExecuteHalfwordDataTransfer(instruction);
     }
     else if (PSRTransferMRS::IsInstanceOf(instruction))
     {
-        if (log) LogPSRTransferMRS(instruction);
-        if (conditionMet) ExecutePSRTransferMRS(instruction);
+        ExecutePSRTransferMRS(instruction);
     }
     else if (PSRTransferMSR::IsInstanceOf(instruction))
     {
-        if (log) LogPSRTransferMSR(instruction);
-        if (conditionMet) ExecutePSRTransferMSR(instruction);
+        ExecutePSRTransferMSR(instruction);
     }
     else if (DataProcessing::IsInstanceOf(instruction))
     {
-        if (log) LogDataProcessing(instruction);
-        if (conditionMet) ExecuteDataProcessing(instruction);
+        ExecuteDataProcessing(instruction);
     }
     else
     {

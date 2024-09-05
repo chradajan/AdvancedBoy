@@ -1,10 +1,10 @@
 #pragma once
 
-#include <GBA/include/Utilities/CicrularBuffer.hpp>
+#include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <array>
 #include <cstdint>
 #include <stdexcept>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 template <typename T, size_t len>
 CircularBuffer<T, len>::CircularBuffer() noexcept
@@ -59,14 +59,26 @@ T CircularBuffer<T, len>::Pop()
 }
 
 template <typename T, size_t len>
-T const& CircularBuffer<T, len>::Peak() const
+T const& CircularBuffer<T, len>::PeakTail() const
 {
     if (Empty())
     {
-        throw std::out_of_range("CircularBuffer Illegal Peak");
+        throw std::out_of_range("CircularBuffer Illegal PeakTail");
     }
 
     return buffer_[tail_];
+}
+
+template <typename T, size_t len>
+T const& CircularBuffer<T, len>::PeakHead() const
+{
+    if (Empty())
+    {
+        throw std::out_of_range("CircularBuffer Illegal PeakHead");
+    }
+
+    size_t head = (head_ == 0) ? (len - 1) : (head_ - 1);
+    return buffer_[head];
 }
 
 template <typename T, size_t len>

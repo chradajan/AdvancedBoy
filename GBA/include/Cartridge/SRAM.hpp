@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <GBA/include/Cartridge/BackupMedia.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 class SystemControl;

@@ -3,8 +3,12 @@
 #include <format>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace
 {
@@ -67,15 +71,56 @@ Logger::Logger(fs::path logDir, EventScheduler const& scheduler) : scheduler_(sc
     initialized_ = true;
 }
 
-void Logger::LogCPU(std::string instruction, std::string state, u32 pc)
+void Logger::LogCPU(debug::cpu::DisassembledInstruction const& instruction, debug::cpu::RegState const& regState)
 {
     if (!initialized_)
     {
         return;
     }
 
-    std::string cpuMessage = std::format("{:08X}:  {:45}", pc, instruction) + state;
-    AddToLog(cpuMessage);
+    std::stringstream regStream;
+
+    for (u8 i = 0; i < 16; ++i)
+    {
+        regStream << std::format("R{} {:08X}  ", i, regState.registers[i]);
+    }
+
+    regStream << "CPSR: " << (regState.negative ? "N" : "-") <<
+                             (regState.zero ? "Z" : "-") <<
+                             (regState.carry ? "C" : "-") <<
+                             (regState.overflow ? "V" : "-") << "  ";
+
+    regStream << (regState.irqDisable ? "I" : "-") << (regState.fiqDisable ? "F" : "-") << (regState.thumbState ? "T" : "-") << "  " << "Mode: ";
+    u32 spsr = regState.spsr.has_value() ? regState.spsr.value() : 0;
+
+    switch (regState.mode)
+    {
+        case cpu::OperatingMode::User:
+            regStream << "User";
+            break;
+        case cpu::OperatingMode::FIQ:
+            regStream << std::format("FIQ         SPSR: {:08X}", spsr);
+            break;
+        case cpu::OperatingMode::IRQ:
+            regStream << std::format("IRQ         SPSR: {:08X}", spsr);
+            break;
+        case cpu::OperatingMode::Supervisor:
+            regStream << std::format("Supervisor  SPSR: {:08X}", spsr);
+            break;
+        case cpu::OperatingMode::Abort:
+            regStream << std::format("Abort       SPSR: {:08X}", spsr);
+            break;
+        case cpu::OperatingMode::System:
+            regStream << "System";
+            break;
+        case cpu::OperatingMode::Undefined:
+            regStream << std::format("Undefined   SPSR: {:08X}", spsr);
+            break;
+    }
+
+    std::string decodedInstruction = instruction.op + instruction.cond + " " + instruction.args;
+    std::string message = std::format("{:08X}:  {:45}{}", instruction.addr, decodedInstruction, regStream.str());
+    AddToLog(message);
 }
 
 void Logger::LogException(std::exception const& error)

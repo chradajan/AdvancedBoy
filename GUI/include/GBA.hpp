@@ -3,8 +3,9 @@
 #include <filesystem>
 #include <functional>
 #include <string>
-#include <GBA/include/PPU/Debug.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Keypad/Registers.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 
@@ -47,5 +48,5 @@ void UpdateKeypad(KEYINPUT keyinput);
 /// @brief Get debug info needed to draw a fully isolated background layer.
 /// @param bgIndex Index of background to display in debugger.
 /// @return Debug info needed to display a background layer.
-graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex);
+debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex);
 }  // namespace gui

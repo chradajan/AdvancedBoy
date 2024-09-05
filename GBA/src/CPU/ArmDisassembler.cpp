@@ -1,21 +1,184 @@
-#include <GBA/include/CPU/ARM7TDMI.hpp>
+#include <GBA/include/CPU/ArmDisassembler.hpp>
 #include <bit>
 #include <format>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <GBA/include/CPU/ARM.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace
 {
-/// @brief Convert ARM condition code to its mnemonic.
-/// @param condition 4-bit ARM condition code.
-/// @return Condition mnemonic.
-std::string ConditionMnemonic(u8 condition)
+/// @brief Help write LDM/STM formatted register string.
+/// @param regStream Stringstream to write to.
+/// @param consecutiveRegisters How many consecutive registers were included in the operation.
+/// @param regIndex Current index of register not included in operation.
+void BlockDataTransferHelper(std::stringstream& regStream, int consecutiveRegisters, u8 regIndex)
 {
-    switch (condition)
+    if (consecutiveRegisters <= 2)
+    {
+        for (int r = regIndex - consecutiveRegisters; r < regIndex; ++r)
+        {
+            if (r == cpu::LR_INDEX)
+            {
+                regStream << "LR, ";
+            }
+            else if (r == cpu::PC_INDEX)
+            {
+                regStream << "PC, ";
+            }
+            else
+            {
+                regStream << "R" << r << ", ";
+            }
+        }
+    }
+    else
+    {
+        regStream << "R" << (regIndex - consecutiveRegisters) << "-R" << (regIndex - 1) << ", ";
+    }
+}
+
+/// @brief Form a mnemonic for halfword data transfer ops.
+/// @param load Whether this is a load or store op.
+/// @param cond ARM condition code.
+/// @param destIndex Index of destination register.
+/// @param baseIndex Index of base register.
+/// @param s S flag.
+/// @param h H flag.
+/// @param up Add or Subtract offset from base.
+/// @param preIndexed Pre/Post indexed op.
+/// @param writeBack Whether to write back to 
+/// @param offsetExpression String of either immediate offset or offset register index.
+/// @return Tuple of strings: {op, cond, args}.
+std::tuple<std::string, std::string, std::string> HalfwordDataTransferHelper(bool load,
+                                                                             u8 cond,
+                                                                             u8 destIndex,
+                                                                             u8 baseIndex,
+                                                                             bool s,
+                                                                             bool h,
+                                                                             bool up,
+                                                                             bool preIndexed,
+                                                                             bool writeBack,
+                                                                             std::string offsetExpression)
+{
+    std::string op = load ? "LDR" : "STR";
+    std::string opType;
+
+    if (s)
+    {
+        opType = h ? "SH" : "SB";
+    }
+    else
+    {
+        opType = "H";
+    }
+
+    std::string address;
+
+    if (offsetExpression == "")
+    {
+        address = std::format("[R{}]", baseIndex);
+    }
+    else
+    {
+        if (preIndexed)
+        {
+            address = std::format("[R{}, {}{}]{}", baseIndex, up ? "+" : "-", offsetExpression, writeBack ? "!" : "");
+        }
+        else
+        {
+            address = std::format("[R{}], {}{}", baseIndex, up ? "+" : "-", offsetExpression);
+        }
+    }
+
+    return {op + opType, cpu::arm::DecodeCondition(cond), std::format("R{}, {}", destIndex, address)};
+}
+}
+
+namespace cpu::arm
+{
+using namespace debug::cpu;
+
+DisassembledInstruction DisassembleInstruction(u32 instruction, u32 addr)
+{
+    DisassembledInstruction disassembly;
+    disassembly.armInstruction = true;
+    disassembly.undecodedInstruction = instruction;
+    disassembly.addr = addr;
+
+    if (BranchAndExchange::IsInstanceOf(instruction))
+    {
+        DisassembleBranchAndExchange(instruction, disassembly);
+    }
+    else if (BlockDataTransfer::IsInstanceOf(instruction))
+    {
+        DisassembleBlockDataTransfer(instruction, disassembly);
+    }
+    else if (Branch::IsInstanceOf(instruction))
+    {
+        DisassembleBranch(instruction, addr, disassembly);
+    }
+    else if (SoftwareInterrupt::IsInstanceOf(instruction))
+    {
+        DisassembleSoftwareInterrupt(instruction, disassembly);
+    }
+    else if (Undefined::IsInstanceOf(instruction))
+    {
+        DisassembleUndefined(instruction, disassembly);
+    }
+    else if (SingleDataTransfer::IsInstanceOf(instruction))
+    {
+        DisassembleSingleDataTransfer(instruction, disassembly);
+    }
+    else if (SingleDataSwap::IsInstanceOf(instruction))
+    {
+        DisassembleSingleDataSwap(instruction, disassembly);
+    }
+    else if (Multiply::IsInstanceOf(instruction))
+    {
+        DisassembleMultiply(instruction, disassembly);
+    }
+    else if (MultiplyLong::IsInstanceOf(instruction))
+    {
+        DisassembleMultiplyLong(instruction, disassembly);
+    }
+    else if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
+    {
+        DisassembleHalfwordDataTransfer(instruction, disassembly);
+    }
+    else if (HalfwordDataTransferImmOffset::IsInstanceOf(instruction))
+    {
+        DisassembleHalfwordDataTransfer(instruction, disassembly);
+    }
+    else if (PSRTransferMRS::IsInstanceOf(instruction))
+    {
+        DisassemblePSRTransferMRS(instruction, disassembly);
+    }
+    else if (PSRTransferMSR::IsInstanceOf(instruction))
+    {
+        DisassemblePSRTransferMSR(instruction, disassembly);
+    }
+    else if (DataProcessing::IsInstanceOf(instruction))
+    {
+        DisassembleDataProcessing(instruction, disassembly);
+    }
+    else
+    {
+        disassembly.op = "???";
+        disassembly.cond = "???";
+        disassembly.args = "???";
+    }
+
+    return disassembly;
+}
+
+std::string DecodeCondition(u8 cond)
+{
+    switch (cond)
     {
         case 0:
             return "EQ";
@@ -54,116 +217,21 @@ std::string ConditionMnemonic(u8 condition)
     return "";
 }
 
-/// @brief Help write LDM/STM formatted register string.
-/// @param regStream Stringstream to write to.
-/// @param consecutiveRegisters How many consecutive registers were included in the operation.
-/// @param regIndex Current index of register not included in operation.
-void BlockDataTransferHelper(std::stringstream& regStream, int consecutiveRegisters, u8 regIndex)
-{
-    if (consecutiveRegisters <= 2)
-    {
-        for (int r = regIndex - consecutiveRegisters; r < regIndex; ++r)
-        {
-            if (r == cpu::LR_INDEX)
-            {
-                regStream << "LR, ";
-            }
-            else if (r == cpu::PC_INDEX)
-            {
-                regStream << "PC, ";
-            }
-            else
-            {
-                regStream << "R" << r << ", ";
-            }
-        }
-    }
-    else
-    {
-        regStream << "R" << (regIndex - consecutiveRegisters) << "-R" << (regIndex - 1) << ", ";
-    }
-}
-
-/// @brief Form a mnemonic for halfword data transfer ops.
-/// @param instruction 32-bit ARM instruction.
-/// @param load Whether this is a load or store op.
-/// @param cond ARM condition code.
-/// @param destIndex Index of destination register.
-/// @param baseIndex Index of base register.
-/// @param s S flag.
-/// @param h H flag.
-/// @param up Add or Subtract offset from base.
-/// @param preIndexed Pre/Post indexed op.
-/// @param writeBack Whether to write back to 
-/// @param offsetExpression String of either immediate offset or offset register index.
-/// @return Mnemonic of instruction.
-std::string HalfwordDataTransferHelper(u32 instruction,
-                                       bool load,
-                                       u8 cond,
-                                       u8 destIndex,
-                                       u8 baseIndex,
-                                       bool s,
-                                       bool h,
-                                       bool up,
-                                       bool preIndexed,
-                                       bool writeBack,
-                                       std::string offsetExpression)
-{
-    std::string op = load ? "LDR" : "STR";
-    std::string opType;
-
-    if (s)
-    {
-        opType = h ? "SH" : "SB";
-    }
-    else
-    {
-        opType = "H";
-    }
-
-    std::string address;
-
-    if (offsetExpression == "")
-    {
-        address = std::format("[R{}]", baseIndex);
-    }
-    else
-    {
-        if (preIndexed)
-        {
-            address = std::format("[R{}, {}{}]{}", baseIndex, up ? "+" : "-", offsetExpression, writeBack ? "!" : "");
-        }
-        else
-        {
-            address = std::format("[R{}], {}{}", baseIndex, up ? "+" : "-", offsetExpression);
-        }
-    }
-
-    return std::format("{:08X} -> {}{}{} R{}, {}", instruction, op, opType, ConditionMnemonic(cond), destIndex, address);
-}
-}
-
-namespace cpu
-{
-using namespace arm;
-
-void ARM7TDMI::LogBranchAndExchange(u32 instruction) const
+void DisassembleBranchAndExchange(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<BranchAndExchange::Flags>(instruction);
-    u8 Rn = flags.Rn;
-    std::string mnemonic = std::format("{:08X} -> BX{} R{}", instruction, ConditionMnemonic(flags.Cond), Rn);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "BX";
+    disassembly.args = "R" + std::to_string(flags.Rn);
 }
 
-void ARM7TDMI::LogBlockDataTransfer(u32 instruction) const
+void DisassembleBlockDataTransfer(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<BlockDataTransfer::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string op;
+    disassembly.cond = DecodeCondition(flags.Cond);
 
-    u8 addrReg = flags.Rn;
-    bool isStackOp = addrReg == SP_INDEX;
-    std::string addr = isStackOp ? "SP" : std::format("R{}", addrReg);
+    bool isStackOp = flags.Rn == SP_INDEX;
+    std::string addr = isStackOp ? "SP" : ("R" + std::to_string(flags.Rn));
 
     u8 addressingModeCase =
         (flags.L ? 0b100 : 0) | (flags.P ? 0b010 : 0) | (flags.U ? 0b001 : 0);
@@ -171,28 +239,28 @@ void ARM7TDMI::LogBlockDataTransfer(u32 instruction) const
     switch (addressingModeCase)
     {
         case 0b000:
-            op = isStackOp ? "STMED" : "STMDA";
+            disassembly.op = isStackOp ? "STMED" : "STMDA";
             break;
         case 0b001:
-            op = isStackOp ? "STMEA" : "STMIA";
+            disassembly.op = isStackOp ? "STMEA" : "STMIA";
             break;
         case 0b010:
-            op = isStackOp ? "STMFD" : "STMDB";
+            disassembly.op = isStackOp ? "STMFD" : "STMDB";
             break;
         case 0b011:
-            op = isStackOp ? "STMFA" : "STMIB";
+            disassembly.op = isStackOp ? "STMFA" : "STMIB";
             break;
         case 0b100:
-            op = isStackOp ? "LDMFA" : "LDMDA";
+            disassembly.op = isStackOp ? "LDMFA" : "LDMDA";
             break;
         case 0b101:
-            op = isStackOp ? "LDMFD" : "LDMIA";
+            disassembly.op = isStackOp ? "LDMFD" : "LDMIA";
             break;
         case 0b110:
-            op = isStackOp ? "LDMEA" : "LDMDB";
+            disassembly.op = isStackOp ? "LDMEA" : "LDMDB";
             break;
         case 0b111:
-            op = isStackOp ? "LDMED" : "LDMIB";
+            disassembly.op = isStackOp ? "LDMED" : "LDMIB";
             break;
     }
 
@@ -229,51 +297,44 @@ void ARM7TDMI::LogBlockDataTransfer(u32 instruction) const
     }
 
     regStream << "}";
-
-    std::string mnemonic =
-        std::format("{:08X} -> {}{} {}{}, {}{}",
-                    instruction, op, cond, addr, flags.W ? "!" : "", regStream.str(), flags.S ? "^" : "");
-
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("{}{}, {}{}", addr, flags.W ? "!" : "", regStream.str(), flags.S ? "^" : "");
 }
 
-void ARM7TDMI::LogBranch(u32 instruction) const
+void DisassembleBranch(u32 instruction, u32 pc, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<Branch::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string op = flags.L ? "BL" : "B";
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = flags.L ? "BL" : "B";
 
     i32 offset = SignExtend<i32, 25>(flags.Offset << 2);
-    u32 newPC = registers_.GetPC() + offset;
-
-    std::string mnemonic = std::format("{:08X} -> {}{} 0x{:08X}", instruction, op, cond, newPC);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    u32 newPC = pc + 8 + offset;
+    disassembly.args = std::format("0x{:08X}", newPC);
 }
 
-void ARM7TDMI::LogArmSoftwareInterrupt(u32 instruction) const
+void DisassembleSoftwareInterrupt(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<SoftwareInterrupt::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "SWI";
     u32 comment = flags.CommentField;
-    std::string mnemonic = std::format("{:08X} -> SWI{} #{:06X}", instruction, cond, comment);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("#{:06X}", comment);
 }
 
-void ARM7TDMI::LogUndefined(u32 instruction) const
+void DisassembleUndefined(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<Undefined::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string mnemonic = std::format("{:08X} -> UNDEFINED {}", instruction, cond);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "UNDEFINED";
+    disassembly.args = "";
 }
 
-void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const
+void DisassembleSingleDataTransfer(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<SingleDataTransfer::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string op = flags.L ? "LDR" : "STR";
-    std::string xfer = flags.B ? "B" : "";
-    op = op + cond + xfer;
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = flags.L ? "LDR" : "STR";
+    disassembly.op += flags.B ? "B" : "";
+
     std::string address;
     std::string expression;
 
@@ -361,75 +422,58 @@ void ARM7TDMI::LogSingleDataTransfer(u32 instruction) const
         }
     }
 
-    std::string mnemonic = std::format("{:08X} -> {} R{}, {}", instruction, op, Rd, address);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("R{}, {}", Rd, address);
 }
 
-void ARM7TDMI::LogSingleDataSwap(u32 instruction) const
+void DisassembleSingleDataSwap(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<SingleDataSwap::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string b = flags.B ? "B" : "";
-    std::string op = "SWP" + cond + b;
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "SWP";
+    disassembly.op += flags.B ? "B" : "";
 
     u8 Rd = flags.Rd;
     u8 Rm = flags.Rm;
     u8 Rn = flags.Rn;
-    std::string regString = std::format("R{}, R{}, [R{}]", Rd, Rm, Rn);
-
-    std::string mnemonic = std::format("{:08X} -> {} {}", instruction, op, regString);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("R{}, R{}, [R{}]", Rd, Rm, Rn);
 }
 
-void ARM7TDMI::LogMultiply(u32 instruction) const
+void DisassembleMultiply(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<Multiply::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string s = flags.S ? "S" : "";
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = flags.A ? "MLA" : "MUL";
+    disassembly.op += flags.S ? "S" : "";
+
     u8 Rd = flags.Rd;
     u8 Rm = flags.Rm;
     u8 Rs = flags.Rs;
     u8 Rn = flags.Rn;
-    std::string mnemonic;
 
     if (flags.A)
     {
-        mnemonic = std::format("{:08X} -> MLA{}{} R{}, R{}, R{}, R{}", instruction, cond, s, Rd, Rm, Rs, Rn);
+        disassembly.args = std::format("R{}, R{}, R{}, R{}", Rd, Rm, Rs, Rn);
     }
     else
     {
-        mnemonic = std::format("{:08X} -> MUL{}{} R{}, R{}, R{}", instruction, cond, s, Rd, Rm, Rs);
+        disassembly.args = std::format("R{}, R{}, R{}", Rd, Rm, Rs);
     }
-
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
-void ARM7TDMI::LogMultiplyLong(u32 instruction) const
+void DisassembleMultiplyLong(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<MultiplyLong::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string u = flags.U ? "S" : "U";
-    std::string s = flags.S ? "S" : "";
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = std::format("{}{}{}", flags.U ? "S" : "U", flags.A ? "MLAL" : "MULL", flags.S ? "S" : "");
+
     u8 RdHi = flags.RdHi;
     u8 RdLo = flags.RdLo;
     u8 Rs = flags.Rs;
     u8 Rm = flags.Rm;
-    std::string regString = std::format("R{}, R{}, R{}, R{}", RdLo, RdHi, Rm, Rs);
-    std::string mnemonic;
-
-    if (flags.A)
-    {
-        mnemonic = std::format("{:08X} -> {}MLAL{}{} {}", instruction, u, cond, s, regString);
-    }
-    else
-    {
-        mnemonic = std::format("{:08X} -> {}MULL{}{} {}", instruction, u, cond, s, regString);
-    }
-
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("R{}, R{}, R{}, R{}", RdLo, RdHi, Rm, Rs);
 }
 
-void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
+void DisassembleHalfwordDataTransfer(u32 instruction, DisassembledInstruction& disassembly)
 {
     std::string offsetStr;
     bool load;
@@ -445,8 +489,7 @@ void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
     if (HalfwordDataTransferRegOffset::IsInstanceOf(instruction))
     {
         auto flags = std::bit_cast<HalfwordDataTransferRegOffset::Flags>(instruction);
-        u8 Rm = flags.Rm;
-        offsetStr = std::format("R{}", Rm);
+        offsetStr = "R" + std::to_string(flags.Rm);
         cond = flags.Cond;
 
         Rd = flags.Rd;
@@ -462,7 +505,7 @@ void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
     {
         auto flags = std::bit_cast<HalfwordDataTransferImmOffset::Flags>(instruction);
         u8 offset = (flags.OffsetHi << 4) | flags.OffsetLo;
-        offsetStr = (offset == 0) ? "" : std::format("#{}", offset);
+        offsetStr = (offset == 0) ? "" : "#" + std::to_string(offset);
         cond = flags.Cond;
 
         Rd = flags.Rd;
@@ -475,25 +518,26 @@ void ARM7TDMI::LogHalfwordDataTransfer(u32 instruction) const
         writeBack = flags.W;
     }
 
-    std::string mnemonic =
-        HalfwordDataTransferHelper(instruction, load, cond, Rd, Rn, s, h, up, preIndex, writeBack, offsetStr);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    std::tie(disassembly.op, disassembly.cond, disassembly.args) =
+        HalfwordDataTransferHelper(load, cond, Rd, Rn, s, h, up, preIndex, writeBack, offsetStr);
 }
 
-void ARM7TDMI::LogPSRTransferMRS(u32 instruction) const
+void DisassemblePSRTransferMRS(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<PSRTransferMRS::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "MRS";
+
     std::string psr = flags.Ps ? "SPSR" : "CPSR";
     u8 Rd = flags.Rd;
-    std::string mnemonic = std::format("{:08X} -> MRS{} R{}, {}", instruction, cond, Rd, psr);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
+    disassembly.args = std::format("R{}, {}", Rd, psr);
 }
 
-void ARM7TDMI::LogPSRTransferMSR(u32 instruction) const
+void DisassemblePSRTransferMSR(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<PSRTransferMSR::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
+    disassembly.cond = DecodeCondition(flags.Cond);
+    disassembly.op = "MSR";
 
     std::stringstream fields;
     fields << "_";
@@ -505,87 +549,81 @@ void ARM7TDMI::LogPSRTransferMSR(u32 instruction) const
 
     std::string psr = flags.Pd ? "SPSR" : "CPSR";
     psr = psr + fieldsStr;
-    std::string expression;
 
     if (flags.I)
     {
         auto immFlags = std::bit_cast<PSRTransferMSR::ImmSrc>(instruction);
         u32 imm = std::rotr(immFlags.Imm, immFlags.Rotate * 2);
-        expression = std::format("{}, #{:08X}", psr, imm);
+        disassembly.args = std::format("{}, #{:08X}", psr, imm);
     }
     else
     {
         auto regFlags = std::bit_cast<PSRTransferMSR::RegSrc>(instruction);
         u8 Rm = regFlags.Rm;
-        expression = std::format("{}, R{}", psr, Rm);
+        disassembly.args = std::format("{}, R{}", psr, Rm);
     }
-
-    std::string mnemonic = std::format("{:08X} -> MSR{} {}", instruction, cond, expression);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
 
-void ARM7TDMI::LogDataProcessing(u32 instruction) const
+void DisassembleDataProcessing(u32 instruction, DisassembledInstruction& disassembly)
 {
     auto flags = std::bit_cast<DataProcessing::Flags>(instruction);
-    std::string cond = ConditionMnemonic(flags.Cond);
-    std::string op;
-    std::string s = flags.S ? "S" : "";
-
-    if ((8 <= flags.OpCode) && (flags.OpCode <= 11))
-    {
-        s = "";
-    }
+    disassembly.cond = DecodeCondition(flags.Cond);
 
     switch (flags.OpCode)
     {
         case 0b0000:
-            op = "AND";
+            disassembly.op = "AND";
             break;
         case 0b0001:
-            op = "EOR";
+            disassembly.op = "EOR";
             break;
         case 0b0010:
-            op = "SUB";
+            disassembly.op = "SUB";
             break;
         case 0b0011:
-            op = "RSB";
+            disassembly.op = "RSB";
             break;
         case 0b0100:
-            op = "ADD";
+            disassembly.op = "ADD";
             break;
         case 0b0101:
-            op = "ADC";
+            disassembly.op = "ADC";
             break;
         case 0b0110:
-            op = "SBC";
+            disassembly.op = "SBC";
             break;
         case 0b0111:
-            op = "RSC";
+            disassembly.op = "RSC";
             break;
         case 0b1000:
-            op = "TST";
+            disassembly.op = "TST";
             break;
         case 0b1001:
-            op = "TEQ";
+            disassembly.op = "TEQ";
             break;
         case 0b1010:
-            op = "CMP";
+            disassembly.op = "CMP";
             break;
         case 0b1011:
-            op = "CMN";
+            disassembly.op = "CMN";
             break;
         case 0b1100:
-            op = "ORR";
+            disassembly.op = "ORR";
             break;
         case 0b1101:
-            op = "MOV";
+            disassembly.op = "MOV";
             break;
         case 0b1110:
-            op = "BIC";
+            disassembly.op = "BIC";
             break;
         case 0b1111:
-            op = "MVN";
+            disassembly.op = "MVN";
             break;
+    }
+
+    if (flags.S && ((flags.OpCode < 8) || (flags.OpCode > 11)))
+    {
+        disassembly.op += "S";
     }
 
     std::string op2Str;
@@ -596,33 +634,33 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
         u32 op2 = op2SrcFlags.Imm;
         u8 rotate = op2SrcFlags.Rotate << 1;
         op2 = std::rotr(op2, rotate);
-        op2Str = std::format("#{}", op2);
+        op2Str = std::format("#{:08X}", op2);
     }
     else
     {
         u8 shiftType;
-        u8 shiftAmount;
+        u8 shiftAmount = 0;
         u8 Rm;
         u8 Rs = 0;
-        std::string shiftTypeStr;
         bool isRRX = false;
 
         if (flags.RegShift)
         {
             auto op2SrcFlags = std::bit_cast<DataProcessing::RegShiftedRegSrc>(instruction);
-            Rm = op2SrcFlags.Rm;
             shiftType = op2SrcFlags.ShiftOp;
+            Rm = op2SrcFlags.Rm;
             Rs = op2SrcFlags.Rs;
-            shiftAmount = registers_.ReadRegister(Rs) & U8_MAX;
         }
         else
         {
             auto op2SrcFlags = std::bit_cast<DataProcessing::ImmShiftedRegSrc>(instruction);
-            Rm = op2SrcFlags.Rm;
             shiftType = op2SrcFlags.ShiftOp;
             shiftAmount = op2SrcFlags.Imm;
+            Rm = op2SrcFlags.Rm;
             isRRX = (op2SrcFlags.Imm == 0) && (op2SrcFlags.ShiftOp == 3);
         }
+
+        std::string shiftTypeStr;
 
         switch (shiftType)
         {
@@ -638,15 +676,8 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
                 shiftAmount = (shiftAmount == 0) ? 32 : shiftAmount;
                 break;
             case 0b11:  // ROR, RRX
-            {
-                if (shiftAmount > 32)
-                {
-                    shiftAmount %= 32;
-                }
-
                 shiftTypeStr = isRRX ? "RRX" : "ROR";
                 break;
-            }
         }
 
         if (flags.RegShift)
@@ -670,7 +701,6 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
         }
     }
 
-    std::string regInfo = "";
     u8 destIndex = flags.Rd;
     u8 op1Index = flags.Rn;
 
@@ -678,13 +708,13 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
     {
         case 0b1101:  // MOV
         case 0b1111:  // MVN
-            regInfo = std::format("R{}, {}", destIndex, op2Str);
+            disassembly.args = std::format("R{}, {}", destIndex, op2Str);
             break;
         case 0b1010:  // CMP
         case 0b1011:  // CMN
         case 0b1001:  // TEQ
         case 0b1000:  // TST
-            regInfo = std::format("R{}, {}", op1Index, op2Str);
+            disassembly.args = std::format("R{}, {}", op1Index, op2Str);
             break;
         case 0b0000:  // AND
         case 0b0001:  // EOR
@@ -696,11 +726,8 @@ void ARM7TDMI::LogDataProcessing(u32 instruction) const
         case 0b0111:  // RSC
         case 0b1100:  // ORR
         case 0b1110:  // BIC
-            regInfo = std::format("R{}, R{}, {}", destIndex, op1Index, op2Str);
+            disassembly.args = std::format("R{}, R{}, {}", destIndex, op1Index, op2Str);
             break;
     }
-
-    std::string mnemonic = std::format("{:08X} -> {}{}{} {}", instruction, op, cond, s, regInfo);
-    log_.LogCPU(mnemonic, registers_.RegistersString(), logPC_);
 }
-}  // namespace cpu
+}  // namespace cpu::arm

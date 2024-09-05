@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace audio
 {

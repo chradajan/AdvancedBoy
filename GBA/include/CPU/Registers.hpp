@@ -2,9 +2,9 @@
 
 #include <array>
 #include <bit>
-#include <string>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace cpu
 {
@@ -157,12 +157,12 @@ public:
     void LoadSPSR();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Logging
+    /// Debug
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    /// @brief Dump current registers state to a string.
-    /// @return String of current register values.
-    std::string RegistersString() const;
+    /// @brief Get the current state of the ARM7TDMI registers.
+    /// @param regState Reference to register state to populate.
+    void GetRegState(debug::cpu::RegState& regState) const;
 
 private:
     /// @brief Setup registers to start executing from ROM.

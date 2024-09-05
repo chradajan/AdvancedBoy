@@ -1,7 +1,7 @@
 #include <GUI/include/BackgroundViewer.hpp>
 #include <format>
 #include <string>
-#include <GBA/include/PPU/Debug.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QGroupBox>
@@ -12,6 +12,8 @@
 
 namespace gui
 {
+using namespace debug::graphics;
+
 BackgroundViewer::BackgroundViewer() : QWidget()
 {
     setWindowTitle("Background Viewer");
@@ -25,7 +27,7 @@ BackgroundViewer::BackgroundViewer() : QWidget()
     selectedBg_ = 0;
 }
 
-void BackgroundViewer::UpdateBackgroundView(graphics::BackgroundDebugInfo const& info)
+void BackgroundViewer::UpdateBackgroundView(BackgroundDebugInfo const& info)
 {
     auto image = QImage(reinterpret_cast<const uchar*>(info.buffer.data()), info.width, info.height, QImage::Format_RGB555);
     image.rgbSwap();

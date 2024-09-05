@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GBA/include/PPU/Debug.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
@@ -9,6 +9,8 @@
 
 namespace gui
 {
+using namespace debug::graphics;
+
 /// @brief Window for debugging background maps.
 class BackgroundViewer : public QWidget
 {
@@ -24,7 +26,7 @@ public:
 
     /// @brief Update the image and information for the currently selected background.
     /// @param info Debug info needed to display a background.
-    void UpdateBackgroundView(graphics::BackgroundDebugInfo const& info);
+    void UpdateBackgroundView(BackgroundDebugInfo const& info);
 
 private:
     /// @brief Initialize widgets needed to adjust background scale and selection.

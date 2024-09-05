@@ -4,8 +4,10 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <GBA/include/PPU/Debug.hpp>
+#include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/GameBoyAdvance.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 std::unique_ptr<GameBoyAdvance> GBA;
 
@@ -110,7 +112,7 @@ void UpdateKeypad(KEYINPUT keyinput)
     }
 }
 
-graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
+debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
 {
     if (GBA)
     {

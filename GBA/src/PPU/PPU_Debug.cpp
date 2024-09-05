@@ -2,10 +2,10 @@
 #include <span>
 #include <vector>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/PPU/Debug.hpp>
 #include <GBA/include/PPU/Registers.hpp>
 #include <GBA/include/PPU/VramViews.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace
@@ -52,6 +52,8 @@ float CalculateScalingParameter(i16 ref)
 
 namespace graphics
 {
+using namespace debug::graphics;
+
 BackgroundDebugInfo PPU::GetBackgroundDebugInfo(u8 bgIndex) const
 {
     auto dispcnt = GetDISPCNT();

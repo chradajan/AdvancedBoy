@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 enum class Page : u8
 {
@@ -15,6 +15,20 @@ enum class Page : u8
     GAMEPAK_MAX = 0x0F,
     INVALID     = 0xFF,
 };
+
+/// @brief Get the 16MiB memory page that from an address.
+/// @param addr Address to find the page it resides in.
+/// @return Page that address resides in.
+inline Page GetMemPage(u32 addr)
+{
+    if (addr >= 0x1000'0000)
+    {
+        return Page::INVALID;
+    }
+
+    u8 page = (addr & 0x0F00'0000) >> 24;
+    return Page{page};
+}
 
 // Memory page bounds
 

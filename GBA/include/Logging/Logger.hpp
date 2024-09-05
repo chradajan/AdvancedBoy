@@ -5,7 +5,8 @@
 #include <string>
 #include <vector>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 
@@ -31,11 +32,10 @@ public:
     /// @return Whether logging is enabled.
     bool Enabled() const { return initialized_; }
 
-    /// @brief Log function for logging current CPU state and the instruction about to be executed.
-    /// @param instruction Human readable form of instruction about to be executed.
-    /// @param state Current register state of CPU before executing instruction.
-    /// @param pc Address of the instruction being logged.
-    void LogCPU(std::string instruction, std::string state, u32 pc);
+    /// @brief Log the current instruction about to be executed and the registers state before execution.
+    /// @param instruction Disassembled instruction info.
+    /// @param regState Current value of CPU registers.
+    void LogCPU(debug::cpu::DisassembledInstruction const& instruction, debug::cpu::RegState const& regState);
 
     /// @brief Log when an exception occurs.
     /// @param error Reference to exception that was thrown.

@@ -11,7 +11,7 @@
 #include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/RingBuffer.hpp>
 

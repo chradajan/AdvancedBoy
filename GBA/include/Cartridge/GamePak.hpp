@@ -3,13 +3,14 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
 #include <GBA/include/Cartridge/BackupMedia.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 namespace fs = std::filesystem;
 
@@ -82,6 +83,14 @@ public:
 
     /// @brief Save backup media to disk.
     void Save() const;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Return a span of Cartridge ROM for debug purposes.
+    /// @return Cartridge ROM.
+    std::span<const std::byte> GetROM() const { return ROM_; }
 
 private:
     /// @brief Determine the backup type used by a ROM.

@@ -4,7 +4,7 @@
 #include <bit>
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 
 class EventScheduler;
 

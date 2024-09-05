@@ -8,7 +8,7 @@
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types.hpp>
+#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace audio
@@ -283,8 +283,8 @@ void APU::Sample(int extraCycles)
         leftSample += (soundBias.biasLevel << 1);
         rightSample += (soundBias.biasLevel << 1);
 
-        std::clamp(leftSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
-        std::clamp(rightSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
+        leftSample = std::clamp(leftSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
+        rightSample = std::clamp(rightSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
     }
 
     float leftOutput = (leftSample - 512) / 512.0;
