@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <unordered_map>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
 #include <GBA/include/Cartridge/GamePak.hpp>
@@ -35,23 +36,25 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 }
 }
 
-GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback) :
+GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
+                               fs::path romPath,
+                               fs::path logDir,
+                               std::function<void(int)> vBlankCallback,
+                               std::function<void()> breakpointCallback) :
     scheduler_(),
     log_(logDir, scheduler_),
     systemControl_(scheduler_, log_),
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
-    cpu_({&GameBoyAdvance::ReadMem, *this},
-         {&GameBoyAdvance::WriteMem, *this},
-         std::bind(&GameBoyAdvance::GetDebugMemAccess, this, std::placeholders::_1),
-         scheduler_,
-         log_),
+    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, log_),
     dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
     timerMgr_(scheduler_, systemControl_),
     gamePak_(nullptr),
-    lastSuccessfulFetch_(0)
+    lastSuccessfulFetch_(0),
+    BreakpointCallback(breakpointCallback),
+    breakpointCycle_(U64_MAX)
 {
     if (!romPath.empty() && fs::exists(romPath))
     {
@@ -74,6 +77,11 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path log
     scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::NotifyVBlank, vBlankCallback);
+
+    if (log_.Enabled())
+    {
+        RunDisassembler();
+    }
 }
 
 GameBoyAdvance::~GameBoyAdvance()
@@ -94,7 +102,13 @@ void GameBoyAdvance::Run()
     {
         try
         {
-            MainLoop(samplesToGenerate);
+            bool hitBreakpoint = MainLoop(samplesToGenerate);
+
+            if (hitBreakpoint)
+            {
+                BreakpointCallback();
+                return;
+            }
         }
         catch (std::exception& e)
         {
@@ -107,7 +121,7 @@ void GameBoyAdvance::Run()
     }
 }
 
-void GameBoyAdvance::MainLoop(size_t samples)
+bool GameBoyAdvance::MainLoop(size_t samples)
 {
     apu_.ClearSampleCounter();
 
@@ -119,7 +133,31 @@ void GameBoyAdvance::MainLoop(size_t samples)
         }
         else
         {
+            if (breakpoints_.contains(cpu_.GetNextAddrToExecute()) && (breakpointCycle_ != scheduler_.GetTotalElapsedCycles()))
+            {
+                breakpointCycle_ = scheduler_.GetTotalElapsedCycles();
+                return true;
+            }
+
             cpu_.Step(systemControl_.IrqPending());
+        }
+    }
+
+    return false;
+}
+
+void GameBoyAdvance::SingleStep()
+{
+    while (true)
+    {
+        while (dmaMgr_.DmaRunning() || systemControl_.Halted())
+        {
+            scheduler_.FireNextEvent();
+        }
+
+        if (cpu_.Step(systemControl_.IrqPending()))
+        {
+            break;
         }
     }
 }
@@ -393,10 +431,62 @@ void GameBoyAdvance::TimerOverflow(u8 index, int extraCycles)
     }
 }
 
-debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Debug
+///---------------------------------------------------------------------------------------------------------------------------------
+
+debug::cpu::CpuDebugInfo GameBoyAdvance::GetCpuDebugInfo()
 {
-    debug::cpu::CpuFastMemAccess cpuFastMemAccess;
+    debug::cpu::CpuDebugInfo debugInfo;
+    debugInfo.pcMem = GetDebugMemAccess(cpu_.GetPC());
+    debugInfo.spMem = GetDebugMemAccess(cpu_.GetSP());
+    cpu_.GetRegState(debugInfo.regState);
+    debugInfo.nextAddrToExecute = cpu_.GetNextAddrToExecute();
+    return debugInfo;
+}
+
+void GameBoyAdvance::RunDisassembler()
+{
+    if (biosMgr_.BiosLoaded())
+    {
+        auto bios = biosMgr_.GetBIOS();
+
+        for (u32 i = 0; (i + 4) <= bios.size(); i += 4)
+        {
+            u32 instruction = MemCpyInit<u32>(&bios[i]);
+            cpu_.DisassembleArmInstruction(instruction);
+        }
+
+        for (u32 i = 0; (i + 2) <= bios.size(); i += 2)
+        {
+            u16 instruction = MemCpyInit<u16>(&bios[i]);
+            cpu_.DisassembleThumbInstruction(instruction);
+        }
+    }
+
+    if (gamePak_)
+    {
+        auto rom = gamePak_->GetROM();
+
+        for (u32 index = 0; (index + 4) <= rom.size(); index += 4)
+        {
+            u32 instruction = MemCpyInit<u32>(&rom[index]);
+            cpu_.DisassembleArmInstruction(instruction);
+        }
+
+        for (u32 index = 0; (index + 2) <= rom.size(); index += 2)
+        {
+            u16 instruction = MemCpyInit<u16>(&rom[index]);
+            cpu_.DisassembleThumbInstruction(instruction);
+        }
+    }
+}
+
+debug::DebugMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
+{
+    debug::DebugMemAccess debugMem;
     auto page = GetMemPage(addr);
+    debugMem.page = page;
 
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wswitch"
@@ -404,8 +494,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
     {
         case Page::BIOS:
         {
-            cpuFastMemAccess.memoryBlock = biosMgr_.GetBIOS();
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = biosMgr_.GetBIOS();
+            debugMem.minAddr = BIOS_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > BIOS_ADDR_MAX)
                 {
                     return U32_MAX;
@@ -418,8 +509,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page::EWRAM:
         {
-            cpuFastMemAccess.memoryBlock = EWRAM_;
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = EWRAM_;
+            debugMem.minAddr = EWRAM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > EWRAM_ADDR_MAX)
                 {
                     addr = StandardMirroredAddress(addr, EWRAM_ADDR_MIN, EWRAM_ADDR_MAX);
@@ -432,8 +524,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page::IWRAM:
         {
-            cpuFastMemAccess.memoryBlock = IWRAM_;
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = IWRAM_;
+            debugMem.minAddr = IWRAM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > IWRAM_ADDR_MAX)
                 {
                     addr = StandardMirroredAddress(addr, IWRAM_ADDR_MIN, IWRAM_ADDR_MAX);
@@ -446,8 +539,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page::PRAM:
         {
-            cpuFastMemAccess.memoryBlock = ppu_.GetPRAM();
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = ppu_.GetPRAM();
+            debugMem.minAddr = PRAM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > PRAM_ADDR_MAX)
                 {
                     addr = StandardMirroredAddress(addr, PRAM_ADDR_MIN, PRAM_ADDR_MAX);
@@ -460,8 +554,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page::VRAM:
         {
-            cpuFastMemAccess.memoryBlock = ppu_.GetVRAM();
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = ppu_.GetVRAM();
+            debugMem.minAddr = VRAM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > VRAM_ADDR_MAX)
                 {
                     addr = StandardMirroredAddress(addr, VRAM_ADDR_MIN, VRAM_ADDR_MAX + (32 * KiB));
@@ -479,8 +574,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page::OAM:
         {
-            cpuFastMemAccess.memoryBlock = ppu_.GetOAM();
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = ppu_.GetOAM();
+            debugMem.minAddr = OAM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 if (addr > OAM_ADDR_MAX)
                 {
                     addr = StandardMirroredAddress(addr, OAM_ADDR_MIN, OAM_ADDR_MAX);
@@ -493,8 +589,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page{0x08} ... Page{0x09}:
         {
-            cpuFastMemAccess.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
+            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN;
+            debugMem.AddrToIndex = [](u32 addr) {
                 return addr - GAMEPAK_ROM_ADDR_MIN;
             };
 
@@ -502,8 +599,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page{0x0A} ... Page{0x0B}:
         {
-            cpuFastMemAccess.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
+            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN + (32 * MiB);
+            debugMem.AddrToIndex = [](u32 addr) {
                 return addr - GAMEPAK_ROM_ADDR_MIN - (32 * MiB);
             };
 
@@ -511,8 +609,9 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         }
         case Page{0x0C} ... Page{0x0D}:
         {
-            cpuFastMemAccess.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
+            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN + (64 * MiB);
+            debugMem.AddrToIndex = [](u32 addr) {
                 return addr - GAMEPAK_ROM_ADDR_MIN - (2 * (32 * MiB));
             };
 
@@ -521,8 +620,10 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
         case Page::INVALID:
         default:
         {
-            cpuFastMemAccess.memoryBlock = std::span<const std::byte>{};
-            cpuFastMemAccess.AddrToIndex = [](u32 addr) {
+            debugMem.memoryBlock = std::span<const std::byte>{};
+            debugMem.minAddr = 0;
+            debugMem.page = Page::INVALID;
+            debugMem.AddrToIndex = [](u32 addr) {
                 (void)addr;
                 return U32_MAX;
             };
@@ -532,5 +633,5 @@ debug::cpu::CpuFastMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
     }
     #pragma GCC diagnostic pop
 
-    return cpuFastMemAccess;
+    return debugMem;
 }

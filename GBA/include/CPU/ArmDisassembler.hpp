@@ -15,25 +15,24 @@ std::string DecodeCondition(u8 cond);
 
 /// @brief Disassemble an ARM instruction into its human-readable mnemonic.
 /// @param instruction Raw 32-bit ARM instruction code.
-/// @param addr Address of the instruction.
 /// @return Disassembled instruction.
-DisassembledInstruction DisassembleInstruction(u32 instruction, u32 addr);
+Mnemonic DisassembleInstruction(u32 instruction);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// @brief Functions to convert 32-bit ARM instructions to their mnemonics and arguments.
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void DisassembleBranchAndExchange(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleBlockDataTransfer(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleBranch(u32 instruction, u32 pc, DisassembledInstruction& disassembly);
-void DisassembleSoftwareInterrupt(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleUndefined(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleSingleDataTransfer(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleSingleDataSwap(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleMultiply(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleMultiplyLong(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleHalfwordDataTransfer(u32 instruction, DisassembledInstruction& disassembly);
-void DisassemblePSRTransferMRS(u32 instruction, DisassembledInstruction& disassembly);
-void DisassemblePSRTransferMSR(u32 instruction, DisassembledInstruction& disassembly);
-void DisassembleDataProcessing(u32 instruction, DisassembledInstruction& disassembly);
+void DisassembleBranchAndExchange(u32 instruction, Mnemonic& mnemonic);
+void DisassembleBlockDataTransfer(u32 instruction, Mnemonic& mnemonic);
+void DisassembleBranch(u32 instruction, Mnemonic& mnemonic);
+void DisassembleSoftwareInterrupt(u32 instruction, Mnemonic& mnemonic);
+void DisassembleUndefined(u32 instruction, Mnemonic& mnemonic);
+void DisassembleSingleDataTransfer(u32 instruction, Mnemonic& mnemonic);
+void DisassembleSingleDataSwap(u32 instruction, Mnemonic& mnemonic);
+void DisassembleMultiply(u32 instruction, Mnemonic& mnemonic);
+void DisassembleMultiplyLong(u32 instruction, Mnemonic& mnemonic);
+void DisassembleHalfwordDataTransfer(u32 instruction, Mnemonic& mnemonic);
+void DisassemblePSRTransferMRS(u32 instruction, Mnemonic& mnemonic);
+void DisassemblePSRTransferMSR(u32 instruction, Mnemonic& mnemonic);
+void DisassembleDataProcessing(u32 instruction, Mnemonic& mnemonic);
 }  // namespace cpu::arm

@@ -160,16 +160,17 @@ void Registers::LoadSPSR()
 
 void Registers::GetRegState(debug::cpu::RegState& regState) const
 {
-    regState.mode = GetOperatingMode();
+    auto mode = GetOperatingMode();
+    regState.mode = static_cast<u8>(mode);
 
     for (u8 i = 0; i < 16; ++i)
     {
-        regState.registers[i] = ReadRegister(i, regState.mode);
+        regState.registers[i] = ReadRegister(i, mode);
     }
 
     regState.cpsr = std::bit_cast<u32, CPSR>(cpsr_);
 
-    if ((regState.mode == OperatingMode::User) || (regState.mode == OperatingMode::System))
+    if ((mode == OperatingMode::User) || (mode == OperatingMode::System))
     {
         regState.spsr = {};
     }

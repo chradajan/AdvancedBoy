@@ -2,6 +2,8 @@
 #include <format>
 #include <string>
 #include <GBA/include/Types/DebugTypes.hpp>
+#include <GBA/include/Types/Types.hpp>
+#include <GUI/include/GBA.hpp>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QGroupBox>
@@ -27,32 +29,39 @@ BackgroundViewer::BackgroundViewer() : QWidget()
     selectedBg_ = 0;
 }
 
-void BackgroundViewer::UpdateBackgroundView(BackgroundDebugInfo const& info)
+void BackgroundViewer::UpdateBackgroundView()
 {
-    auto image = QImage(reinterpret_cast<const uchar*>(info.buffer.data()), info.width, info.height, QImage::Format_RGB555);
+    if (!isVisible())
+    {
+        return;
+    }
+
+    auto debugInfo = gba_api::GetBgDebugInfo(selectedBg_);
+    auto image =
+        QImage(reinterpret_cast<const uchar*>(debugInfo.buffer.data()), debugInfo.width, debugInfo.height, QImage::Format_RGB555);
     image.rgbSwap();
     bgImageLabel_->setPixmap(QPixmap::fromImage(image));
     u8 scale = scaleBox_->currentIndex() + 1;
-    bgImageLabel_->resize(info.width * scale, info.height * scale);
+    bgImageLabel_->resize(debugInfo.width * scale, debugInfo.height * scale);
 
-    priorityLabel_->setText(QString::number(info.priority));
-    tileBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", info.mapBaseAddr)));
-    mapBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", info.tileBaseAddr)));
-    sizeLabel_->setText(QString::fromStdString(std::format("{}x{}", info.width, info.height)));
+    priorityLabel_->setText(QString::number(debugInfo.priority));
+    tileBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo.mapBaseAddr)));
+    mapBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo.tileBaseAddr)));
+    sizeLabel_->setText(QString::fromStdString(std::format("{}x{}", debugInfo.width, debugInfo.height)));
 
-    if (info.regular)
+    if (debugInfo.regular)
     {
-        offsetLabel_->setText(QString::fromStdString(std::format("{}, {}", info.xOffset, info.yOffset)));
+        offsetLabel_->setText(QString::fromStdString(std::format("{}, {}", debugInfo.xOffset, debugInfo.yOffset)));
         matrixLabel_->setText("N/A");
     }
     else
     {
-        offsetLabel_->setText(QString::fromStdString(std::format("{:.2f}, {:.2f}", info.refX, info.refY)));
+        offsetLabel_->setText(QString::fromStdString(std::format("{:.2f}, {:.2f}", debugInfo.refX, debugInfo.refY)));
         matrixLabel_->setText(QString::fromStdString(std::format("{:{}.2f} {:{}.2f}\n{:{}.2f} {:{}.2f}",
-                                                                 info.pa, 7,
-                                                                 info.pb, 7,
-                                                                 info.pc, 7,
-                                                                 info.pd, 7)));
+                                                                 debugInfo.pa, 7,
+                                                                 debugInfo.pb, 7,
+                                                                 debugInfo.pc, 7,
+                                                                 debugInfo.pd, 7)));
     }
 }
 
@@ -140,5 +149,11 @@ QScrollArea* BackgroundViewer::CreateBackgroundImage()
 
     scrollArea->setWidget(bgImageLabel_);
     return scrollArea;
+}
+
+void BackgroundViewer::SetSelectedBg(u8 bgIndex)
+{
+    selectedBg_ = bgIndex;
+    UpdateBackgroundView();
 }
 }  // namespace gui

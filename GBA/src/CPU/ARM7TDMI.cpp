@@ -1,12 +1,15 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
 #include <memory>
 #include <stdexcept>
+#include <unordered_map>
+#include <utility>
 #include <GBA/include/CPU/ArmDisassembler.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/CPU/Registers.hpp>
 #include <GBA/include/CPU/ThumbDisassembler.hpp>
 #include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
+#include <GBA/include/Types/DebugTypes.hpp>
 #include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
@@ -16,38 +19,25 @@ namespace cpu
 {
 ARM7TDMI::ARM7TDMI(ReadMemCallback readMem,
                    WriteMemCallback writeMem,
-                   FastMemAccessCallback fastMem,
                    EventScheduler& scheduler,
                    logging::Logger& log) :
     ReadMemory(readMem),
     WriteMemory(writeMem),
     flushPipeline_(false),
     scheduler_(scheduler),
-    GetFastMem(fastMem),
-    log_(log),
-    updateDebugInfo_(false)
+    log_(log)
 {
-    if (log_.Enabled() || updateDebugInfo_)
-    {
-        RefillDebugInfo();
-    }
 }
 
-void ARM7TDMI::Step(bool irq)
+bool ARM7TDMI::Step(bool irq)
 {
-    bool debuggingEnabled = log_.Enabled() || updateDebugInfo_;
-
     if (irq && !registers_.IsIrqDisabled())
     {
         HandleIRQ();
-
-        if (debuggingEnabled)
-        {
-            RefillDebugInfo();
-        }
     }
 
-    AccessSize length = registers_.InArmState() ? AccessSize::WORD : AccessSize::HALFWORD;
+    bool armState = registers_.InArmState();
+    AccessSize length = armState ? AccessSize::WORD : AccessSize::HALFWORD;
 
     // Fetch
     u32 fetchedPC = registers_.GetPC();
@@ -60,17 +50,16 @@ void ARM7TDMI::Step(bool irq)
     {
         auto [undecodedInstruction, executedPC] = pipeline_.Pop();
 
-        if (log_.Enabled() && debugInfo_.currInstruction.has_value())
+        if (log_.Enabled())
         {
-            log_.LogCPU(debugInfo_.currInstruction.value(), debugInfo_.regState);
+            auto const& mnemonic = armState ? DisassembleArmInstruction(undecodedInstruction) :
+                                              DisassembleThumbInstruction(undecodedInstruction);
+            debug::cpu::RegState regState;
+            registers_.GetRegState(regState);
+            log_.LogCPU(mnemonic, regState, executedPC, undecodedInstruction, armState);
         }
 
-        if (debuggingEnabled)
-        {
-            UpdateDebugInfo();
-        }
-
-        if (registers_.InArmState())
+        if (armState)
         {
             DecodeAndExecuteARM(undecodedInstruction);
         }
@@ -84,16 +73,51 @@ void ARM7TDMI::Step(bool irq)
     {
         pipeline_.Clear();
         flushPipeline_ = false;
-
-        if (debuggingEnabled)
-        {
-            RefillDebugInfo();
-        }
     }
     else
     {
         registers_.AdvancePC();
     }
+
+    return pipeline_.Size() >= 2;
+}
+
+u32 ARM7TDMI::GetNextAddrToExecute() const
+{
+    if (pipeline_.Empty())
+    {
+        return registers_.GetPC();
+    }
+
+    return pipeline_.PeakTail().PC;
+}
+
+debug::cpu::Mnemonic const& ARM7TDMI::DisassembleArmInstruction(u32 instruction)
+{
+    auto foundIter = decodedArmInstructions_.find(instruction);
+
+    if (foundIter == decodedArmInstructions_.end())
+    {
+        bool inserted;
+        auto mnemonic = arm::DisassembleInstruction(instruction);
+        std::tie(foundIter, inserted) = decodedArmInstructions_.insert({instruction, mnemonic});
+    }
+
+    return foundIter->second;
+}
+
+debug::cpu::Mnemonic const& ARM7TDMI::DisassembleThumbInstruction(u16 instruction)
+{
+    auto foundIter = decodedThumbInstructions_.find(instruction);
+
+    if (foundIter == decodedThumbInstructions_.end())
+    {
+        bool inserted;
+        auto mnemonic = thumb::DisassembleInstruction(instruction);
+        std::tie(foundIter, inserted) = decodedThumbInstructions_.insert({instruction, mnemonic});
+    }
+
+    return foundIter->second;
 }
 
 void ARM7TDMI::HandleIRQ()
@@ -150,78 +174,5 @@ bool ARM7TDMI::ConditionSatisfied(u8 condition) const
     }
 
     return true;
-}
-
-void ARM7TDMI::UpdateDebugInfo()
-{
-    if (debugInfo_.prevInstructions.Full())
-    {
-        debugInfo_.prevInstructions.Pop();
-    }
-
-    debugInfo_.prevInstructions.Push(debugInfo_.currInstruction.value());
-    debugInfo_.currInstruction = debugInfo_.nextInstructions.Pop();
-    registers_.GetRegState(debugInfo_.regState);
-
-    u32 addr = debugInfo_.nextInstructions.PeakHead().addr;
-    bool armState = registers_.InArmState();
-    u8 delta = armState ? 4 : 2;
-    addr += delta;
-    u32 index = fastMemAccess_.AddrToIndex(addr);
-
-    if ((index + delta) <= fastMemAccess_.memoryBlock.size())
-    {
-        u32 instruction = armState ? MemCpyInit<u32>(&fastMemAccess_.memoryBlock[index]) :
-                                     MemCpyInit<u16>(&fastMemAccess_.memoryBlock[index]);
-
-        debugInfo_.nextInstructions.Push(armState ? arm::DisassembleInstruction(instruction, addr) :
-                                                    thumb::DisassembleInstruction(instruction, addr));
-    }
-}
-
-void ARM7TDMI::RefillDebugInfo()
-{
-    u32 addr = registers_.GetPC();
-    bool armState = registers_.InArmState();
-    u8 delta = armState ? 4 : 2;
-    fastMemAccess_ = GetFastMem(addr);
-    u32 index = fastMemAccess_.AddrToIndex(addr);
-
-    debugInfo_.prevInstructions.Clear();
-    debugInfo_.currInstruction = {};
-    debugInfo_.nextInstructions = {};
-    registers_.GetRegState(debugInfo_.regState);
-
-    if ((index + delta) <= fastMemAccess_.memoryBlock.size())
-    {
-        u32 instruction = armState ? MemCpyInit<u32>(&fastMemAccess_.memoryBlock[index]) :
-                                     MemCpyInit<u16>(&fastMemAccess_.memoryBlock[index]);
-
-        debugInfo_.currInstruction = armState ? arm::DisassembleInstruction(instruction, addr) :
-                                                thumb::DisassembleInstruction(instruction, addr);
-    }
-    else
-    {
-        debugInfo_.currInstruction.emplace(debug::cpu::DisassembledInstruction{armState, 0, addr, "???", "???", "???"});
-    }
-
-    while (!debugInfo_.nextInstructions.Full())
-    {
-        addr += delta;
-        index = fastMemAccess_.AddrToIndex(addr);
-
-        if ((index + delta) <= fastMemAccess_.memoryBlock.size())
-        {
-            u32 instruction = armState ? MemCpyInit<u32>(&fastMemAccess_.memoryBlock[index]) :
-                                         MemCpyInit<u16>(&fastMemAccess_.memoryBlock[index]);
-
-            debugInfo_.nextInstructions.Push(armState ? arm::DisassembleInstruction(instruction, addr) :
-                                                        thumb::DisassembleInstruction(instruction, addr));
-        }
-        else
-        {
-            debugInfo_.nextInstructions.Push(debug::cpu::DisassembledInstruction{armState, 0, addr, "???", "???", "???"});
-        }
-    }
 }
 }  // namespace cpu

@@ -34,131 +34,132 @@ void PushPopHelper(std::stringstream& regStream, int consecutiveRegisters, u8 re
 
 namespace cpu::thumb
 {
-DisassembledInstruction DisassembleInstruction(u32 instruction, u32 addr)
+Mnemonic DisassembleInstruction(u16 instruction)
 {
-    DisassembledInstruction disassembly;
-    disassembly.armInstruction = false;
-    disassembly.undecodedInstruction = instruction & U16_MAX;
-    disassembly.addr = addr;
+    Mnemonic mnemonic;
+    mnemonic.cond = "";
+    mnemonic.branchOffset = {};
 
     if (SoftwareInterrupt::IsInstanceOf(instruction))
     {
-        DisassembleSoftwareInterrupt(instruction, disassembly);
+        DisassembleSoftwareInterrupt(instruction, mnemonic);
     }
     else if (UnconditionalBranch::IsInstanceOf(instruction))
     {
-        DisassembleUnconditionalBranch(instruction, addr, disassembly);
+        DisassembleUnconditionalBranch(instruction, mnemonic);
     }
     else if (ConditionalBranch::IsInstanceOf(instruction))
     {
-        DisassembleConditionalBranch(instruction, addr, disassembly);
+        DisassembleConditionalBranch(instruction, mnemonic);
     }
     else if (MultipleLoadStore::IsInstanceOf(instruction))
     {
-        DisassembleMultipleLoadStore(instruction, disassembly);
+        DisassembleMultipleLoadStore(instruction, mnemonic);
     }
     else if (LongBranchWithLink::IsInstanceOf(instruction))
     {
-        DisassembleLongBranchWithLink(instruction, disassembly);
+        DisassembleLongBranchWithLink(instruction, mnemonic);
     }
     else if (AddOffsetToStackPointer::IsInstanceOf(instruction))
     {
-        DisassembleAddOffsetToStackPointer(instruction, disassembly);
+        DisassembleAddOffsetToStackPointer(instruction, mnemonic);
     }
     else if (PushPopRegisters::IsInstanceOf(instruction))
     {
-        DisassemblePushPopRegisters(instruction, disassembly);
+        DisassemblePushPopRegisters(instruction, mnemonic);
     }
     else if (LoadStoreHalfword::IsInstanceOf(instruction))
     {
-        DisassembleLoadStoreHalfword(instruction, disassembly);
+        DisassembleLoadStoreHalfword(instruction, mnemonic);
     }
     else if (SPRelativeLoadStore::IsInstanceOf(instruction))
     {
-        DisassembleSPRelativeLoadStore(instruction, disassembly);
+        DisassembleSPRelativeLoadStore(instruction, mnemonic);
     }
     else if (LoadAddress::IsInstanceOf(instruction))
     {
-        DisassembleLoadAddress(instruction, disassembly);
+        DisassembleLoadAddress(instruction, mnemonic);
     }
     else if (LoadStoreWithImmOffset::IsInstanceOf(instruction))
     {
-        DisassembleLoadStoreWithOffset(instruction, disassembly);
+        DisassembleLoadStoreWithOffset(instruction, mnemonic);
     }
     else if (LoadStoreWithRegOffset::IsInstanceOf(instruction))
     {
-        DisassembleLoadStoreWithOffset(instruction, disassembly);
+        DisassembleLoadStoreWithOffset(instruction, mnemonic);
     }
     else if (LoadStoreSignExtendedByteHalfword::IsInstanceOf(instruction))
     {
-        DisassembleLoadStoreSignExtendedByteHalfword(instruction, disassembly);
+        DisassembleLoadStoreSignExtendedByteHalfword(instruction, mnemonic);
     }
     else if (PCRelativeLoad::IsInstanceOf(instruction))
     {
-        DisassemblePCRelativeLoad(instruction, disassembly);
+        DisassemblePCRelativeLoad(instruction, mnemonic);
     }
     else if (HiRegisterOperationsBranchExchange::IsInstanceOf(instruction))
     {
-        DisassembleHiRegisterOperationsBranchExchange(instruction, disassembly);
+        DisassembleHiRegisterOperationsBranchExchange(instruction, mnemonic);
     }
     else if (ALUOperations::IsInstanceOf(instruction))
     {
-        DisassembleALUOperations(instruction, disassembly);
+        DisassembleALUOperations(instruction, mnemonic);
     }
     else if (MoveCompareAddSubtractImmediate::IsInstanceOf(instruction))
     {
-        DisassembleMoveCompareAddSubtractImmediate(instruction, disassembly);
+        DisassembleMoveCompareAddSubtractImmediate(instruction, mnemonic);
     }
     else if (AddSubtract::IsInstanceOf(instruction))
     {
-        DisassembleAddSubtract(instruction, disassembly);
+        DisassembleAddSubtract(instruction, mnemonic);
     }
     else if (MoveShiftedRegister::IsInstanceOf(instruction))
     {
-        DisassembleMoveShiftedRegister(instruction, disassembly);
+        DisassembleMoveShiftedRegister(instruction, mnemonic);
     }
     else
     {
-        disassembly.op = "???";
-        disassembly.cond = "";
-        disassembly.args = "???";
+        mnemonic.op = "???";
+        mnemonic.cond = "";
+        mnemonic.args = "???";
     }
 
-    return disassembly;
+    return mnemonic;
 }
 
-void DisassembleSoftwareInterrupt(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleSoftwareInterrupt(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<SoftwareInterrupt::Flags>(instruction);
-    disassembly.op = "SWI";
+    mnemonic.op = "SWI";
 
     u8 comment = flags.Value8;
-    disassembly.args = std::format("#{:02X}", comment);
+    mnemonic.args = std::format("#{:02X}", comment);
 }
 
-void DisassembleUnconditionalBranch(u16 instruction, u32 pc, DisassembledInstruction& disassembly)
+void DisassembleUnconditionalBranch(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<UnconditionalBranch::Flags>(instruction);
-    disassembly.op = "B";
+    mnemonic.op = "B";
 
-    pc = pc + 4 + SignExtend<i16, 11>(flags.Offset11 << 1);
-    disassembly.args = std::format("#{:08X}", pc);
+    i16 offset = 4 + SignExtend<i16, 11>(flags.Offset11 << 1);
+    mnemonic.branchOffset = offset;
+    mnemonic.args = "#" + std::to_string(offset);
 }
 
-void DisassembleConditionalBranch(u16 instruction, u32 pc, DisassembledInstruction& disassembly)
+void DisassembleConditionalBranch(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<ConditionalBranch::Flags>(instruction);
-    disassembly.cond = arm::DecodeCondition(flags.Cond);
-    disassembly.op = "B";
+    mnemonic.cond = arm::DecodeCondition(flags.Cond);
+    mnemonic.op = "B";
 
-    pc = pc + 4 + SignExtend<i16, 8>(flags.SOffset8 << 1);
-    disassembly.args = std::format("#{:08X}", pc);
+    i16 offset = 4 + SignExtend<i16, 8>(flags.SOffset8 << 1);
+    mnemonic.branchOffset = offset;
+    mnemonic.args = "#" + std::to_string(offset);
 }
 
-void DisassembleMultipleLoadStore(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleMultipleLoadStore(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<MultipleLoadStore::Flags>(instruction);
-    disassembly.op = flags.L ? "LDMIA" : "STMIA";
+    mnemonic.op = flags.L ? "LDMIA" : "STMIA";
 
     std::stringstream regStream;
     u8 regIndex = 0;
@@ -194,29 +195,29 @@ void DisassembleMultipleLoadStore(u16 instruction, DisassembledInstruction& disa
 
     regStream << "}";
     u8 Rb = flags.Rb;
-    disassembly.args = std::format("R{}!, {}", Rb, regStream.str());
+    mnemonic.args = std::format("R{}!, {}", Rb, regStream.str());
 }
 
-void DisassembleLongBranchWithLink(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleLongBranchWithLink(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<LongBranchWithLink::Flags>(instruction);
-    disassembly.op = "BL";
-    disassembly.args = flags.H ? "1" : "0";
+    mnemonic.op = "BL";
+    mnemonic.args = flags.H ? "1" : "0";
 }
 
-void DisassembleAddOffsetToStackPointer(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleAddOffsetToStackPointer(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<AddOffsetToStackPointer::Flags>(instruction);
-    disassembly.op = "ADD";
+    mnemonic.op = "ADD";
 
     u16 offset = flags.SWord7 << 2;
-    disassembly.args = std::format("SP, #{}{}", flags.S ? "-" : "", offset);
+    mnemonic.args = std::format("SP, #{}{}", flags.S ? "-" : "", offset);
 }
 
-void DisassemblePushPopRegisters(u16 instruction, DisassembledInstruction& disassembly)
+void DisassemblePushPopRegisters(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<PushPopRegisters::Flags>(instruction);
-    disassembly.op = flags.L ? "POP" : "PUSH";
+    mnemonic.op = flags.L ? "POP" : "PUSH";
 
     std::string r = "";
 
@@ -269,45 +270,42 @@ void DisassemblePushPopRegisters(u16 instruction, DisassembledInstruction& disas
     }
 
     regStream << "}";
-    disassembly.args = regStream.str();
+    mnemonic.args = regStream.str();
 }
 
-void DisassembleLoadStoreHalfword(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleLoadStoreHalfword(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<LoadStoreHalfword::Flags>(instruction);
-    disassembly.op = flags.L ? "LDRH" : "STRH";
+    mnemonic.op = flags.L ? "LDRH" : "STRH";
 
     u8 Rd = flags.Rd;
     u8 Rb = flags.Rb;
     u8 offset = flags.Offset5 << 1;
-    disassembly.args = std::format("R{}, [R{}, #{}]", Rd, Rb, offset);
+    mnemonic.args = std::format("R{}, [R{}, #{}]", Rd, Rb, offset);
 }
 
-void DisassembleSPRelativeLoadStore(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleSPRelativeLoadStore(u16 instruction, Mnemonic& mnemonic)
 {
-    disassembly.armInstruction = false;
-    disassembly.undecodedInstruction = instruction & U16_MAX;
-    disassembly.cond = "";
     auto flags = std::bit_cast<SPRelativeLoadStore::Flags>(instruction);
-    disassembly.op = flags.L ? "LDR" : "STR";
+    mnemonic.op = flags.L ? "LDR" : "STR";
 
     u8 Rd = flags.Rd;
     u16 imm = flags.Word8 << 2;
-    disassembly.args = std::format("R{}, [SP, #{}]", Rd, imm);
+    mnemonic.args = std::format("R{}, [SP, #{}]", Rd, imm);
 }
 
-void DisassembleLoadAddress(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleLoadAddress(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<LoadAddress::Flags>(instruction);
-    disassembly.op = "ADD";
+    mnemonic.op = "ADD";
 
     std::string regStr = flags.SP ? "SP" : "PC";
     u16 offset = flags.Word8 << 2;
     u8 Rd = flags.Rd;
-    disassembly.args = std::format("R{}, {}, #{}", Rd, regStr, offset);
+    mnemonic.args = std::format("R{}, {}, #{}", Rd, regStr, offset);
 }
 
-void DisassembleLoadStoreWithOffset(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleLoadStoreWithOffset(u16 instruction, Mnemonic& mnemonic)
 {
     std::string op;
     std::string offsetStr;
@@ -335,11 +333,11 @@ void DisassembleLoadStoreWithOffset(u16 instruction, DisassembledInstruction& di
         Rb = flags.Rb;
     }
 
-    disassembly.op = op;
-    disassembly.args = std::format("R{}, [R{}, {}]", Rd, Rb, offsetStr);
+    mnemonic.op = op;
+    mnemonic.args = std::format("R{}, [R{}, {}]", Rd, Rb, offsetStr);
 }
 
-void DisassembleLoadStoreSignExtendedByteHalfword(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleLoadStoreSignExtendedByteHalfword(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<LoadStoreSignExtendedByteHalfword::Flags>(instruction);
 
@@ -348,36 +346,36 @@ void DisassembleLoadStoreSignExtendedByteHalfword(u16 instruction, DisassembledI
     switch (sh)
     {
         case 0b00:  // S = 0, H = 0
-            disassembly.op = "STRH";
+            mnemonic.op = "STRH";
             break;
         case 0b01:  // S = 0, H = 1
-            disassembly.op = "LDRH";
+            mnemonic.op = "LDRH";
             break;
         case 0b10:  // S = 1, H = 0
-            disassembly.op = "LDSB";
+            mnemonic.op = "LDSB";
             break;
         case 0b11:  // S = 1, H = 1
-            disassembly.op = "LDSH";
+            mnemonic.op = "LDSH";
             break;
     }
 
     u8 Ro = flags.Ro;
     u8 Rb = flags.Rb;
     u8 Rd = flags.Rd;
-    disassembly.args = std::format("R{}, [R{}, R{}]", Rd, Rb, Ro);
+    mnemonic.args = std::format("R{}, [R{}, R{}]", Rd, Rb, Ro);
 }
 
-void DisassemblePCRelativeLoad(u16 instruction, DisassembledInstruction& disassembly)
+void DisassemblePCRelativeLoad(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<PCRelativeLoad::Flags>(instruction);
-    disassembly.op = "LDR";
+    mnemonic.op = "LDR";
 
     u8 Rd = flags.Rd;
     u16 offset = flags.Word8 << 2;
-    disassembly.args = std::format("R{}, [PC, #{}]", Rd, offset);
+    mnemonic.args = std::format("R{}, [PC, #{}]", Rd, offset);
 }
 
-void DisassembleHiRegisterOperationsBranchExchange(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleHiRegisterOperationsBranchExchange(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<HiRegisterOperationsBranchExchange::Flags>(instruction);
 
@@ -397,111 +395,111 @@ void DisassembleHiRegisterOperationsBranchExchange(u16 instruction, Disassembled
     switch (flags.Op)
     {
         case 0b00:
-            disassembly.op = "ADD";
-            disassembly.args = std::format("R{}, R{}", Rd, Rs);
+            mnemonic.op = "ADD";
+            mnemonic.args = std::format("R{}, R{}", Rd, Rs);
             break;
         case 0b01:
-            disassembly.op = "CMP";
-            disassembly.args = std::format("R{}, R{}", Rd, Rs);
+            mnemonic.op = "CMP";
+            mnemonic.args = std::format("R{}, R{}", Rd, Rs);
             break;
         case 0b10:
-            disassembly.op = "MOV";
-            disassembly.args = std::format("R{}, R{}", Rd, Rs);
+            mnemonic.op = "MOV";
+            mnemonic.args = std::format("R{}, R{}", Rd, Rs);
             break;
         case 0b11:
-            disassembly.op = "BX";
-            disassembly.args = std::format("R{}", Rs);
+            mnemonic.op = "BX";
+            mnemonic.args = std::format("R{}", Rs);
             break;
     }
 }
 
-void DisassembleALUOperations(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleALUOperations(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<ALUOperations::Flags>(instruction);
 
     switch (flags.Op)
     {
         case 0b0000:
-            disassembly.op = "AND";
+            mnemonic.op = "AND";
             break;
         case 0b0001:
-            disassembly.op = "EOR";
+            mnemonic.op = "EOR";
             break;
         case 0b0010:
-            disassembly.op = "LSL";
+            mnemonic.op = "LSL";
             break;
         case 0b0011:
-            disassembly.op = "LSR";
+            mnemonic.op = "LSR";
             break;
         case 0b0100:
-            disassembly.op = "ASR";
+            mnemonic.op = "ASR";
             break;
         case 0b0101:
-            disassembly.op = "ADC";
+            mnemonic.op = "ADC";
             break;
         case 0b0110:
-            disassembly.op = "SBC";
+            mnemonic.op = "SBC";
             break;
         case 0b0111:
-            disassembly.op = "ROR";
+            mnemonic.op = "ROR";
             break;
         case 0b1000:
-            disassembly.op = "TST";
+            mnemonic.op = "TST";
             break;
         case 0b1001:
-            disassembly.op = "NEG";
+            mnemonic.op = "NEG";
             break;
         case 0b1010:
-            disassembly.op = "CMP";
+            mnemonic.op = "CMP";
             break;
         case 0b1011:
-            disassembly.op = "CMN";
+            mnemonic.op = "CMN";
             break;
         case 0b1100:
-            disassembly.op = "ORR";
+            mnemonic.op = "ORR";
             break;
         case 0b1101:
-            disassembly.op = "MUL";
+            mnemonic.op = "MUL";
             break;
         case 0b1110:
-            disassembly.op = "BIC";
+            mnemonic.op = "BIC";
             break;
         case 0b1111:
-            disassembly.op = "MVN";
+            mnemonic.op = "MVN";
             break;
     }
 
     u8 Rd = flags.Rd;
     u8 Rs = flags.Rs;
-    disassembly.args = std::format("R{}, R{}", Rd, Rs);
+    mnemonic.args = std::format("R{}, R{}", Rd, Rs);
 }
 
-void DisassembleMoveCompareAddSubtractImmediate(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleMoveCompareAddSubtractImmediate(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<MoveCompareAddSubtractImmediate::Flags>(instruction);
 
     switch (flags.Op)
     {
         case 0b00:
-            disassembly.op = "MOV";
+            mnemonic.op = "MOV";
             break;
         case 0b01:
-            disassembly.op = "CMP";
+            mnemonic.op = "CMP";
             break;
         case 0b10:
-            disassembly.op = "ADD";
+            mnemonic.op = "ADD";
             break;
         case 0b11:
-            disassembly.op = "SUB";
+            mnemonic.op = "SUB";
             break;
     }
 
     u8 Rd = flags.Rd;
     u8 offset = flags.Offset8;
-    disassembly.args = std::format("R{}, #{}", Rd, offset);
+    mnemonic.args = std::format("R{}, #{}", Rd, offset);
 }
 
-void DisassembleAddSubtract(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleAddSubtract(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<AddSubtract::Flags>(instruction);
 
@@ -509,11 +507,11 @@ void DisassembleAddSubtract(u16 instruction, DisassembledInstruction& disassembl
 
     if (flags.I && (rnOffset == 0))
     {
-        disassembly.op = "MOV";
+        mnemonic.op = "MOV";
     }
     else
     {
-        disassembly.op = flags.Op ? "SUB" : "ADD";
+        mnemonic.op = flags.Op ? "SUB" : "ADD";
     }
 
     std::string operand;
@@ -529,32 +527,32 @@ void DisassembleAddSubtract(u16 instruction, DisassembledInstruction& disassembl
 
     u8 Rd = flags.Rd;
     u8 Rs = flags.Rs;
-    disassembly.args = std::format("R{}, R{}{}", Rd, Rs, operand);
+    mnemonic.args = std::format("R{}, R{}{}", Rd, Rs, operand);
 }
 
-void DisassembleMoveShiftedRegister(u16 instruction, DisassembledInstruction& disassembly)
+void DisassembleMoveShiftedRegister(u16 instruction, Mnemonic& mnemonic)
 {
     auto flags = std::bit_cast<MoveShiftedRegister::Flags>(instruction);
 
     switch (flags.Op)
     {
         case 0b00:
-            disassembly.op = "LSL";
+            mnemonic.op = "LSL";
             break;
         case 0b01:
-            disassembly.op = "LSR";
+            mnemonic.op = "LSR";
             break;
         case 0b10:
-            disassembly.op = "ASR";
+            mnemonic.op = "ASR";
             break;
         default:
-            disassembly.op = "???";
+            mnemonic.op = "???";
             break;
     }
 
     u8 Rd = flags.Rd;
     u8 Rs = flags.Rs;
     u8 offset = flags.Offset5;
-    disassembly.args = std::format("R{}, R{}, #{}", Rd, Rs, offset);
+    mnemonic.args = std::format("R{}, R{}, #{}", Rd, Rs, offset);
 }
 }  // namespace cpu::thumb

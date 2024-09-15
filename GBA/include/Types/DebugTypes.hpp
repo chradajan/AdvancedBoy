@@ -6,28 +6,37 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <GBA/include/CPU/CpuTypes.hpp>
+#include <GBA/include/APU/Constants.hpp>
+#include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/Types/Types.hpp>
-#include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace debug
 {
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Generic
+///---------------------------------------------------------------------------------------------------------------------------------
+
+struct DebugMemAccess
+{
+    std::span<const std::byte> memoryBlock;
+    u32 minAddr;
+    Page page;
+    std::function<u32(u32)> AddrToIndex;
+};
+
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// CPU
 ///---------------------------------------------------------------------------------------------------------------------------------
 
 namespace cpu
 {
-struct DisassembledInstruction
+struct Mnemonic
 {
-    bool armInstruction;
-    u32 undecodedInstruction;
-    u32 addr;
-
     std::string op;
     std::string cond;
     std::string args;
+    std::optional<i32> branchOffset;
 };
 
 struct RegState
@@ -44,21 +53,15 @@ struct RegState
     bool irqDisable;
     bool fiqDisable;
     bool thumbState;
-    ::cpu::OperatingMode mode;
+    u8 mode;
 };
 
 struct CpuDebugInfo
 {
-    CircularBuffer<DisassembledInstruction, 10> prevInstructions;
-    std::optional<DisassembledInstruction> currInstruction;
-    CircularBuffer<DisassembledInstruction, 20> nextInstructions;
+    DebugMemAccess pcMem;
+    DebugMemAccess spMem;
     RegState regState;
-};
-
-struct CpuFastMemAccess
-{
-    std::span<const std::byte> memoryBlock;
-    std::function<u32(u32)> AddrToIndex;
+    u32 nextAddrToExecute;
 };
 }  // namespace cpu
 

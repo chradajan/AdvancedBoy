@@ -4,23 +4,31 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <GBA/include/Keypad/Registers.hpp>
+#include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/GameBoyAdvance.hpp>
 #include <GBA/include/Types/DebugTypes.hpp>
 #include <GBA/include/Types/Types.hpp>
 
-std::unique_ptr<GameBoyAdvance> GBA;
+static std::unique_ptr<GameBoyAdvance> GBA;
+static std::unordered_set<u32> EMPTY_SET = {};
+static debug::cpu::Mnemonic EmptyMnemonic = {"???", "", "???", {}};
 
-namespace gui
+namespace gba_api
 {
-void InitializeGBA(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback)
+void InitializeGBA(fs::path biosPath,
+                   fs::path romPath,
+                   fs::path logDir,
+                   std::function<void(int)> vBlankCallback,
+                   std::function<void()> breakpointCallback)
 {
     if (GBA)
     {
         return;
     }
 
-    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, logDir, vBlankCallback);
+    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, logDir, vBlankCallback, breakpointCallback);
 }
 
 void RunEmulationLoop()
@@ -112,6 +120,22 @@ void UpdateKeypad(KEYINPUT keyinput)
     }
 }
 
+void RunDisassembler()
+{
+    if (GBA)
+    {
+        GBA->RunDisassembler();
+    }
+}
+
+void SingleStep()
+{
+    if (GBA)
+    {
+        GBA->SingleStep();
+    }
+}
+
 debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
 {
     if (GBA)
@@ -120,5 +144,64 @@ debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
     }
 
     return {};
+}
+
+debug::cpu::CpuDebugInfo GetCpuDebugInfo()
+{
+    if (GBA)
+    {
+        return GBA->GetCpuDebugInfo();
+    }
+
+    debug::cpu::CpuDebugInfo emptyDebugInfo = {};
+    emptyDebugInfo.pcMem.page = Page::INVALID;
+    emptyDebugInfo.spMem.page = Page::INVALID;
+    return emptyDebugInfo;
+}
+
+debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction)
+{
+    if (GBA)
+    {
+        return GBA->DisassembleArmInstruction(instruction);
+    }
+
+    return EmptyMnemonic;
+}
+
+debug::cpu::Mnemonic const& DisassembleThumbInstruction(u32 instruction)
+{
+    if (GBA)
+    {
+        return GBA->DisassembleThumbInstruction(instruction);
+    }
+
+    return EmptyMnemonic;
+}
+
+void SetBreakpoint(u32 breakpoint)
+{
+    if (GBA)
+    {
+        GBA->SetBreakpoint(breakpoint);
+    }
+}
+
+void RemoveBreakpoint(u32 breakpoint)
+{
+    if (GBA)
+    {
+        GBA->RemoveBreakpoint(breakpoint);
+    }
+}
+
+std::unordered_set<u32> const& GetBreakpoints()
+{
+    if (GBA)
+    {
+        return GBA->GetBreakpoints();
+    }
+
+    return EMPTY_SET;
 }
 }  // namespace gui

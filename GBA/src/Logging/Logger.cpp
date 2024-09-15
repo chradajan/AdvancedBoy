@@ -71,7 +71,7 @@ Logger::Logger(fs::path logDir, EventScheduler const& scheduler) : scheduler_(sc
     initialized_ = true;
 }
 
-void Logger::LogCPU(debug::cpu::DisassembledInstruction const& instruction, debug::cpu::RegState const& regState)
+void Logger::LogCPU(debug::cpu::Mnemonic const& mnemonic, debug::cpu::RegState const& regState, u32 addr, u32 instruction, bool arm)
 {
     if (!initialized_)
     {
@@ -90,10 +90,15 @@ void Logger::LogCPU(debug::cpu::DisassembledInstruction const& instruction, debu
                              (regState.carry ? "C" : "-") <<
                              (regState.overflow ? "V" : "-") << "  ";
 
-    regStream << (regState.irqDisable ? "I" : "-") << (regState.fiqDisable ? "F" : "-") << (regState.thumbState ? "T" : "-") << "  " << "Mode: ";
-    u32 spsr = regState.spsr.has_value() ? regState.spsr.value() : 0;
+    regStream << (regState.irqDisable ? "I" : "-") <<
+                 (regState.fiqDisable ? "F" : "-") <<
+                 (regState.thumbState ? "T" : "-") <<
+                 "  " << "Mode: ";
 
-    switch (regState.mode)
+    u32 spsr = regState.spsr.has_value() ? regState.spsr.value() : 0;
+    auto mode = static_cast<cpu::OperatingMode>(regState.mode);
+
+    switch (mode)
     {
         case cpu::OperatingMode::User:
             regStream << "User";
@@ -118,9 +123,16 @@ void Logger::LogCPU(debug::cpu::DisassembledInstruction const& instruction, debu
             break;
     }
 
-    std::string decodedInstruction = instruction.op + instruction.cond + " " + instruction.args;
-    std::string message = std::format("{:08X}:  {:45}{}", instruction.addr, decodedInstruction, regStream.str());
-    AddToLog(message);
+    std::string decodedInstruction = mnemonic.op + mnemonic.cond + " " + mnemonic.args;
+
+    if (arm)
+    {
+        AddToLog(std::format("{:08X}: {:08X} -> {:30}{}", addr, instruction, decodedInstruction, regStream.str()));
+    }
+    else
+    {
+        AddToLog(std::format("{:08X}:     {:04X} -> {:30}{}", addr, instruction, decodedInstruction, regStream.str()));
+    }
 }
 
 void Logger::LogException(std::exception const& error)

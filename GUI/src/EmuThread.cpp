@@ -8,7 +8,7 @@ void EmuThread::run()
 {
     while (!isInterruptionRequested())
     {
-        RunEmulationLoop();
+        gba_api::RunEmulationLoop();
         msleep(5);
     }
 }

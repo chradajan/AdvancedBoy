@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <GBA/include/APU/APU.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
 #include <GBA/include/Cartridge/GamePak.hpp>
@@ -38,7 +39,12 @@ public:
     /// @param romPath Path to GamePak ROM file.
     /// @param logDir Path to directory where log file should be generated. Pass empty path to disable logging.
     /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
-    explicit GameBoyAdvance(fs::path biosPath, fs::path romPath, fs::path logDir, std::function<void(int)> vBlankCallback);
+    /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
+    explicit GameBoyAdvance(fs::path biosPath,
+                            fs::path romPath,
+                            fs::path logDir,
+                            std::function<void(int)> vBlankCallback,
+                            std::function<void()> breakpointCallback);
 
     /// @brief Save backup media to disk and dump any unlogged entries.
     ~GameBoyAdvance();
@@ -71,15 +77,53 @@ public:
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
 
+    /// @brief Run the emulator for a single CPU instruction.
+    void SingleStep();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     /// @brief Get debug info needed to draw a fully isolated background layer.
     /// @param bgIndex Index of background to display in debugger.
     /// @return Debug info needed to display a background layer.
     debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppu_.GetBackgroundDebugInfo(bgIndex); }
 
+    /// @brief Get debug info to be shown in the CPU Debugger.
+    /// @return CPU debug info.
+    debug::cpu::CpuDebugInfo GetCpuDebugInfo();
+
+    /// @brief Pre-disassemble all BIOS and ROM code as both ARM and THUMB instructions.
+    void RunDisassembler();
+
+    /// @brief Disassemble an ARM instruction into its human-readable mnemonic.
+    /// @param instruction Raw 32-bit ARM instruction code.
+    /// @return Disassembled instruction.
+    debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction) { return cpu_.DisassembleArmInstruction(instruction); }
+
+    /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
+    /// @param instruction Raw 16-bit THUMB instruction code.
+    /// @return Disassembled instruction.
+    debug::cpu::Mnemonic const& DisassembleThumbInstruction(u16 instruction) { return cpu_.DisassembleThumbInstruction(instruction); }
+
+    /// @brief Add a breakpoint at a specified address. CPU execution will stop when this matches the address of the next
+    ///        instruction to be executed by the CPU.
+    /// @param breakpoint Address to set breakpoint at.
+    void SetBreakpoint(u32 breakpoint) { breakpoints_.insert(breakpoint); }
+
+    /// @brief Remove an address from the current list of breakpoints.
+    /// @param breakpoint Address to set breakpoint at.
+    void RemoveBreakpoint(u32 breakpoint) { breakpoints_.erase(breakpoint); }
+
+    /// @brief Get the list of breakpoints currently set.
+    /// @return An unordered set of all current breakpoints.
+    std::unordered_set<u32> const& GetBreakpoints() const { return breakpoints_; }
+
 private:
     /// @brief Main emulation loop.
     /// @param samples Number of audio samples to be generated before returning from main loop.
-    void MainLoop(size_t samples);
+    /// @return Whether the loop exited early due to encountering a breakpoint.
+    bool MainLoop(size_t samples);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Bus functionality
@@ -165,10 +209,10 @@ private:
     /// Debug
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    /// @brief Get the span of memory that PC currently points to and a function to convert PC to an index within that span.
-    /// @param addr Address that the CPU PC currently points to.
-    /// @return Fast memory access for CPU debugging.
-    debug::cpu::CpuFastMemAccess GetDebugMemAccess(u32 addr);
+    /// @brief Get direct access to a block of memory for debug purposes.
+    /// @param addr Get block of data that addr is contained within.
+    /// @return Debug mem access.
+    debug::DebugMemAccess GetDebugMemAccess(u32 addr);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
@@ -199,4 +243,9 @@ private:
 
     // Open bus
     u32 lastSuccessfulFetch_;
+
+    // Breakpoints
+    std::unordered_set<u32> breakpoints_;
+    std::function<void()> BreakpointCallback;
+    u64 breakpointCycle_;
 };

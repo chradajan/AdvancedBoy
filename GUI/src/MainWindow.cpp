@@ -6,6 +6,7 @@
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Types/Types.hpp>
 #include <GUI/include/BackgroundViewer.hpp>
+#include <GUI/include/CpuDebugger.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
 #include <QtWidgets/QApplication>
@@ -19,7 +20,7 @@ namespace
 /// @param len Size of buffer in bytes.
 void AudioCallback(void*, u8* stream, int len)
 {
-    gui::FillAudioBuffer(stream, len);
+    gba_api::FillAudioBuffer(stream, len);
 }
 }  // namespace
 
@@ -62,8 +63,35 @@ MainWindow::MainWindow(QWidget* parent) :
     fpsTimer_.start(1000);
 
     // Debug options
-    bgMapsWindow_ = nullptr;
+    bgMapsWindow_ = new BackgroundViewer;
+    cpuDebugWindow_ = new CpuDebugger;
+
+    // Connect signals
+    connect(this, &MainWindow::UpdateBackgroundViewSignal,
+            bgMapsWindow_, &BackgroundViewer::UpdateBackgroundViewSlot);
+
+    connect(this, &MainWindow::UpdateCpuDebuggerSignal,
+            cpuDebugWindow_, &CpuDebugger::UpdateCpuDebuggerSlot);
+
+    connect(cpuDebugWindow_, &CpuDebugger::PauseSignal,
+            this, &MainWindow::PauseSlot);
+
+    connect(cpuDebugWindow_, &CpuDebugger::ResumeSignal,
+            this, &MainWindow::ResumeSlot);
+
+    connect(cpuDebugWindow_, &CpuDebugger::StepSignal,
+            bgMapsWindow_, &BackgroundViewer::UpdateBackgroundViewSlot);
 }
+
+MainWindow::~MainWindow()
+{
+    delete bgMapsWindow_;
+    delete cpuDebugWindow_;
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Event handlers
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
 {
@@ -119,15 +147,24 @@ void MainWindow::closeEvent(QCloseEvent* event)
         emuThread_.wait();
     }
 
-    PowerOff();
+    gba_api::PowerOff();
 
-    if (bgMapsWindow_ && bgMapsWindow_->isVisible())
+    if (bgMapsWindow_->isVisible())
     {
         bgMapsWindow_->close();
     }
 
+    if (cpuDebugWindow_->isVisible())
+    {
+        cpuDebugWindow_->close();
+    }
+
     event->accept();
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Window management
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void MainWindow::RefreshScreen()
 {
@@ -145,36 +182,72 @@ void MainWindow::UpdateWindowTitle()
     }
     else
     {
-        title = std::format("{} ({} fps)", romTitle_, GetFPSCounter());
+        title = std::format("{} ({} fps)", romTitle_, gba_api::GetFPSCounter());
     }
 
     setWindowTitle(QString::fromStdString(title));
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Callbacks
+///---------------------------------------------------------------------------------------------------------------------------------
+
 void MainWindow::VBlankCallback(int)
 {
     RefreshScreen();
 
-    if (bgMapsWindow_ && bgMapsWindow_->isVisible())
+    if (bgMapsWindow_->isVisible())
     {
-        bgMapsWindow_->UpdateBackgroundView(gui::GetBgDebugInfo(bgMapsWindow_->GetSelectedBg()));
+        emit UpdateBackgroundViewSignal();
+    }
+
+    if (cpuDebugWindow_->isVisible() && cpuDebugWindow_->StepFrameMode())
+    {
+        cpuDebugWindow_->DisableStepFrameMode();
+        emit cpuDebugWindow_->PauseSignal();
     }
 }
+
+void MainWindow::BreakpointCallback()
+{
+    if (cpuDebugWindow_->isVisible())
+    {
+        emit cpuDebugWindow_->PauseSignal();
+    }
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Emulation management
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void MainWindow::StartEmulation(fs::path romPath)
 {
     if (emuThread_.isRunning())
     {
-        SDL_LockAudioDevice(audioDevice_);
-        SDL_PauseAudioDevice(audioDevice_, 1);
         emuThread_.requestInterruption();
         emuThread_.wait();
     }
 
-    PowerOff();
-    InitializeGBA(biosPath_, romPath, logDir_, std::bind(&MainWindow::VBlankCallback, this, std::placeholders::_1));
-    romTitle_ = GetTitle();
-    emuThread_.start();
+    SDL_LockAudioDevice(audioDevice_);
+    SDL_PauseAudioDevice(audioDevice_, 1);
+    gba_api::PowerOff();
+    gba_api::InitializeGBA(biosPath_,
+                           romPath,
+                           logDir_,
+                           std::bind(&MainWindow::VBlankCallback, this, std::placeholders::_1),
+                           std::bind(&MainWindow::BreakpointCallback, this));
+    romTitle_ = gba_api::GetTitle();
+
+    if (cpuDebugWindow_->isVisible())
+    {
+        emit UpdateCpuDebuggerSignal();
+    }
+
+    if (!pauseAction_->isChecked())
+    {
+        emuThread_.start();
+    }
+
     SDL_UnlockAudioDevice(audioDevice_);
     SDL_PauseAudioDevice(audioDevice_, 0);
 }
@@ -208,8 +281,38 @@ void MainWindow::SendKeyPresses()
     if (pressedKeys_.contains(81)) keyinput.L = 0;
     if (pressedKeys_.contains(69)) keyinput.R = 0;
 
-    UpdateKeypad(keyinput);
+    gba_api::UpdateKeypad(keyinput);
 }
+
+void MainWindow::PauseEmulation()
+{
+    if (emuThread_.isRunning())
+    {
+        emuThread_.requestInterruption();
+        emuThread_.wait();
+
+        if (cpuDebugWindow_->isVisible())
+        {
+            emit UpdateCpuDebuggerSignal();
+        }
+    }
+
+    pauseAction_->setChecked(true);
+}
+
+void MainWindow::ResumeEmulation()
+{
+    if (!emuThread_.isRunning())
+    {
+        emuThread_.start();
+    }
+
+    pauseAction_->setChecked(false);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Menu bars
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void MainWindow::InitializeMenuBar()
 {
@@ -218,19 +321,52 @@ void MainWindow::InitializeMenuBar()
     debugMenu_ = menuBar()->addMenu("Debug");
     optionsMenu_ = menuBar()->addMenu("Options");
 
+    // Emulation
+    pauseAction_ = new QAction("Pause", this);
+    pauseAction_->setCheckable(true);
+    connect(pauseAction_, &QAction::triggered, this, &MainWindow::PauseButtonAction);
+    emulationMenu_->addAction(pauseAction_);
+
     // Debug
     QAction* bgMaps = new QAction("View BG Maps", this);
     connect(bgMaps, &QAction::triggered, this, &MainWindow::OpenBgMapsWindow);
     debugMenu_->addAction(bgMaps);
+
+    QAction* cpuDebugger = new QAction("CPU Debugger", this);
+    connect(cpuDebugger, &QAction::triggered, this, &MainWindow::OpenCpuDebugger);
+    debugMenu_->addAction(cpuDebugger);
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Actions
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void MainWindow::PauseButtonAction()
+{
+    if (pauseAction_->isChecked())
+    {
+        PauseEmulation();
+    }
+    else
+    {
+        ResumeEmulation();
+    }
 }
 
 void MainWindow::OpenBgMapsWindow()
 {
-    if (bgMapsWindow_ == nullptr)
+    bgMapsWindow_->show();
+}
+
+void MainWindow::OpenCpuDebugger()
+{
+    if (cpuDebugWindow_->isVisible())
     {
-        bgMapsWindow_ = new BackgroundViewer;
+        return;
     }
 
-    bgMapsWindow_->show();
+    PauseEmulation();
+    emit UpdateCpuDebuggerSignal();
+    cpuDebugWindow_->show();
 }
 }  // namespace gui

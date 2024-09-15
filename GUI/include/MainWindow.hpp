@@ -11,6 +11,7 @@
 
 namespace fs = std::filesystem;
 namespace gui { class BackgroundViewer; }
+namespace gui { class CpuDebugger; }
 
 namespace gui
 {
@@ -24,6 +25,9 @@ public:
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
 
+    /// @brief Main window destructor.
+    ~MainWindow();
+
     /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
     /// @param romPath Path to GBA ROM.
     void StartEmulation(fs::path romPath);
@@ -31,6 +35,20 @@ public:
     /// @brief Update the path to the BIOS file.
     /// @param biosPath Path to GBA BIOS.
     void SetBiosPath(fs::path biosPath) { biosPath_ = biosPath; }
+
+public slots:
+    /// @brief Pause the emulator if it's running.
+    void PauseSlot() { PauseEmulation(); }
+
+    /// @brief Resume the emulator if it's paused.
+    void ResumeSlot() { ResumeEmulation(); }
+
+signals:
+    /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
+    void UpdateBackgroundViewSignal();
+
+    /// @brief Emit this signal to notify the CPU Debugger to update its displayed data.
+    void UpdateCpuDebuggerSignal();
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -67,8 +85,15 @@ private:
     /// @brief Update the window title with the ROM name and current internal FPS.
     void UpdateWindowTitle();
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Callbacks
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
     /// @brief Callback function for whenever the GBA enters VBlank.
     void VBlankCallback(int);
+
+    /// @brief Callback function for whenever a breakpoint set in the CPU debugger is encountered.
+    void BreakpointCallback();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Emulation management
@@ -76,6 +101,12 @@ private:
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
     void SendKeyPresses();
+
+    /// @brief Pause emulator if it's running and update emulation menu pause item.
+    void PauseEmulation();
+
+    /// @brief 
+    void ResumeEmulation();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Menu bars
@@ -85,11 +116,17 @@ private:
     void InitializeMenuBar();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug options
+    /// Actions
     ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Action for clicking "Pause" menu item.
+    void PauseButtonAction();
 
     /// @brief Action for clicking "View BG Maps" menu item.
     void OpenBgMapsWindow();
+
+    /// @brief Action for clicking "CPU Debugger" menu item.
+    void OpenCpuDebugger();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
@@ -119,7 +156,11 @@ private:
     QMenu* debugMenu_;
     QMenu* optionsMenu_;
 
+    // Emulation menu
+    QAction* pauseAction_;
+
     // Debug menus
     BackgroundViewer* bgMapsWindow_;
+    CpuDebugger* cpuDebugWindow_;
 };
 }  // namespace gui

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <unordered_map>
 #include <utility>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/CPU/Registers.hpp>
@@ -20,7 +21,6 @@ class ARM7TDMI
 {
     using ReadMemCallback = MemberFunctor<std::pair<u32, int> (GameBoyAdvance::*)(u32, AccessSize)>;
     using WriteMemCallback = MemberFunctor<int (GameBoyAdvance::*)(u32, u32, AccessSize)>;
-    using FastMemAccessCallback = std::function<debug::cpu::CpuFastMemAccess(u32)>;
 
 public:
     ARM7TDMI() = delete;
@@ -32,23 +32,48 @@ public:
     /// @brief Initialize an ARM7TDMI CPU.
     /// @param readMem Callback function to access bus read functionality.
     /// @param writeMem Callback function to access bus write functionality.
-    /// @param fastMem Callback function to get fast mem access to current location that PC points to. Only used for debug.
     /// @param scheduler Reference to event scheduler that will be advanced as instructions execute.
     /// @param log Reference to logger to log CPU state and instructions to.
     explicit ARM7TDMI(ReadMemCallback readMem,
                       WriteMemCallback writeMem,
-                      FastMemAccessCallback fastMem,
                       EventScheduler& scheduler,
                       logging::Logger& log);
 
     /// @brief Advance the pipeline by one stage and execute an instruction if one is ready to be executed. Advances the scheduler
     ///        after each memory read/write and internal cycle.
     /// @param irq Status of IRQ line. True if an IRQ is pending.
-    void Step(bool irq);
+    /// @return Whether the next call to Step will result in an instruction being executed.
+    bool Step(bool irq);
 
     /// @brief Get the current PC value that code is executing from.
-    /// @return Current r15 value.
+    /// @return Current value of R15.
     u32 GetPC() { return registers_.GetPC(); }
+
+    /// @brief Get the current SP value (R13).
+    /// @return Current value of R13.
+    u32 GetSP() { return registers_.ReadRegister(SP_INDEX); }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Debug
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get the current state of the ARM7TDMI registers.
+    /// @param regState Reference to register state to populate.
+    void GetRegState(debug::cpu::RegState& regState) const { registers_.GetRegState(regState); }
+
+    /// @brief Get the address of the next instruction that will be executed.
+    /// @return Address of next instruction to execute.
+    u32 GetNextAddrToExecute() const;
+
+    /// @brief Disassemble an ARM instruction into its human-readable mnemonic.
+    /// @param instruction Raw 32-bit ARM instruction code.
+    /// @return Disassembled instruction.
+    debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction);
+
+    /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
+    /// @param instruction Raw 16-bit THUMB instruction code.
+    /// @return Disassembled instruction.
+    debug::cpu::Mnemonic const& DisassembleThumbInstruction(u16 instruction);
 
 private:
     /// @brief Flush pipeline and prepare to start executing from IRQ handler.
@@ -133,17 +158,8 @@ private:
     /// Debug
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    /// @brief Rotate fetched disassembled instructions from next -> current -> previous.
-    void UpdateDebugInfo();
-
-    /// @brief Clear all fetched disassembled instructions and fetch new ones at new PC location.
-    void RefillDebugInfo();
-
-    FastMemAccessCallback GetFastMem;
-    debug::cpu::CpuFastMemAccess fastMemAccess_;
-
-    debug::cpu::CpuDebugInfo debugInfo_;
     logging::Logger& log_;
-    bool updateDebugInfo_;
+    std::unordered_map<u32, debug::cpu::Mnemonic> decodedArmInstructions_;
+    std::unordered_map<u16, debug::cpu::Mnemonic> decodedThumbInstructions_;
 };
 }  // namespace cpu

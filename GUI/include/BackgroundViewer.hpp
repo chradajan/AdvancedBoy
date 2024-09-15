@@ -20,15 +20,14 @@ public:
     /// @brief Initialize the background viewer.
     BackgroundViewer();
 
-    /// @brief Get the index of the background to be displayed in the background viewer.
-    /// @return Currently select background index.
-    u8 GetSelectedBg() const { return selectedBg_; }
-
+public slots:
     /// @brief Update the image and information for the currently selected background.
-    /// @param info Debug info needed to display a background.
-    void UpdateBackgroundView(BackgroundDebugInfo const& info);
+    void UpdateBackgroundViewSlot() { UpdateBackgroundView(); }
 
 private:
+    /// @brief Get information for the currently selected background and update the displayed image/data.
+    void UpdateBackgroundView();
+
     /// @brief Initialize widgets needed to adjust background scale and selection.
     /// @return Widget to add to main layout.
     QGroupBox* CreateSelectionGroup();
@@ -43,7 +42,7 @@ private:
 
     /// @brief Action for background selection buttons.
     /// @param bgIndex Index of background to select.
-    void SetSelectedBg(u8 bgIndex) { selectedBg_ = bgIndex; }
+    void SetSelectedBg(u8 bgIndex);
 
     // Info
     u8 selectedBg_;

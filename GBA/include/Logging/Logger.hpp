@@ -33,9 +33,12 @@ public:
     bool Enabled() const { return initialized_; }
 
     /// @brief Log the current instruction about to be executed and the registers state before execution.
-    /// @param instruction Disassembled instruction info.
-    /// @param regState Current value of CPU registers.
-    void LogCPU(debug::cpu::DisassembledInstruction const& instruction, debug::cpu::RegState const& regState);
+    /// @param mnemonic Mnemonic of instruction to log.
+    /// @param regState Register state before instruction is executed.
+    /// @param addr Address of instruction.
+    /// @param instruction Raw undecoded instruction.
+    /// @param arm Whether this is an ARM or THUMB instruction.
+    void LogCPU(debug::cpu::Mnemonic const& mnemonic, debug::cpu::RegState const& regState, u32 addr, u32 instruction, bool arm);
 
     /// @brief Log when an exception occurs.
     /// @param error Reference to exception that was thrown.

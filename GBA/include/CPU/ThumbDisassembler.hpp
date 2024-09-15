@@ -10,30 +10,29 @@ using namespace debug::cpu;
 
 /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
 /// @param instruction Raw 16-bit THUMB instruction code.
-/// @param addr Address of the instruction.
 /// @return Disassembled instruction.
-DisassembledInstruction DisassembleInstruction(u32 instruction, u32 addr);
+Mnemonic DisassembleInstruction(u16 instruction);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// @brief Functions to convert 16-bit THUMB instructions to their mnemonics and arguments.
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void DisassembleSoftwareInterrupt(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleUnconditionalBranch(u16 instruction, u32 pc, DisassembledInstruction& disassembly);
-void DisassembleConditionalBranch(u16 instruction, u32 pc, DisassembledInstruction& disassembly);
-void DisassembleMultipleLoadStore(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleLongBranchWithLink(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleAddOffsetToStackPointer(u16 instruction, DisassembledInstruction& disassembly);
-void DisassemblePushPopRegisters(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleLoadStoreHalfword(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleSPRelativeLoadStore(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleLoadAddress(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleLoadStoreWithOffset(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleLoadStoreSignExtendedByteHalfword(u16 instruction, DisassembledInstruction& disassembly);
-void DisassemblePCRelativeLoad(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleHiRegisterOperationsBranchExchange(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleALUOperations(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleMoveCompareAddSubtractImmediate(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleAddSubtract(u16 instruction, DisassembledInstruction& disassembly);
-void DisassembleMoveShiftedRegister(u16 instruction, DisassembledInstruction& disassembly);
+void DisassembleSoftwareInterrupt(u16 instruction, Mnemonic& mnemonic);
+void DisassembleUnconditionalBranch(u16 instruction, Mnemonic& mnemonic);
+void DisassembleConditionalBranch(u16 instruction, Mnemonic& mnemonic);
+void DisassembleMultipleLoadStore(u16 instruction, Mnemonic& mnemonic);
+void DisassembleLongBranchWithLink(u16 instruction, Mnemonic& mnemonic);
+void DisassembleAddOffsetToStackPointer(u16 instruction, Mnemonic& mnemonic);
+void DisassemblePushPopRegisters(u16 instruction, Mnemonic& mnemonic);
+void DisassembleLoadStoreHalfword(u16 instruction, Mnemonic& mnemonic);
+void DisassembleSPRelativeLoadStore(u16 instruction, Mnemonic& mnemonic);
+void DisassembleLoadAddress(u16 instruction, Mnemonic& mnemonic);
+void DisassembleLoadStoreWithOffset(u16 instruction, Mnemonic& mnemonic);
+void DisassembleLoadStoreSignExtendedByteHalfword(u16 instruction, Mnemonic& mnemonic);
+void DisassemblePCRelativeLoad(u16 instruction, Mnemonic& mnemonic);
+void DisassembleHiRegisterOperationsBranchExchange(u16 instruction, Mnemonic& mnemonic);
+void DisassembleALUOperations(u16 instruction, Mnemonic& mnemonic);
+void DisassembleMoveCompareAddSubtractImmediate(u16 instruction, Mnemonic& mnemonic);
+void DisassembleAddSubtract(u16 instruction, Mnemonic& mnemonic);
+void DisassembleMoveShiftedRegister(u16 instruction, Mnemonic& mnemonic);
 }  // namespace cpu::thumb
