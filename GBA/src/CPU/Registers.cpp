@@ -3,8 +3,8 @@
 #include <format>
 #include <stdexcept>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu
 {
@@ -156,37 +156,6 @@ void Registers::LoadSPSR()
         default:
             break;
     }
-}
-
-void Registers::GetRegState(debug::cpu::RegState& regState) const
-{
-    auto mode = GetOperatingMode();
-    regState.mode = static_cast<u8>(mode);
-
-    for (u8 i = 0; i < 16; ++i)
-    {
-        regState.registers[i] = ReadRegister(i, mode);
-    }
-
-    regState.cpsr = std::bit_cast<u32, CPSR>(cpsr_);
-
-    if ((mode == OperatingMode::User) || (mode == OperatingMode::System))
-    {
-        regState.spsr = {};
-    }
-    else
-    {
-        regState.spsr = GetSPSR();
-    }
-
-    regState.negative = IsNegative();
-    regState.zero = IsZero();
-    regState.carry = IsCarry();
-    regState.overflow = IsOverflow();
-
-    regState.irqDisable = IsIrqDisabled();
-    regState.fiqDisable = IsFiqDisabled();
-    regState.thumbState = InThumbState();
 }
 
 void Registers::SkipBIOS()

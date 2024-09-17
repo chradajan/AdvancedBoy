@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu
 {

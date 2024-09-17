@@ -4,17 +4,16 @@
 #include <cstddef>
 #include <cstring>
 #include <utility>
-#include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Channel1.hpp>
 #include <GBA/include/APU/Channel2.hpp>
 #include <GBA/include/APU/Channel4.hpp>
+#include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/RingBuffer.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {

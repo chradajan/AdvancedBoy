@@ -4,15 +4,15 @@
 #include <functional>
 #include <set>
 #include <GBA/include/Keypad/Registers.hpp>
-#include <GBA/include/Types/Types.hpp>
-#include <GUI/include/BackgroundViewer.hpp>
-#include <GUI/include/CpuDebugger.hpp>
-#include <GUI/include/DebugWindows/RegisterViewer.hpp>
+#include <GBA/include/Utilities/Types.hpp>
+#include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
+#include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
+#include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
 #include <GUI/include/GBA.hpp>
-#include <SDL2/SDL.h>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QtWidgets>
+#include <SDL2/SDL.h>
 
 namespace
 {
@@ -57,44 +57,43 @@ MainWindow::MainWindow(QWidget* parent) :
 
     // Paths
     biosPath_ = "../bios/gba_bios.bin";
-    logDir_ = "";
 
     // Window title
     connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
     fpsTimer_.start(1000);
 
     // Debug options
-    bgMapsWindow_ = new BackgroundViewer;
-    cpuDebugWindow_ = new CpuDebugger;
-    registerViewerWindow_ = new RegisterViewer;
+    bgViewerWindow_ = new BackgroundViewerWindow;
+    cpuDebuggerWindow_ = new CpuDebuggerWindow;
+    registerViewerWindow_ = new RegisterViewerWindow;
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
-            bgMapsWindow_, &BackgroundViewer::UpdateBackgroundViewSlot);
+            bgViewerWindow_, &BackgroundViewerWindow::UpdateBackgroundViewSlot);
 
     connect(this, &MainWindow::UpdateCpuDebuggerSignal,
-            cpuDebugWindow_, &CpuDebugger::UpdateCpuDebuggerSlot);
+            cpuDebuggerWindow_, &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
 
-    connect(cpuDebugWindow_, &CpuDebugger::PauseSignal,
+    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::PauseSignal,
             this, &MainWindow::PauseSlot);
 
-    connect(cpuDebugWindow_, &CpuDebugger::ResumeSignal,
+    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::ResumeSignal,
             this, &MainWindow::ResumeSlot);
 
-    connect(cpuDebugWindow_, &CpuDebugger::StepSignal,
-            bgMapsWindow_, &BackgroundViewer::UpdateBackgroundViewSlot);
+    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::StepSignal,
+            bgViewerWindow_, &BackgroundViewerWindow::UpdateBackgroundViewSlot);
 
     connect(this, &MainWindow::UpdateRegisterViewerSignal,
-            registerViewerWindow_, &RegisterViewer::UpdateRegisterViewSlot);
+            registerViewerWindow_, &RegisterViewerWindow::UpdateRegisterViewSlot);
 
-    connect(cpuDebugWindow_, &CpuDebugger::StepSignal,
-            registerViewerWindow_, &RegisterViewer::UpdateRegisterViewSlot);
+    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::StepSignal,
+            registerViewerWindow_, &RegisterViewerWindow::UpdateRegisterViewSlot);
 }
 
 MainWindow::~MainWindow()
 {
-    delete bgMapsWindow_;
-    delete cpuDebugWindow_;
+    delete bgViewerWindow_;
+    delete cpuDebuggerWindow_;
     delete registerViewerWindow_;
 }
 
@@ -158,8 +157,8 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
     gba_api::PowerOff();
 
-    bgMapsWindow_->close();
-    cpuDebugWindow_->close();
+    bgViewerWindow_->close();
+    cpuDebuggerWindow_->close();
     registerViewerWindow_->close();
 
     event->accept();
@@ -199,23 +198,23 @@ void MainWindow::VBlankCallback(int)
 {
     RefreshScreen();
 
-    if (bgMapsWindow_->isVisible())
+    if (bgViewerWindow_->isVisible())
     {
         emit UpdateBackgroundViewSignal();
     }
 
-    if (cpuDebugWindow_->isVisible() && cpuDebugWindow_->StepFrameMode())
+    if (cpuDebuggerWindow_->isVisible() && cpuDebuggerWindow_->StepFrameMode())
     {
-        cpuDebugWindow_->DisableStepFrameMode();
-        emit cpuDebugWindow_->PauseSignal();
+        cpuDebuggerWindow_->DisableStepFrameMode();
+        emit cpuDebuggerWindow_->PauseSignal();
     }
 }
 
 void MainWindow::BreakpointCallback()
 {
-    if (cpuDebugWindow_->isVisible())
+    if (cpuDebuggerWindow_->isVisible())
     {
-        emit cpuDebugWindow_->PauseSignal();
+        emit cpuDebuggerWindow_->PauseSignal();
     }
 }
 
@@ -236,17 +235,16 @@ void MainWindow::StartEmulation(fs::path romPath)
     gba_api::PowerOff();
     gba_api::InitializeGBA(biosPath_,
                            romPath,
-                           logDir_,
                            std::bind(&MainWindow::VBlankCallback, this, std::placeholders::_1),
                            std::bind(&MainWindow::BreakpointCallback, this));
     romTitle_ = gba_api::GetTitle();
 
-    if (bgMapsWindow_->isVisible())
+    if (bgViewerWindow_->isVisible())
     {
         emit UpdateBackgroundViewSignal();
     }
 
-    if (cpuDebugWindow_->isVisible())
+    if (cpuDebuggerWindow_->isVisible())
     {
         emit UpdateCpuDebuggerSignal();
     }
@@ -304,7 +302,7 @@ void MainWindow::PauseEmulation()
         emuThread_.requestInterruption();
         emuThread_.wait();
 
-        if (cpuDebugWindow_->isVisible())
+        if (cpuDebuggerWindow_->isVisible())
         {
             emit UpdateCpuDebuggerSignal();
         }
@@ -378,19 +376,19 @@ void MainWindow::PauseButtonAction()
 void MainWindow::OpenBgMapsWindow()
 {
     emit UpdateBackgroundViewSignal();
-    bgMapsWindow_->show();
+    bgViewerWindow_->show();
 }
 
 void MainWindow::OpenCpuDebugger()
 {
-    if (cpuDebugWindow_->isVisible())
+    if (cpuDebuggerWindow_->isVisible())
     {
         return;
     }
 
     PauseEmulation();
     emit UpdateCpuDebuggerSignal();
-    cpuDebugWindow_->show();
+    cpuDebuggerWindow_->show();
 }
 
 void MainWindow::OpenRegisterViewerWindow()

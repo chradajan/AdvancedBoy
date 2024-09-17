@@ -8,8 +8,8 @@
 #include <string>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace debug
 {
@@ -29,8 +29,6 @@ struct DebugMemAccess
 /// CPU
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-namespace cpu
-{
 struct Mnemonic
 {
     std::string op;
@@ -63,14 +61,11 @@ struct CpuDebugInfo
     RegState regState;
     u32 nextAddrToExecute;
 };
-}  // namespace cpu
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// PPU
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-namespace graphics
-{
 struct BackgroundDebugInfo
 {
     // Image
@@ -96,5 +91,4 @@ struct BackgroundDebugInfo
     float pc;
     float pd;
 };
-}  // namespace graphics
 }  // namespace debug

@@ -3,8 +3,10 @@
 #include <array>
 #include <bit>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/Types.hpp>
+
+namespace debug { class CPUDebugger; }
 
 namespace cpu
 {
@@ -155,14 +157,6 @@ public:
 
     /// @brief Copy the SPSR value of the current operating mode into CPSR.
     void LoadSPSR();
-
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Get the current state of the ARM7TDMI registers.
-    /// @param regState Reference to register state to populate.
-    void GetRegState(debug::cpu::RegState& regState) const;
 
 private:
     /// @brief Setup registers to start executing from ROM.
@@ -363,5 +357,8 @@ private:
         &undefinedRegBank_.r14,
         &sysAndUserRegBank_.r15
     };
+
+    // Debug
+    friend class debug::CPUDebugger;
 };
 }  // namespace cpu

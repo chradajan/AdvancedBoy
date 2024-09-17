@@ -1,8 +1,8 @@
-#include <GUI/include/BackgroundViewer.hpp>
+#include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
 #include <format>
 #include <string>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/GBA.hpp>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGridLayout>
@@ -14,9 +14,9 @@
 
 namespace gui
 {
-using namespace debug::graphics;
+using namespace debug;
 
-BackgroundViewer::BackgroundViewer() : QWidget()
+BackgroundViewerWindow::BackgroundViewerWindow() : QWidget()
 {
     setWindowTitle("Background Viewer");
 
@@ -29,7 +29,7 @@ BackgroundViewer::BackgroundViewer() : QWidget()
     selectedBg_ = 0;
 }
 
-void BackgroundViewer::UpdateBackgroundView()
+void BackgroundViewerWindow::UpdateBackgroundView()
 {
     if (!isVisible())
     {
@@ -65,7 +65,7 @@ void BackgroundViewer::UpdateBackgroundView()
     }
 }
 
-QGroupBox* BackgroundViewer::CreateSelectionGroup()
+QGroupBox* BackgroundViewerWindow::CreateSelectionGroup()
 {
     QGroupBox* groupBox = new QGroupBox("Select map");
 
@@ -103,7 +103,7 @@ QGroupBox* BackgroundViewer::CreateSelectionGroup()
     return groupBox;
 }
 
-QGroupBox* BackgroundViewer::CreateBgInfoGroup()
+QGroupBox* BackgroundViewerWindow::CreateBgInfoGroup()
 {
     QGroupBox* groupBox = new QGroupBox("Map info");
     QGridLayout* groupLayout  = new QGridLayout;
@@ -138,7 +138,7 @@ QGroupBox* BackgroundViewer::CreateBgInfoGroup()
     return groupBox;
 }
 
-QScrollArea* BackgroundViewer::CreateBackgroundImage()
+QScrollArea* BackgroundViewerWindow::CreateBackgroundImage()
 {
     QScrollArea* scrollArea = new QScrollArea;
     scrollArea->setWidgetResizable(false);
@@ -151,7 +151,7 @@ QScrollArea* BackgroundViewer::CreateBackgroundImage()
     return scrollArea;
 }
 
-void BackgroundViewer::SetSelectedBg(u8 bgIndex)
+void BackgroundViewerWindow::SetSelectedBg(u8 bgIndex)
 {
     selectedBg_ = bgIndex;
     UpdateBackgroundView();

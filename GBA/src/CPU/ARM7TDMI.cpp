@@ -3,29 +3,26 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
-#include <GBA/include/CPU/ArmDisassembler.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/CPU/Registers.hpp>
-#include <GBA/include/CPU/ThumbDisassembler.hpp>
-#include <GBA/include/Logging/Logger.hpp>
+#include <GBA/include/Debug/ArmDisassembler.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Debug/ThumbDisassembler.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu
 {
 ARM7TDMI::ARM7TDMI(ReadMemCallback readMem,
                    WriteMemCallback writeMem,
-                   EventScheduler& scheduler,
-                   logging::Logger& log) :
+                   EventScheduler& scheduler) :
     ReadMemory(readMem),
     WriteMemory(writeMem),
     flushPipeline_(false),
-    scheduler_(scheduler),
-    log_(log)
+    scheduler_(scheduler)
 {
 }
 
@@ -49,15 +46,6 @@ bool ARM7TDMI::Step(bool irq)
     if (pipeline_.Full())
     {
         auto [undecodedInstruction, executedPC] = pipeline_.Pop();
-
-        if (log_.Enabled())
-        {
-            auto const& mnemonic = armState ? DisassembleArmInstruction(undecodedInstruction) :
-                                              DisassembleThumbInstruction(undecodedInstruction);
-            debug::cpu::RegState regState;
-            registers_.GetRegState(regState);
-            log_.LogCPU(mnemonic, regState, executedPC, undecodedInstruction, armState);
-        }
 
         if (armState)
         {
@@ -90,34 +78,6 @@ u32 ARM7TDMI::GetNextAddrToExecute() const
     }
 
     return pipeline_.PeakTail().PC;
-}
-
-debug::cpu::Mnemonic const& ARM7TDMI::DisassembleArmInstruction(u32 instruction)
-{
-    auto foundIter = decodedArmInstructions_.find(instruction);
-
-    if (foundIter == decodedArmInstructions_.end())
-    {
-        bool inserted;
-        auto mnemonic = arm::DisassembleInstruction(instruction);
-        std::tie(foundIter, inserted) = decodedArmInstructions_.insert({instruction, mnemonic});
-    }
-
-    return foundIter->second;
-}
-
-debug::cpu::Mnemonic const& ARM7TDMI::DisassembleThumbInstruction(u16 instruction)
-{
-    auto foundIter = decodedThumbInstructions_.find(instruction);
-
-    if (foundIter == decodedThumbInstructions_.end())
-    {
-        bool inserted;
-        auto mnemonic = thumb::DisassembleInstruction(instruction);
-        std::tie(foundIter, inserted) = decodedThumbInstructions_.insert({instruction, mnemonic});
-    }
-
-    return foundIter->second;
 }
 
 void ARM7TDMI::HandleIRQ()

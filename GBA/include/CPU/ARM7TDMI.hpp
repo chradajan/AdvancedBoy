@@ -1,18 +1,16 @@
 #pragma once
 
 #include <functional>
-#include <unordered_map>
 #include <utility>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/CPU/Registers.hpp>
-#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 class GameBoyAdvance;
+namespace debug { class CPUDebugger; }
 
 namespace cpu
 {
@@ -33,11 +31,9 @@ public:
     /// @param readMem Callback function to access bus read functionality.
     /// @param writeMem Callback function to access bus write functionality.
     /// @param scheduler Reference to event scheduler that will be advanced as instructions execute.
-    /// @param log Reference to logger to log CPU state and instructions to.
     explicit ARM7TDMI(ReadMemCallback readMem,
                       WriteMemCallback writeMem,
-                      EventScheduler& scheduler,
-                      logging::Logger& log);
+                      EventScheduler& scheduler);
 
     /// @brief Advance the pipeline by one stage and execute an instruction if one is ready to be executed. Advances the scheduler
     ///        after each memory read/write and internal cycle.
@@ -51,29 +47,11 @@ public:
 
     /// @brief Get the current SP value (R13).
     /// @return Current value of R13.
-    u32 GetSP() { return registers_.ReadRegister(SP_INDEX); }
-
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Get the current state of the ARM7TDMI registers.
-    /// @param regState Reference to register state to populate.
-    void GetRegState(debug::cpu::RegState& regState) const { registers_.GetRegState(regState); }
+    u32 GetSP() const { return registers_.ReadRegister(SP_INDEX); }
 
     /// @brief Get the address of the next instruction that will be executed.
     /// @return Address of next instruction to execute.
     u32 GetNextAddrToExecute() const;
-
-    /// @brief Disassemble an ARM instruction into its human-readable mnemonic.
-    /// @param instruction Raw 32-bit ARM instruction code.
-    /// @return Disassembled instruction.
-    debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction);
-
-    /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
-    /// @param instruction Raw 16-bit THUMB instruction code.
-    /// @return Disassembled instruction.
-    debug::cpu::Mnemonic const& DisassembleThumbInstruction(u16 instruction);
 
 private:
     /// @brief Flush pipeline and prepare to start executing from IRQ handler.
@@ -154,12 +132,7 @@ private:
     // External components
     EventScheduler& scheduler_;
 
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    logging::Logger& log_;
-    std::unordered_map<u32, debug::cpu::Mnemonic> decodedArmInstructions_;
-    std::unordered_map<u16, debug::cpu::Mnemonic> decodedThumbInstructions_;
+    // Debugger
+    friend class debug::CPUDebugger;
 };
 }  // namespace cpu

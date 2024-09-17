@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstring>
 #include <span>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 /// @brief Read a byte, halfword, or word from an arbitrary block of memory.
 /// @param memory Span of bytes to read from.

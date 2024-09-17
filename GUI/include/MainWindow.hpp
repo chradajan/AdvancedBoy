@@ -5,14 +5,14 @@
 #include <string>
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
-#include <SDL2/SDL.h>
 #include <QtCore/QTimer>
 #include <QtWidgets/QMainWindow>
+#include <SDL2/SDL.h>
 
 namespace fs = std::filesystem;
-namespace gui { class BackgroundViewer; }
-namespace gui { class CpuDebugger; }
-namespace gui { class RegisterViewer; }
+namespace gui { class BackgroundViewerWindow; }
+namespace gui { class CpuDebuggerWindow; }
+namespace gui { class RegisterViewerWindow; }
 
 namespace gui
 {
@@ -142,7 +142,6 @@ private:
     // Emulation control
     EmuThread emuThread_;
     fs::path biosPath_;
-    fs::path logDir_;
 
     // Screen control
     LCD screen_;
@@ -167,8 +166,8 @@ private:
     QAction* pauseAction_;
 
     // Debug menus
-    BackgroundViewer* bgMapsWindow_;
-    CpuDebugger* cpuDebugWindow_;
-    RegisterViewer* registerViewerWindow_;
+    BackgroundViewerWindow* bgViewerWindow_;
+    CpuDebuggerWindow* cpuDebuggerWindow_;
+    RegisterViewerWindow* registerViewerWindow_;
 };
 }  // namespace gui

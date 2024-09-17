@@ -1,25 +1,26 @@
 #include <GUI/include/GBA.hpp>
-#include <filesystem>
 #include <array>
 #include <cstring>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Debug/GameBoyAdvanceDebugger.hpp>
+#include <GBA/include/GameBoyAdvance.hpp>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/GameBoyAdvance.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 static std::unique_ptr<GameBoyAdvance> GBA;
+static std::unique_ptr<debug::GameBoyAdvanceDebugger> GBADebugger;
 static std::unordered_set<u32> EMPTY_SET = {};
-static debug::cpu::Mnemonic EmptyMnemonic = {"???", "", "???", {}};
+static debug::Mnemonic EmptyMnemonic = {"???", "", "???", {}};
 
 namespace gba_api
 {
 void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
-                   fs::path logDir,
                    std::function<void(int)> vBlankCallback,
                    std::function<void()> breakpointCallback)
 {
@@ -28,7 +29,8 @@ void InitializeGBA(fs::path biosPath,
         return;
     }
 
-    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, logDir, vBlankCallback, breakpointCallback);
+    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, vBlankCallback, breakpointCallback);
+    GBADebugger = std::make_unique<debug::GameBoyAdvanceDebugger>(*GBA);
 }
 
 void RunEmulationLoop()
@@ -49,6 +51,7 @@ void PowerOff()
     }
 
     GBA.reset();
+    GBADebugger.reset();
 }
 
 void FillAudioBuffer(u8* stream, size_t len)
@@ -120,14 +123,6 @@ void UpdateKeypad(KEYINPUT keyinput)
     }
 }
 
-void RunDisassembler()
-{
-    if (GBA)
-    {
-        GBA->RunDisassembler();
-    }
-}
-
 void SingleStep()
 {
     if (GBA)
@@ -136,44 +131,44 @@ void SingleStep()
     }
 }
 
-debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
+debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
 {
-    if (GBA)
+    if (GBADebugger)
     {
-        return GBA->GetBgDebugInfo(bgIndex);
+        return GBADebugger->GetBgDebugInfo(bgIndex);
     }
 
     return {};
 }
 
-debug::cpu::CpuDebugInfo GetCpuDebugInfo()
+debug::CpuDebugInfo GetCpuDebugInfo()
 {
-    if (GBA)
+    if (GBADebugger)
     {
-        return GBA->GetCpuDebugInfo();
+        return GBADebugger->GetCpuDebugInfo();
     }
 
-    debug::cpu::CpuDebugInfo emptyDebugInfo = {};
+    debug::CpuDebugInfo emptyDebugInfo = {};
     emptyDebugInfo.pcMem.page = Page::INVALID;
     emptyDebugInfo.spMem.page = Page::INVALID;
     return emptyDebugInfo;
 }
 
-debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction)
+debug::Mnemonic const& DisassembleArmInstruction(u32 instruction)
 {
-    if (GBA)
+    if (GBADebugger)
     {
-        return GBA->DisassembleArmInstruction(instruction);
+        return GBADebugger->DisassembleArmInstruction(instruction);
     }
 
     return EmptyMnemonic;
 }
 
-debug::cpu::Mnemonic const& DisassembleThumbInstruction(u32 instruction)
+debug::Mnemonic const& DisassembleThumbInstruction(u32 instruction)
 {
-    if (GBA)
+    if (GBADebugger)
     {
-        return GBA->DisassembleThumbInstruction(instruction);
+        return GBADebugger->DisassembleThumbInstruction(instruction);
     }
 
     return EmptyMnemonic;
@@ -207,9 +202,9 @@ std::unordered_set<u32> const& GetBreakpoints()
 
 u32 DebugReadRegister(u32 addr, u8 size)
 {
-    if (GBA)
+    if (GBADebugger)
     {
-        return GBA->DebugReadRegister(addr, AccessSize(size));
+        return GBADebugger->ReadRegister(addr, AccessSize(size));
     }
 
     return 0;

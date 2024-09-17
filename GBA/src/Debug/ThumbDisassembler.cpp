@@ -1,14 +1,14 @@
-#include <GBA/include/CPU/ThumbDisassembler.hpp>
+#include <GBA/include/Debug/ThumbDisassembler.hpp>
 #include <bit>
 #include <format>
 #include <sstream>
 #include <string>
-#include <GBA/include/CPU/ArmDisassembler.hpp>
-#include <GBA/include/CPU/THUMB.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/CPU/ThumbInstructions.hpp>
+#include <GBA/include/Debug/ArmDisassembler.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace
 {

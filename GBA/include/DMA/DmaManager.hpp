@@ -6,8 +6,8 @@
 #include <GBA/include/DMA/DmaChannel.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 class GameBoyAdvance;
 namespace cartridge { class GamePak; }

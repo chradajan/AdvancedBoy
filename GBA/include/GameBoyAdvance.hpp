@@ -14,14 +14,13 @@
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <GBA/include/Keypad/Keypad.hpp>
 #include <GBA/include/Keypad/Registers.hpp>
-#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
+namespace debug { class GameBoyAdvanceDebugger; }
 namespace fs = std::filesystem;
 
 /// @brief Represents a single GBA.
@@ -37,16 +36,14 @@ public:
     /// @brief Initialize the GBA.
     /// @param biosPath Path to BIOS ROM file.
     /// @param romPath Path to GamePak ROM file.
-    /// @param logDir Path to directory where log file should be generated. Pass empty path to disable logging.
     /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
     /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
     explicit GameBoyAdvance(fs::path biosPath,
                             fs::path romPath,
-                            fs::path logDir,
                             std::function<void(int)> vBlankCallback,
                             std::function<void()> breakpointCallback);
 
-    /// @brief Save backup media to disk and dump any unlogged entries.
+    /// @brief Save backup media to disk.
     ~GameBoyAdvance();
 
     /// @brief Get a pointer to the pixel data of the most recently completed frame.
@@ -77,34 +74,12 @@ public:
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
 
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
     /// @brief Run the emulator for a single CPU instruction.
     void SingleStep();
 
-    /// @brief Get debug info needed to draw a fully isolated background layer.
-    /// @param bgIndex Index of background to display in debugger.
-    /// @return Debug info needed to display a background layer.
-    debug::graphics::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppu_.GetBackgroundDebugInfo(bgIndex); }
-
-    /// @brief Get debug info to be shown in the CPU Debugger.
-    /// @return CPU debug info.
-    debug::cpu::CpuDebugInfo GetCpuDebugInfo();
-
-    /// @brief Pre-disassemble all BIOS and ROM code as both ARM and THUMB instructions.
-    void RunDisassembler();
-
-    /// @brief Disassemble an ARM instruction into its human-readable mnemonic.
-    /// @param instruction Raw 32-bit ARM instruction code.
-    /// @return Disassembled instruction.
-    debug::cpu::Mnemonic const& DisassembleArmInstruction(u32 instruction) { return cpu_.DisassembleArmInstruction(instruction); }
-
-    /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
-    /// @param instruction Raw 16-bit THUMB instruction code.
-    /// @return Disassembled instruction.
-    debug::cpu::Mnemonic const& DisassembleThumbInstruction(u16 instruction) { return cpu_.DisassembleThumbInstruction(instruction); }
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Breakpoints
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Add a breakpoint at a specified address. CPU execution will stop when this matches the address of the next
     ///        instruction to be executed by the CPU.
@@ -118,12 +93,6 @@ public:
     /// @brief Get the list of breakpoints currently set.
     /// @return An unordered set of all current breakpoints.
     std::unordered_set<u32> const& GetBreakpoints() const { return breakpoints_; }
-
-    /// @brief Get the value of an I/O register for debugging purposes.
-    /// @param addr Address of register.
-    /// @param length Memory access size of the read.
-    /// @return Current value of specified register.
-    u32 DebugReadRegister(u32 addr, AccessSize length);
 
 private:
     /// @brief Main emulation loop.
@@ -212,23 +181,11 @@ private:
     void TimerOverflow(u8 index, int extraCycles);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Get direct access to a block of memory for debug purposes.
-    /// @param addr Get block of data that addr is contained within.
-    /// @return Debug mem access.
-    debug::DebugMemAccess GetDebugMemAccess(u32 addr);
-
-    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Member data
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Non-components
     EventScheduler scheduler_;
-
-    // Debug
-    logging::Logger log_;
 
     // Components
     SystemControl systemControl_;
@@ -254,4 +211,7 @@ private:
     std::unordered_set<u32> breakpoints_;
     std::function<void()> BreakpointCallback;
     u64 breakpointCycle_;
+
+    // Debugger
+    friend class debug::GameBoyAdvanceDebugger;
 };

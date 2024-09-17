@@ -3,7 +3,7 @@
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/Utilities/CircularBuffer.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {

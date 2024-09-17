@@ -3,8 +3,8 @@
 #include <array>
 #include <unordered_map>
 #include <utility>
+#include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
@@ -47,21 +47,21 @@ private:
     QListWidget* list_;
 };
 
-class CpuDebugger : public QWidget
+class CpuDebuggerWindow : public QWidget
 {
     Q_OBJECT
 
 public:
-    CpuDebugger(CpuDebugger const&) = delete;
-    CpuDebugger& operator=(CpuDebugger const&) = delete;
-    CpuDebugger(CpuDebugger&&) = delete;
-    CpuDebugger& operator=(CpuDebugger&&) = delete;
+    CpuDebuggerWindow(CpuDebuggerWindow const&) = delete;
+    CpuDebuggerWindow& operator=(CpuDebuggerWindow const&) = delete;
+    CpuDebuggerWindow(CpuDebuggerWindow&&) = delete;
+    CpuDebuggerWindow& operator=(CpuDebuggerWindow&&) = delete;
 
     /// @brief Initialize the CPU debugger.
-    CpuDebugger();
+    CpuDebuggerWindow();
 
     /// @brief CPU Debugger destructor.
-    ~CpuDebugger();
+    ~CpuDebuggerWindow();
 
     /// @brief After the emulator has entered VBLank, emulation should pause if this is true.
     /// @return Whether the step frame option was selected.
@@ -100,27 +100,27 @@ private:
 
     /// @brief Update the text window displaying disassembled instructions around where the CPU is executing.
     /// @param debugInfo CPU debug info needed to populate the widget.
-    void PopulateDisassemblyGroup(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void PopulateDisassemblyGroup(::debug::CpuDebugInfo const& debugInfo);
 
     /// @brief Update the displayed values for the general purpose registers.
     /// @param debugInfo CPU debug info needed to populate the widget.
-    void PopulateRegistersGroup(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void PopulateRegistersGroup(::debug::CpuDebugInfo const& debugInfo);
 
     /// @brief Update the displayed values for the CPSR/SPSR registers.
     /// @param debugInfo CPU debug info needed to populate the widget.
-    void PopulateCpsrGroup(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void PopulateCpsrGroup(::debug::CpuDebugInfo const& debugInfo);
 
     /// @brief Update the displayed values for the stack.
     /// @param debugInfo CPU debug info needed to populate the widget.
-    void PopulateStackGroup(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void PopulateStackGroup(::debug::CpuDebugInfo const& debugInfo);
 
     /// @brief Update the disassembly widget to add an arrow on the next instruction to be executed.
     /// @param debugInfo CPU debug info needed to get PC info.
-    void FocusOnPC(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void FocusOnPC(::debug::CpuDebugInfo const& debugInfo);
 
     /// @brief Update the stack widget to add an arrow on the current SP address.
     /// @param debugInfo CPU debug info needed to get stack info.
-    void FocusOnSP(::debug::cpu::CpuDebugInfo const& debugInfo);
+    void FocusOnSP(::debug::CpuDebugInfo const& debugInfo);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Widget Creation

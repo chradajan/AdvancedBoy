@@ -1,14 +1,14 @@
-#include <GBA/include/CPU/ArmDisassembler.hpp>
+#include <GBA/include/Debug/ArmDisassembler.hpp>
 #include <bit>
 #include <format>
 #include <sstream>
 #include <string>
 #include <utility>
-#include <GBA/include/CPU/ARM.hpp>
+#include <GBA/include/CPU/ArmInstructions.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace
 {
@@ -101,7 +101,7 @@ std::tuple<std::string, std::string, std::string> HalfwordDataTransferHelper(boo
 
 namespace cpu::arm
 {
-using namespace debug::cpu;
+using namespace debug;
 
 Mnemonic DisassembleInstruction(u32 instruction)
 {

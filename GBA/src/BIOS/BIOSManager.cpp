@@ -2,9 +2,9 @@
 #include <filesystem>
 #include <fstream>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 BIOSManager::BIOSManager(fs::path biosPath, GetPCCallback getPC) : GetPC(getPC)
 {

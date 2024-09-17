@@ -10,8 +10,9 @@
 #include <GBA/include/Cartridge/BackupMedia.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
+namespace debug { class GameBoyAdvanceDebugger; }
 namespace fs = std::filesystem;
 
 namespace cartridge
@@ -84,14 +85,6 @@ public:
     /// @brief Save backup media to disk.
     void Save() const;
 
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Return a span of Cartridge ROM for debug purposes.
-    /// @return Cartridge ROM.
-    std::span<const std::byte> GetROM() const { return ROM_; }
-
 private:
     /// @brief Determine the backup type used by a ROM.
     /// @return Backup type if one was detected.
@@ -111,5 +104,8 @@ private:
     // External components
     EventScheduler& scheduler_;
     SystemControl& systemControl_;
+
+    // Debug
+    friend class debug::GameBoyAdvanceDebugger;
 };
 }  // namespace cartridge

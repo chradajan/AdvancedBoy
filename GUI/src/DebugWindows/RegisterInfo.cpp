@@ -1,7 +1,7 @@
 #include <GUI/include/DebugWindows/RegisterInfo.hpp>
 #include <string>
 #include <vector>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace gui
 {

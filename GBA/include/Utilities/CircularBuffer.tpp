@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <stdexcept>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 template <typename T, size_t len>
 CircularBuffer<T, len>::CircularBuffer() noexcept

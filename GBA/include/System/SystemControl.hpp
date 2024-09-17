@@ -3,8 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
-#include <GBA/include/Logging/Logger.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 class EventScheduler;
 
@@ -47,8 +46,7 @@ public:
 
     /// @brief Initialize the system control registers.
     /// @param scheduler Reference to event scheduler to post IRQ events to.
-    /// @param log Logger to log interrupts and halts.
-    explicit SystemControl(EventScheduler& scheduler, logging::Logger& log);
+    explicit SystemControl(EventScheduler& scheduler);
 
     /// @brief Read an address mapped to system control registers.
     /// @param addr Address of system control register(s).
@@ -196,5 +194,4 @@ private:
 
     // External components
     EventScheduler& scheduler_;
-    logging::Logger& log_;
 };

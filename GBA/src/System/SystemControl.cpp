@@ -5,15 +5,14 @@
 #include <cstring>
 #include <functional>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/Logging/Logger.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 static constexpr int NonSequentialWaitStates[4] = {4, 3, 2, 8};
 static constexpr int SequentialWaitStates[3][2] = { {2, 1}, {4, 1}, {8, 1} };
 
-SystemControl::SystemControl(EventScheduler& scheduler, logging::Logger& log) : scheduler_(scheduler), log_(log)
+SystemControl::SystemControl(EventScheduler& scheduler) : scheduler_(scheduler)
 {
     irqPending_ = false;
     halted_ = false;
@@ -71,12 +70,6 @@ int SystemControl::WriteReg(u32 addr, u32 val, AccessSize length)
 void SystemControl::RequestInterrupt(InterruptType interrupt)
 {
     u16 IF = GetIF();
-
-    if (log_.Enabled())
-    {
-        log_.LogInterruptRequest(static_cast<u16>(interrupt), GetIE(), GetIME());
-    }
-
     IF |= static_cast<u16>(interrupt);
     SetIF(IF);
     CheckForInterrupt();
@@ -144,11 +137,6 @@ void SystemControl::CheckForInterrupt()
 
         if (halted_)
         {
-            if (log_.Enabled())
-            {
-                log_.LogHalt(false, GetIE(), GetIF());
-            }
-
             halted_ = false;
         }
     }
@@ -253,11 +241,6 @@ void SystemControl::WritePostFlgAndHaltcntRegisters(u32 addr, u32 val, AccessSiz
     if (checkHalt)
     {
         halted_ = (static_cast<u8>(postFlgAndHaltcntRegisters_[1]) & U8_MSB) == 0;
-
-        if (halted_ && log_.Enabled())
-        {
-            log_.LogHalt(true, GetIE(), GetIF());
-        }
     }
 }
 

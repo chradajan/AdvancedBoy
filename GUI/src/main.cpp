@@ -1,10 +1,10 @@
 #include <bit>
 #include <filesystem>
 #include <GUI/include/MainWindow.hpp>
-#include <SDL2/SDL.h>
 #include <QtCore/QtCore>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QtWidgets>
+#include <SDL2/SDL.h>
 
 static_assert(std::endian::native == std::endian::little, "Host system must be little endian");
 namespace fs = std::filesystem;

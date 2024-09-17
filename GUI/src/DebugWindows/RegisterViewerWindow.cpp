@@ -1,4 +1,4 @@
-#include <GUI/include/DebugWindows/RegisterViewer.hpp>
+#include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
 #include <format>
 #include <string>
 #include <GUI/include/DebugWindows/RegisterInfo.hpp>
@@ -14,7 +14,7 @@
 
 namespace gui
 {
-RegisterViewer::RegisterViewer() : QWidget()
+RegisterViewerWindow::RegisterViewerWindow() : QWidget()
 {
     setWindowTitle("I/O Registers");
 
@@ -24,14 +24,14 @@ RegisterViewer::RegisterViewer() : QWidget()
 
     QPushButton* refreshButton = new QPushButton("Refresh");
     connect(refreshButton, &QPushButton::clicked,
-            this, &RegisterViewer::UpdateSelectedRegisterData);
+            this, &RegisterViewerWindow::UpdateSelectedRegisterData);
     layout->addWidget(refreshButton);
 
     setLayout(layout);
     UpdateSelectedRegisterData();
 }
 
-void RegisterViewer::UpdateSelectedRegisterData()
+void RegisterViewerWindow::UpdateSelectedRegisterData()
 {
     QWidget* currentRegisterData = layout()->itemAt(1)->widget();
     layout()->replaceWidget(currentRegisterData, CreateRegisterData());
@@ -41,12 +41,12 @@ void RegisterViewer::UpdateSelectedRegisterData()
     setFixedSize(size());
 }
 
-QComboBox* RegisterViewer::CreateDropDown()
+QComboBox* RegisterViewerWindow::CreateDropDown()
 {
     registerSelect_ = new QComboBox;
     registerSelect_->blockSignals(true);
     connect(registerSelect_, &QComboBox::currentIndexChanged,
-            this, &RegisterViewer::UpdateRegisterViewSlot);
+            this, &RegisterViewerWindow::UpdateRegisterViewSlot);
 
     for (Register const& ioReg : IO_REGISTERS)
     {
@@ -58,7 +58,7 @@ QComboBox* RegisterViewer::CreateDropDown()
     return registerSelect_;
 }
 
-QGroupBox* RegisterViewer::CreateRegisterData()
+QGroupBox* RegisterViewerWindow::CreateRegisterData()
 {
     QGroupBox* groupBox = new QGroupBox;
     QFormLayout* layout = new QFormLayout;

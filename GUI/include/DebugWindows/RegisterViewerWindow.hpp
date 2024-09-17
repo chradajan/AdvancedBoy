@@ -1,24 +1,24 @@
 #pragma once
 
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QWidget>
 
 namespace gui
 {
-class RegisterViewer : public QWidget
+class RegisterViewerWindow : public QWidget
 {
     Q_OBJECT
 
 public:
-    RegisterViewer(RegisterViewer const&) = delete;
-    RegisterViewer& operator=(RegisterViewer const&) = delete;
-    RegisterViewer(RegisterViewer&&) = delete;
-    RegisterViewer& operator=(RegisterViewer&&) = delete;
+    RegisterViewerWindow(RegisterViewerWindow const&) = delete;
+    RegisterViewerWindow& operator=(RegisterViewerWindow const&) = delete;
+    RegisterViewerWindow(RegisterViewerWindow&&) = delete;
+    RegisterViewerWindow& operator=(RegisterViewerWindow&&) = delete;
 
     /// @brief Initialize the I/O register viewer window.
-    RegisterViewer();
+    RegisterViewerWindow();
 
 public slots:
     /// @brief Refresh the selected register's displayed data.

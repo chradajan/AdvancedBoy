@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 bool Event::operator>(Event const& rhs)
 {

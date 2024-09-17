@@ -1,12 +1,12 @@
 #pragma once
 
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu::thumb
 {
-using namespace debug::cpu;
+using namespace debug;
 
 /// @brief Disassemble a THUMB instruction into its human-readable mnemonic.
 /// @param instruction Raw 16-bit THUMB instruction code.

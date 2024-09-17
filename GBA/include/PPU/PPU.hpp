@@ -9,14 +9,13 @@
 #include <GBA/include/PPU/VramViews.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
+
+namespace debug { class PPUDebugger; }
 
 namespace graphics
 {
-using namespace debug::graphics;
-
 /// @brief Pixel Processing Unit.
 class PPU
 {
@@ -115,61 +114,6 @@ public:
     /// @brief Get the current value of VCOUNT.
     /// @return Current scanline.
     u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
-
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Draw full background and get background info for debugger.
-    /// @param bgIndex Index of background to display in debugger.
-    /// @return Background debug info.
-    BackgroundDebugInfo GetBackgroundDebugInfo(u8 bgIndex) const;
-
-    /// @brief Get debug info for a regular tiled background.
-    /// @param bgIndex Selected background index.
-    /// @param bgcnt Selected background control register.
-    /// @param debugInfo Reference to debug info to update.
-    void DebugRenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const;
-
-    /// @brief Helper function for rendering regular backgrounds. Draws a single screen block.
-    /// @param bgcnt Selected background control register.
-    /// @param screenBlockIndex Index of screen block to draw.
-    /// @param bufferBaseIndex Index in debug buffer to start drawing to.
-    /// @param debugInfo Reference to debug info to update.
-    void DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bufferBaseIndex, BackgroundDebugInfo& debugInfo) const;
-
-    /// @brief Get debug info for an affine background.
-    /// @param bgIndex Selected background index.
-    /// @param bgcnt Selected background control register.
-    /// @param debugInfo Reference to debug info to update.
-    void DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const;
-
-    /// @brief Get debug info for a bitmap background in mode 3.
-    /// @param debugInfo Reference to debug info to update.
-    void DebugRenderMode3Background(BackgroundDebugInfo& debugInfo) const;
-
-    /// @brief Get debug info for a bitmap background in mode 4.
-    /// @param frameSelect Which bitmap frame to draw.
-    /// @param debugInfo Reference to debug info to update.
-    void DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const;
-
-    /// @brief Return a span of PRAM for debug purposes.
-    /// @return PRAM.
-    std::span<const std::byte> GetPRAM() const { return PRAM_; }
-
-    /// @brief Return a span of OAM for debug purposes.
-    /// @return OAM.
-    std::span<const std::byte> GetOAM() const { return OAM_; }
-
-    /// @brief Return a span of VRAM for debug purposes.
-    /// @return VRAM.
-    std::span<const std::byte> GetVRAM() const { return VRAM_; }
-
-    /// @brief Get the value of a PPU register for debugging purposes.
-    /// @param addr Address of register.
-    /// @param length Memory access size of the read.
-    /// @return Current value of specified register.
-    u32 DebugReadRegister(u32 addr, AccessSize length);
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -392,6 +336,7 @@ private:
     SystemControl& systemControl_;
 
     // VRAM views
+    friend class debug::PPUDebugger;
     friend class RegularScreenBlockScanlineView;
 };
 }  // namespace graphics

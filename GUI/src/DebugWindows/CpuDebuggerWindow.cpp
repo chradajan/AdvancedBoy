@@ -1,4 +1,4 @@
-#include <GUI/include/CpuDebugger.hpp>
+#include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -7,10 +7,10 @@
 #include <optional>
 #include <set>
 #include <unordered_set>
+#include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/GBA.hpp>
 #include <QtCore/QString>
 #include <QtGui/QTextBlock>
@@ -84,7 +84,7 @@ QString ModeString(u8 mode)
 /// @param newLine Whether to insert a new line character at the end of the line.
 /// @param breakpoints Set of currently active breakpoints.
 void WriteDisassembledLine(QTextEdit* text,
-                           debug::cpu::Mnemonic const& mnemonic,
+                           debug::Mnemonic const& mnemonic,
                            u32 addr,
                            u32 instruction,
                            bool current,
@@ -195,10 +195,10 @@ void BreakpointsList::UpdateList()
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
-/// CpuDebugger
+/// CpuDebuggerWindow
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-CpuDebugger::CpuDebugger() :
+CpuDebuggerWindow::CpuDebuggerWindow() :
     QWidget(),
     runSingleFrame_(false),
     pcPage_(Page::INVALID),
@@ -222,13 +222,13 @@ CpuDebugger::CpuDebugger() :
     breakpointsWindow_ = new BreakpointsList();
 
     connect(breakpointsWindow_, &BreakpointsList::BreakpointRemovedSignal,
-            this, &CpuDebugger::BreakpointRemovedSlot);
+            this, &CpuDebuggerWindow::BreakpointRemovedSlot);
 
-    connect(this, &CpuDebugger::BreakpointsUpdatedSignal,
+    connect(this, &CpuDebuggerWindow::BreakpointsUpdatedSignal,
             breakpointsWindow_, &BreakpointsList::UpdateBreakpointsSlot);
 }
 
-CpuDebugger::~CpuDebugger()
+CpuDebuggerWindow::~CpuDebuggerWindow()
 {
     delete breakpointsWindow_;
 }
@@ -237,7 +237,7 @@ CpuDebugger::~CpuDebugger()
 /// Widget Updates
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void CpuDebugger::UpdateWidgets()
+void CpuDebuggerWindow::UpdateWidgets()
 {
     auto debugInfo = gba_api::GetCpuDebugInfo();
     PopulateDisassemblyGroup(debugInfo);
@@ -246,7 +246,7 @@ void CpuDebugger::UpdateWidgets()
     PopulateStackGroup(debugInfo);
 }
 
-void CpuDebugger::PopulateDisassemblyGroup(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::PopulateDisassemblyGroup(::debug::CpuDebugInfo const& debugInfo)
 {
     if ((debugInfo.pcMem.page == Page::INVALID) || debugInfo.pcMem.memoryBlock.empty())
     {
@@ -375,7 +375,7 @@ void CpuDebugger::PopulateDisassemblyGroup(::debug::cpu::CpuDebugInfo const& deb
     currArmMode_ = armMode;
 }
 
-void CpuDebugger::PopulateRegistersGroup(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::PopulateRegistersGroup(::debug::CpuDebugInfo const& debugInfo)
 {
     for (u8 regIndex = 0; regIndex < 16; ++regIndex)
     {
@@ -383,7 +383,7 @@ void CpuDebugger::PopulateRegistersGroup(::debug::cpu::CpuDebugInfo const& debug
     }
 }
 
-void CpuDebugger::PopulateCpsrGroup(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::PopulateCpsrGroup(::debug::CpuDebugInfo const& debugInfo)
 {
     cpsrLabel_->setText(QString::fromStdString(std::format("CPSR    0x{:08X}", debugInfo.regState.cpsr)));
 
@@ -407,7 +407,7 @@ void CpuDebugger::PopulateCpsrGroup(::debug::cpu::CpuDebugInfo const& debugInfo)
     modeLabel_->setText(ModeString(debugInfo.regState.mode));
 }
 
-void CpuDebugger::PopulateStackGroup(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::PopulateStackGroup(::debug::CpuDebugInfo const& debugInfo)
 {
     if ((debugInfo.spMem.page == Page::INVALID) || debugInfo.spMem.memoryBlock.empty())
     {
@@ -443,7 +443,7 @@ void CpuDebugger::PopulateStackGroup(::debug::cpu::CpuDebugInfo const& debugInfo
     FocusOnSP(debugInfo);
 }
 
-void CpuDebugger::FocusOnPC(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::FocusOnPC(::debug::CpuDebugInfo const& debugInfo)
 {
     if ((debugInfo.pcMem.page == Page::INVALID) || (debugInfo.pcMem.memoryBlock.empty()))
     {
@@ -488,7 +488,7 @@ void CpuDebugger::FocusOnPC(::debug::cpu::CpuDebugInfo const& debugInfo)
     }
 }
 
-void CpuDebugger::FocusOnSP(::debug::cpu::CpuDebugInfo const& debugInfo)
+void CpuDebuggerWindow::FocusOnSP(::debug::CpuDebugInfo const& debugInfo)
 {
     if ((debugInfo.spMem.page == Page::INVALID) || (debugInfo.spMem.memoryBlock.empty()))
     {
@@ -510,7 +510,7 @@ void CpuDebugger::FocusOnSP(::debug::cpu::CpuDebugInfo const& debugInfo)
 /// Widget Creation
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-QGroupBox* CpuDebugger::CreateDisassemblyGroup()
+QGroupBox* CpuDebuggerWindow::CreateDisassemblyGroup()
 {
     QGroupBox* groupBox = new QGroupBox;
     QGridLayout* groupLayout = new QGridLayout;
@@ -527,17 +527,17 @@ QGroupBox* CpuDebugger::CreateDisassemblyGroup()
     // Step buttons
     QPushButton* stepButton = new QPushButton("Step");
     stepButton->setFixedWidth(120);
-    connect(stepButton, &QPushButton::clicked, this, &CpuDebugger::StepCpu);
+    connect(stepButton, &QPushButton::clicked, this, &CpuDebuggerWindow::StepCpu);
     groupLayout->addWidget(stepButton, 1, 0);
 
     QPushButton* frameButton = new QPushButton("Step Frame");
     frameButton->setFixedWidth(120);
-    connect(frameButton, &QPushButton::clicked, this, &CpuDebugger::StepFrame);
+    connect(frameButton, &QPushButton::clicked, this, &CpuDebuggerWindow::StepFrame);
     groupLayout->addWidget(frameButton, 1, 1);
 
     QPushButton* runButton = new QPushButton("Run");
     runButton->setFixedWidth(120);
-    connect(runButton, &QPushButton::clicked, this, &CpuDebugger::Run);
+    connect(runButton, &QPushButton::clicked, this, &CpuDebuggerWindow::Run);
     groupLayout->addWidget(runButton, 1, 2);
 
     // Breakpoint buttons
@@ -547,17 +547,17 @@ QGroupBox* CpuDebugger::CreateDisassemblyGroup()
 
     QPushButton* addBreakpointButton = new QPushButton("Add Breakpoint");
     addBreakpointButton->setFixedWidth(120);
-    connect(addBreakpointButton, &QPushButton::clicked, this, &CpuDebugger::AddBreakpointAction);
+    connect(addBreakpointButton, &QPushButton::clicked, this, &CpuDebuggerWindow::AddBreakpointAction);
     groupLayout->addWidget(addBreakpointButton, 2, 1);
 
     QPushButton* removeBreakpointButton = new QPushButton("Remove Breakpoint");
     removeBreakpointButton->setFixedWidth(120);
-    connect(removeBreakpointButton, &QPushButton::clicked, this, &CpuDebugger::RemoveBreakpointAction);
+    connect(removeBreakpointButton, &QPushButton::clicked, this, &CpuDebuggerWindow::RemoveBreakpointAction);
     groupLayout->addWidget(removeBreakpointButton, 2, 2);
 
     QPushButton* listBreakpoints = new QPushButton("List Breakpoints");
     listBreakpoints->setFixedWidth(120);
-    connect(listBreakpoints, &QPushButton::clicked, this, &CpuDebugger::ListBreakpoints);
+    connect(listBreakpoints, &QPushButton::clicked, this, &CpuDebuggerWindow::ListBreakpoints);
     groupLayout->addWidget(listBreakpoints, 2, 3);
 
     // Set layout
@@ -569,7 +569,7 @@ QGroupBox* CpuDebugger::CreateDisassemblyGroup()
     return groupBox;
 }
 
-QGroupBox* CpuDebugger::CreateRegistersGroup()
+QGroupBox* CpuDebuggerWindow::CreateRegistersGroup()
 {
     QGroupBox* groupBox = new QGroupBox("General Purpose Registers");
     QGridLayout* groupLayout = new QGridLayout;
@@ -588,7 +588,7 @@ QGroupBox* CpuDebugger::CreateRegistersGroup()
     return groupBox;
 }
 
-QGroupBox* CpuDebugger::CreateCpsrGroup()
+QGroupBox* CpuDebuggerWindow::CreateCpsrGroup()
 {
     QGroupBox* groupBox = new QGroupBox("Program Status Registers");
     QGridLayout* groupLayout = new QGridLayout;
@@ -634,7 +634,7 @@ QGroupBox* CpuDebugger::CreateCpsrGroup()
     return groupBox;
 }
 
-QGroupBox* CpuDebugger::CreateStackGroup()
+QGroupBox* CpuDebuggerWindow::CreateStackGroup()
 {
     QGroupBox* groupBox = new QGroupBox("Stack");
     QGridLayout* groupLayout = new QGridLayout;
@@ -650,7 +650,7 @@ QGroupBox* CpuDebugger::CreateStackGroup()
     return groupBox;
 }
 
-void CpuDebugger::StepCpu()
+void CpuDebuggerWindow::StepCpu()
 {
     emit PauseSignal();
     gba_api::SingleStep();
@@ -658,7 +658,7 @@ void CpuDebugger::StepCpu()
     emit StepSignal();
 }
 
-void CpuDebugger::StepFrame()
+void CpuDebuggerWindow::StepFrame()
 {
     runSingleFrame_ = true;
     emit ResumeSignal();
@@ -668,12 +668,12 @@ void CpuDebugger::StepFrame()
 /// Button Actions
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void CpuDebugger::Run()
+void CpuDebuggerWindow::Run()
 {
     emit ResumeSignal();
 }
 
-void CpuDebugger::AddBreakpointAction()
+void CpuDebuggerWindow::AddBreakpointAction()
 {
     bool valid = false;
     u32 breakpoint = breakpointLineEdit_->text().toUInt(&valid, 0);
@@ -697,7 +697,7 @@ void CpuDebugger::AddBreakpointAction()
     }
 }
 
-void CpuDebugger::RemoveBreakpointAction()
+void CpuDebuggerWindow::RemoveBreakpointAction()
 {
     bool valid = false;
     u32 breakpoint = breakpointLineEdit_->text().toUInt(&valid, 0);
@@ -710,7 +710,7 @@ void CpuDebugger::RemoveBreakpointAction()
     }
 }
 
-void CpuDebugger::RemoveBreakpoint(u32 breakpoint)
+void CpuDebuggerWindow::RemoveBreakpoint(u32 breakpoint)
 {
     auto it = addrToLineMap_.find(breakpoint);
 
@@ -726,7 +726,7 @@ void CpuDebugger::RemoveBreakpoint(u32 breakpoint)
     gba_api::RemoveBreakpoint(breakpoint);
 }
 
-void CpuDebugger::ListBreakpoints()
+void CpuDebuggerWindow::ListBreakpoints()
 {
     if (!breakpointsWindow_->isVisible())
     {
@@ -738,7 +738,7 @@ void CpuDebugger::ListBreakpoints()
 /// Event handling
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void CpuDebugger::closeEvent(QCloseEvent* event)
+void CpuDebuggerWindow::closeEvent(QCloseEvent* event)
 {
     breakpointsWindow_->close();
     event->accept();

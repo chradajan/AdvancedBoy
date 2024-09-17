@@ -18,8 +18,8 @@
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace
 {
@@ -38,15 +38,13 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 
 GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
                                fs::path romPath,
-                               fs::path logDir,
                                std::function<void(int)> vBlankCallback,
                                std::function<void()> breakpointCallback) :
     scheduler_(),
-    log_(logDir, scheduler_),
-    systemControl_(scheduler_, log_),
+    systemControl_(scheduler_),
     apu_(scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
-    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, log_),
+    cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_),
     dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, systemControl_),
     keypad_(systemControl_),
     ppu_(scheduler_, systemControl_),
@@ -77,11 +75,6 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
     scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::NotifyVBlank, vBlankCallback);
-
-    if (log_.Enabled())
-    {
-        RunDisassembler();
-    }
 }
 
 GameBoyAdvance::~GameBoyAdvance()
@@ -90,8 +83,6 @@ GameBoyAdvance::~GameBoyAdvance()
     {
         gamePak_->Save();
     }
-
-    log_.DumpRemainingBuffer();
 }
 
 void GameBoyAdvance::Run()
@@ -100,24 +91,31 @@ void GameBoyAdvance::Run()
 
     while (samplesToGenerate > 0)
     {
-        try
-        {
-            bool hitBreakpoint = MainLoop(samplesToGenerate);
+        bool hitBreakpoint = MainLoop(samplesToGenerate);
 
-            if (hitBreakpoint)
-            {
-                BreakpointCallback();
-                return;
-            }
-        }
-        catch (std::exception& e)
+        if (hitBreakpoint)
         {
-            log_.LogException(e);
-            log_.DumpRemainingBuffer();
-            throw;
+            BreakpointCallback();
+            return;
         }
 
         samplesToGenerate = apu_.FreeBufferSpace();
+    }
+}
+
+void GameBoyAdvance::SingleStep()
+{
+    while (true)
+    {
+        while (dmaMgr_.DmaRunning() || systemControl_.Halted())
+        {
+            scheduler_.FireNextEvent();
+        }
+
+        if (cpu_.Step(systemControl_.IrqPending()))
+        {
+            break;
+        }
     }
 }
 
@@ -413,252 +411,4 @@ void GameBoyAdvance::TimerOverflow(u8 index, int extraCycles)
     {
         dmaMgr_.CheckFifoB();
     }
-}
-
-///---------------------------------------------------------------------------------------------------------------------------------
-/// Debug
-///---------------------------------------------------------------------------------------------------------------------------------
-
-void GameBoyAdvance::SingleStep()
-{
-    while (true)
-    {
-        while (dmaMgr_.DmaRunning() || systemControl_.Halted())
-        {
-            scheduler_.FireNextEvent();
-        }
-
-        if (cpu_.Step(systemControl_.IrqPending()))
-        {
-            break;
-        }
-    }
-}
-
-debug::cpu::CpuDebugInfo GameBoyAdvance::GetCpuDebugInfo()
-{
-    debug::cpu::CpuDebugInfo debugInfo;
-    debugInfo.pcMem = GetDebugMemAccess(cpu_.GetPC());
-    debugInfo.spMem = GetDebugMemAccess(cpu_.GetSP());
-    cpu_.GetRegState(debugInfo.regState);
-    debugInfo.nextAddrToExecute = cpu_.GetNextAddrToExecute();
-    return debugInfo;
-}
-
-void GameBoyAdvance::RunDisassembler()
-{
-    if (biosMgr_.BiosLoaded())
-    {
-        auto bios = biosMgr_.GetBIOS();
-
-        for (u32 i = 0; (i + 4) <= bios.size(); i += 4)
-        {
-            u32 instruction = MemCpyInit<u32>(&bios[i]);
-            cpu_.DisassembleArmInstruction(instruction);
-        }
-
-        for (u32 i = 0; (i + 2) <= bios.size(); i += 2)
-        {
-            u16 instruction = MemCpyInit<u16>(&bios[i]);
-            cpu_.DisassembleThumbInstruction(instruction);
-        }
-    }
-
-    if (gamePak_)
-    {
-        auto rom = gamePak_->GetROM();
-
-        for (u32 index = 0; (index + 4) <= rom.size(); index += 4)
-        {
-            u32 instruction = MemCpyInit<u32>(&rom[index]);
-            cpu_.DisassembleArmInstruction(instruction);
-        }
-
-        for (u32 index = 0; (index + 2) <= rom.size(); index += 2)
-        {
-            u16 instruction = MemCpyInit<u16>(&rom[index]);
-            cpu_.DisassembleThumbInstruction(instruction);
-        }
-    }
-}
-
-debug::DebugMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
-{
-    debug::DebugMemAccess debugMem;
-    auto page = GetMemPage(addr);
-    debugMem.page = page;
-
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wswitch"
-    switch (page)
-    {
-        case Page::BIOS:
-        {
-            debugMem.memoryBlock = biosMgr_.GetBIOS();
-            debugMem.minAddr = BIOS_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > BIOS_ADDR_MAX)
-                {
-                    return U32_MAX;
-                }
-
-                return addr;
-            };
-
-            break;
-        }
-        case Page::EWRAM:
-        {
-            debugMem.memoryBlock = EWRAM_;
-            debugMem.minAddr = EWRAM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > EWRAM_ADDR_MAX)
-                {
-                    addr = StandardMirroredAddress(addr, EWRAM_ADDR_MIN, EWRAM_ADDR_MAX);
-                }
-
-                return addr - EWRAM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page::IWRAM:
-        {
-            debugMem.memoryBlock = IWRAM_;
-            debugMem.minAddr = IWRAM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > IWRAM_ADDR_MAX)
-                {
-                    addr = StandardMirroredAddress(addr, IWRAM_ADDR_MIN, IWRAM_ADDR_MAX);
-                }
-
-                return addr - IWRAM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page::PRAM:
-        {
-            debugMem.memoryBlock = ppu_.GetPRAM();
-            debugMem.minAddr = PRAM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > PRAM_ADDR_MAX)
-                {
-                    addr = StandardMirroredAddress(addr, PRAM_ADDR_MIN, PRAM_ADDR_MAX);
-                }
-
-                return addr - PRAM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page::VRAM:
-        {
-            debugMem.memoryBlock = ppu_.GetVRAM();
-            debugMem.minAddr = VRAM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > VRAM_ADDR_MAX)
-                {
-                    addr = StandardMirroredAddress(addr, VRAM_ADDR_MIN, VRAM_ADDR_MAX + (32 * KiB));
-
-                    if (addr > VRAM_ADDR_MAX)
-                    {
-                        addr -= (32 * KiB);
-                    }
-                }
-
-                return addr - VRAM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page::OAM:
-        {
-            debugMem.memoryBlock = ppu_.GetOAM();
-            debugMem.minAddr = OAM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                if (addr > OAM_ADDR_MAX)
-                {
-                    addr = StandardMirroredAddress(addr, OAM_ADDR_MIN, OAM_ADDR_MAX);
-                }
-
-                return addr - OAM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page{0x08} ... Page{0x09}:
-        {
-            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN;
-            debugMem.AddrToIndex = [](u32 addr) {
-                return addr - GAMEPAK_ROM_ADDR_MIN;
-            };
-
-            break;
-        }
-        case Page{0x0A} ... Page{0x0B}:
-        {
-            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN + (32 * MiB);
-            debugMem.AddrToIndex = [](u32 addr) {
-                return addr - GAMEPAK_ROM_ADDR_MIN - (32 * MiB);
-            };
-
-            break;
-        }
-        case Page{0x0C} ... Page{0x0D}:
-        {
-            debugMem.memoryBlock = gamePak_ ? gamePak_->GetROM() : std::span<const std::byte>{};
-            debugMem.minAddr = GAMEPAK_ROM_ADDR_MIN + (64 * MiB);
-            debugMem.AddrToIndex = [](u32 addr) {
-                return addr - GAMEPAK_ROM_ADDR_MIN - (2 * (32 * MiB));
-            };
-
-            break;
-        }
-        case Page::INVALID:
-        default:
-        {
-            debugMem.memoryBlock = std::span<const std::byte>{};
-            debugMem.minAddr = 0;
-            debugMem.page = Page::INVALID;
-            debugMem.AddrToIndex = [](u32 addr) {
-                (void)addr;
-                return U32_MAX;
-            };
-
-            break;
-        }
-    }
-    #pragma GCC diagnostic pop
-
-    return debugMem;
-}
-
-u32 GameBoyAdvance::DebugReadRegister(u32 addr, AccessSize length)
-{
-    switch (addr)
-    {
-        case LCD_IO_ADDR_MIN ... LCD_IO_ADDR_MAX:
-            return ppu_.DebugReadRegister(addr, length);
-        case SOUND_IO_ADDR_MIN ... SOUND_IO_ADDR_MAX:
-            break;
-        case DMA_IO_ADDR_MIN ... DMA_IO_ADDR_MAX:
-            break;
-        case TIMER_IO_ADDR_MIN ... TIMER_IO_ADDR_MAX:
-            break;
-        case SERIAL_IO_1_ADDR_MIN ... SERIAL_IO_1_ADDR_MAX:
-            break;
-        case KEYPAD_IO_ADDR_MIN ... KEYPAD_IO_ADDR_MAX:
-            break;
-        case SERIAL_IO_2_ADDR_MIN ... SERIAL_IO_2_ADDR_MAX:
-            break;
-        case SYSTEM_CONTROL_IO_ADDR_MIN ... SYSTEM_CONTROL_IO_ADDR_MAX:
-            break;
-        default:
-            break;
-    }
-
-    return 0;
 }

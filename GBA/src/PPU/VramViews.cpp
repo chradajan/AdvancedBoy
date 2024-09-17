@@ -6,8 +6,8 @@
 #include <span>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/PPU/Registers.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace graphics
 {

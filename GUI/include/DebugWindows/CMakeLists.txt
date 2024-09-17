@@ -1,5 +1,7 @@
 project(AdvancedBoy)
 
 target_sources(${PROJECT_NAME} PRIVATE
-    RegisterViewer.hpp
+    BackgroundViewerWindow.hpp
+    CpuDebuggerWindow.hpp
+    RegisterViewerWindow.hpp
 )

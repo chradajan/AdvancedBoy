@@ -4,10 +4,11 @@
 #include <cstddef>
 #include <filesystem>
 #include <span>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/Functor.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu { class ARM7TDMI; }
+namespace debug { class GameBoyAdvanceDebugger; }
 namespace fs = std::filesystem;
 
 /// @brief Manager for loading and reading/writing BIOS ROM.
@@ -40,17 +41,12 @@ public:
     /// @return True if BIOS is loaded.
     bool BiosLoaded() const { return biosLoaded_; }
 
-    ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Debug
-    ///-----------------------------------------------------------------------------------------------------------------------------
-
-    /// @brief Return a span of BIOS ROM for debug purposes.
-    /// @return BIOS ROM.
-    std::span<const std::byte> GetBIOS() const { return biosROM_; }
-
 private:
     GetPCCallback GetPC;
     std::array<std::byte, 16 * KiB> biosROM_;
     u32 lastSuccessfulFetch_;
     bool biosLoaded_;
+
+    // Debug
+    friend class debug::GameBoyAdvanceDebugger;
 };

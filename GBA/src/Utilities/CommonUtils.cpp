@@ -4,7 +4,7 @@
 #include <cstring>
 #include <span>
 #include <stdexcept>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 u32 ReadMemoryBlock(std::span<const std::byte> memory, u32 readAddr, u32 baseAddr, AccessSize length)
 {

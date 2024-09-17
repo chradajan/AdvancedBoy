@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <span>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace graphics { class PPU; }
 

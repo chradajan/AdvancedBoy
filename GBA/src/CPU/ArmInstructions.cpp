@@ -3,11 +3,11 @@
 #include <cstring>
 #include <stdexcept>
 #include <utility>
-#include <GBA/include/CPU/ARM.hpp>
-#include <GBA/include/CPU/ArmDisassembler.hpp>
+#include <GBA/include/CPU/ArmInstructions.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/ArmDisassembler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace
 {

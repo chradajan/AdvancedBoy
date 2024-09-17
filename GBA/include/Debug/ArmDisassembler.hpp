@@ -1,12 +1,12 @@
 #pragma once
 
 #include <GBA/include/CPU/CpuTypes.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu::arm
 {
-using namespace debug::cpu;
+using namespace debug;
 
 /// @brief Convert ARM condition code to its mnemonic.
 /// @param cond 4-bit ARM condition code.

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <GBA/include/Types/Types.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 
 template <typename T, size_t len>
 class CircularBuffer

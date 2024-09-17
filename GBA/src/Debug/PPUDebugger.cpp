@@ -1,11 +1,9 @@
-#include <GBA/include/PPU/PPU.hpp>
+#include <GBA/include/Debug/PPUDebugger.hpp>
 #include <span>
-#include <vector>
+#include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
-#include <GBA/include/PPU/Registers.hpp>
+#include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/PPU/VramViews.hpp>
-#include <GBA/include/Types/DebugTypes.hpp>
-#include <GBA/include/Types/Types.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 
 namespace
@@ -48,16 +46,19 @@ float CalculateScalingParameter(i16 ref)
 
     return val;
 }
+}  // namespace
+
+namespace debug
+{
+u32 PPUDebugger::ReadRegister(u32 addr, AccessSize length) const
+{
+    return ReadMemoryBlock(ppu_.registers_, addr, LCD_IO_ADDR_MIN, length);
 }
 
-namespace graphics
+BackgroundDebugInfo PPUDebugger::GetBackgroundDebugInfo(u8 bgIndex) const
 {
-using namespace debug::graphics;
-
-BackgroundDebugInfo PPU::GetBackgroundDebugInfo(u8 bgIndex) const
-{
-    auto dispcnt = GetDISPCNT();
-    auto bgcnt = GetBGCNT(bgIndex);
+    auto dispcnt = ppu_.GetDISPCNT();
+    auto bgcnt = ppu_.GetBGCNT(bgIndex);
     BackgroundDebugInfo debugInfo = {};
     debugInfo.priority = bgcnt.priority;
     debugInfo.mapBaseAddr = VRAM_ADDR_MIN + (bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE);
@@ -65,60 +66,60 @@ BackgroundDebugInfo PPU::GetBackgroundDebugInfo(u8 bgIndex) const
 
     if ((dispcnt.bgMode == 0) || ((dispcnt.bgMode == 1) && (bgIndex < 2)))
     {
-        DebugRenderRegularBackground(bgIndex, bgcnt, debugInfo);
+       RenderRegularBackground(bgIndex, bgcnt, debugInfo);
     }
     else if ((dispcnt.bgMode == 2) || ((dispcnt.bgMode == 1) && (bgIndex == 2)))
     {
-        DebugRenderAffineBackground(bgIndex, bgcnt, debugInfo);
+       RenderAffineBackground(bgIndex, bgcnt, debugInfo);
     }
     else if ((dispcnt.bgMode == 3) && (bgIndex == 2))
     {
-        DebugRenderMode3Background(debugInfo);
+       RenderMode3Background(debugInfo);
     }
     else if ((dispcnt.bgMode == 4) && (bgIndex == 2))
     {
-        DebugRenderMode4Background(dispcnt.displayFrameSelect, debugInfo);
+       RenderMode4Background(dispcnt.displayFrameSelect, debugInfo);
     }
     else
     {
-        DebugRenderRegularBackground(bgIndex, bgcnt, debugInfo);
+       RenderRegularBackground(bgIndex, bgcnt, debugInfo);
     }
 
     return debugInfo;
 }
 
-void PPU::DebugRenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const
 {
     debugInfo.regular = true;
     debugInfo.width = (bgcnt.screenSize & 0b01) ? 512 : 256;
     debugInfo.height = (bgcnt.screenSize & 0b10) ? 512 : 256;
     debugInfo.buffer.resize(debugInfo.width * debugInfo.height);
-    debugInfo.xOffset = MemCpyInit<u16>(&registers_[0x10 + (4 * bgIndex)]) & 0x01FF;
-    debugInfo.yOffset = MemCpyInit<u16>(&registers_[0x12 + (4 * bgIndex)]) & 0x01FF;
+    debugInfo.xOffset = MemCpyInit<u16>(&ppu_.registers_[0x10 + (4 * bgIndex)]) & 0x01FF;
+    debugInfo.yOffset = MemCpyInit<u16>(&ppu_.registers_[0x12 + (4 * bgIndex)]) & 0x01FF;
     u8 screenBlockIndex = bgcnt.screenBaseBlock;
 
-    DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex, 0, debugInfo);
+    RenderRegularScreenBlock(bgcnt, screenBlockIndex, 0, debugInfo);
 
     if ((debugInfo.width == 512) && (debugInfo.height == 256))
     {
-        DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 256, debugInfo);
+        RenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 256, debugInfo);
     }
     else if ((debugInfo.width == 256) && (debugInfo.height == 512))
     {
-        DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 65536, debugInfo);
+        RenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 65536, debugInfo);
     }
     else if ((debugInfo.width == 512) && (debugInfo.height == 512))
     {
-        DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 256, debugInfo);
-        DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex + 2, 131072, debugInfo);
-        DebugRenderRegularScreenBlock(bgcnt, screenBlockIndex + 3, 131328, debugInfo);
+        RenderRegularScreenBlock(bgcnt, screenBlockIndex + 1, 256, debugInfo);
+        RenderRegularScreenBlock(bgcnt, screenBlockIndex + 2, 131072, debugInfo);
+        RenderRegularScreenBlock(bgcnt, screenBlockIndex + 3, 131328, debugInfo);
     }
 }
 
-void PPU::DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bufferBaseIndex, BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bufferBaseIndex, BackgroundDebugInfo& debugInfo) const
 {
-    auto screenBlockEntryPtr = reinterpret_cast<const ScreenBlockEntry*>(&VRAM_[screenBlockIndex * SCREEN_BLOCK_SIZE]);
-    BackgroundCharBlockView charBlock(VRAM_, bgcnt.charBaseBlock);
+    auto screenBlockEntryPtr = reinterpret_cast<const ScreenBlockEntry*>(&ppu_.VRAM_[screenBlockIndex * SCREEN_BLOCK_SIZE]);
+    BackgroundCharBlockView charBlock(ppu_.VRAM_, bgcnt.charBaseBlock);
 
     for (u8 row = 0; row < 32; ++row)
     {
@@ -142,7 +143,7 @@ void PPU::DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bu
                     {
                         u8 charBlockEntryCol = hFlip ? (j ^ 7) : j;
                         u8 paletteIndex  = charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol];
-                        u16 bgr555 = GetBgColor(paletteIndex);
+                        u16 bgr555 = ppu_.GetBgColor(paletteIndex);
                         debugInfo.buffer[insertIndex + j] = bgr555;
                     }
 
@@ -166,7 +167,7 @@ void PPU::DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bu
                             charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol / 2].leftColorIndex :
                             charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol / 2].rightColorIndex;
 
-                        u16 bgr555 = GetBgColor(palette, paletteIndex);
+                        u16 bgr555 = ppu_.GetBgColor(palette, paletteIndex);
                         debugInfo.buffer[insertIndex + j] = bgr555;
                     }
 
@@ -179,7 +180,7 @@ void PPU::DebugRenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bu
     }
 }
 
-void PPU::DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const
 {
     debugInfo.regular = false;
     u8 mapWidthTiles;
@@ -203,26 +204,26 @@ void PPU::DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugIn
     debugInfo.width = mapWidthTiles * 8;
     debugInfo.height = mapWidthTiles * 8;
     debugInfo.buffer.resize(debugInfo.width * debugInfo.height);
-    BackgroundCharBlockView charBlock(VRAM_, bgcnt.charBaseBlock);
-    auto tilePtr = reinterpret_cast<const u8*>(&VRAM_[bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE]);
+    BackgroundCharBlockView charBlock(ppu_.VRAM_, bgcnt.charBaseBlock);
+    auto tilePtr = reinterpret_cast<const u8*>(&ppu_.VRAM_[bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE]);
 
     if (bgIndex == 2)
     {
-        debugInfo.refX = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&registers_[0x28])), debugInfo.width);
-        debugInfo.refY = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&registers_[0x2C])), debugInfo.width);
-        debugInfo.pa = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x20]));
-        debugInfo.pb = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x22]));
-        debugInfo.pc = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x24]));
-        debugInfo.pd = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x26]));
+        debugInfo.refX = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&ppu_.registers_[0x28])), debugInfo.width);
+        debugInfo.refY = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&ppu_.registers_[0x2C])), debugInfo.width);
+        debugInfo.pa = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x20]));
+        debugInfo.pb = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x22]));
+        debugInfo.pc = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x24]));
+        debugInfo.pd = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x26]));
     }
     else
     {
-        debugInfo.refX = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&registers_[0x38])), debugInfo.width);
-        debugInfo.refY = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&registers_[0x3C])), debugInfo.width);
-        debugInfo.pa = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x30]));
-        debugInfo.pb = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x32]));
-        debugInfo.pc = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x34]));
-        debugInfo.pd = CalculateScalingParameter(MemCpyInit<i16>(&registers_[0x36]));
+        debugInfo.refX = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&ppu_.registers_[0x38])), debugInfo.width);
+        debugInfo.refY = CalculateReferencePoint(SignExtend<i32, 27>(MemCpyInit<i32>(&ppu_.registers_[0x3C])), debugInfo.width);
+        debugInfo.pa = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x30]));
+        debugInfo.pb = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x32]));
+        debugInfo.pc = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x34]));
+        debugInfo.pd = CalculateScalingParameter(MemCpyInit<i16>(&ppu_.registers_[0x36]));
     }
 
     for (u8 row = 0; row < mapWidthTiles; ++row)
@@ -238,7 +239,7 @@ void PPU::DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugIn
                 for (u8 charBlockEntryCol = 0; charBlockEntryCol < 8; ++charBlockEntryCol)
                 {
                     u8 paletteIndex  = charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol];
-                    u16 bgr555 = GetBgColor(paletteIndex);
+                    u16 bgr555 = ppu_.GetBgColor(paletteIndex);
                     debugInfo.buffer[insertIndex + charBlockEntryCol] = bgr555;
                 }
 
@@ -250,10 +251,10 @@ void PPU::DebugRenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugIn
     }
 }
 
-void PPU::DebugRenderMode3Background(BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderMode3Background(BackgroundDebugInfo& debugInfo) const
 {
     debugInfo.regular = true;
-    auto* pixelPtr = reinterpret_cast<const u16*>(VRAM_.data());
+    auto* pixelPtr = reinterpret_cast<const u16*>(ppu_.VRAM_.data());
     debugInfo.width = 240;
     debugInfo.height = 160;
     debugInfo.buffer.resize(240 * 160);
@@ -267,11 +268,11 @@ void PPU::DebugRenderMode3Background(BackgroundDebugInfo& debugInfo) const
     }
 }
 
-void PPU::DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const
 {
     debugInfo.regular = true;
     u32 bitmapIndex = frameSelect ? 0xA000 : 0;
-    auto pixelPtr = reinterpret_cast<const u8*>(&VRAM_[bitmapIndex]);
+    auto pixelPtr = reinterpret_cast<const u8*>(&ppu_.VRAM_[bitmapIndex]);
     debugInfo.width = 240;
     debugInfo.height = 160;
     debugInfo.buffer.resize(240 * 160);
@@ -280,13 +281,8 @@ void PPU::DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debu
 
     for (u16& pixel : debugInfo.buffer)
     {
-        pixel = GetBgColor(*pixelPtr);
+        pixel = ppu_.GetBgColor(*pixelPtr);
         ++pixelPtr;
     }
 }
-
-u32 PPU::DebugReadRegister(u32 addr, AccessSize length)
-{
-    return ReadMemoryBlock(registers_, addr, LCD_IO_ADDR_MIN, length);
-}
-}  // namespace graphics
+}  // namespace debug
