@@ -21,7 +21,7 @@ namespace gba_api
 {
 void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
-                   std::function<void(int)> vBlankCallback,
+                   std::function<void()> vBlankCallback,
                    std::function<void()> breakpointCallback)
 {
     if (GBA)
@@ -123,11 +123,19 @@ void UpdateKeypad(KEYINPUT keyinput)
     }
 }
 
-void SingleStep()
+void StepCPU()
 {
     if (GBA)
     {
-        GBA->SingleStep();
+        GBA->StepCPU();
+    }
+}
+
+void StepFrame()
+{
+    if (GBA)
+    {
+        GBA->StepFrame();
     }
 }
 

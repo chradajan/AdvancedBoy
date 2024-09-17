@@ -22,7 +22,7 @@ public:
 
 public slots:
     /// @brief Refresh the selected register's displayed data.
-    void UpdateRegisterViewSlot() { UpdateSelectedRegisterData(); }
+    void UpdateRegisterViewSlot() { if (isVisible()) UpdateSelectedRegisterData(); }
 
 private:
     /// @brief Refresh the selected register's displayed data.
@@ -39,5 +39,6 @@ private:
     // Data
     QComboBox* registerSelect_;
     QGroupBox* registerData_;
+    int prevIndex_;
 };
 }  // namespace gui

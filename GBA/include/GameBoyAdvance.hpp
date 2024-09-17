@@ -40,7 +40,7 @@ public:
     /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
     explicit GameBoyAdvance(fs::path biosPath,
                             fs::path romPath,
-                            std::function<void(int)> vBlankCallback,
+                            std::function<void()> vBlankCallback,
                             std::function<void()> breakpointCallback);
 
     /// @brief Save backup media to disk.
@@ -75,7 +75,10 @@ public:
     void Run();
 
     /// @brief Run the emulator for a single CPU instruction.
-    void SingleStep();
+    void StepCPU();
+
+    /// @brief Run the emulator until the next time it hits VBlank.
+    void StepFrame();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Breakpoints
@@ -89,6 +92,12 @@ public:
     /// @brief Remove an address from the current list of breakpoints.
     /// @param breakpoint Address to set breakpoint at.
     void RemoveBreakpoint(u32 breakpoint) { breakpoints_.erase(breakpoint); }
+
+    /// @brief Check if the CPU is about to execute an instruction with a breakpoint set.
+    /// @return Whether a breakpoint has been hit.
+    bool EncounteredBreakpoint() {
+        return breakpoints_.contains(cpu_.GetNextAddrToExecute()) && (breakpointCycle_ != scheduler_.GetTotalElapsedCycles());
+    }
 
     /// @brief Get the list of breakpoints currently set.
     /// @return An unordered set of all current breakpoints.
@@ -209,8 +218,13 @@ private:
 
     // Breakpoints
     std::unordered_set<u32> breakpoints_;
-    std::function<void()> BreakpointCallback;
     u64 breakpointCycle_;
+    bool breakOnVBlank_;
+    bool hitVBlank_;
+
+    // Callbacks to GUI
+    std::function<void()> VBlankCallback;
+    std::function<void()> BreakpointCallback;
 
     // Debugger
     friend class debug::GameBoyAdvanceDebugger;

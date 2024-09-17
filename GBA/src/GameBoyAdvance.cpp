@@ -38,7 +38,7 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 
 GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
                                fs::path romPath,
-                               std::function<void(int)> vBlankCallback,
+                               std::function<void()> vBlankCallback,
                                std::function<void()> breakpointCallback) :
     scheduler_(),
     systemControl_(scheduler_),
@@ -51,8 +51,11 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
     timerMgr_(scheduler_, systemControl_),
     gamePak_(nullptr),
     lastSuccessfulFetch_(0),
-    BreakpointCallback(breakpointCallback),
-    breakpointCycle_(U64_MAX)
+    breakpointCycle_(U64_MAX),
+    breakOnVBlank_(false),
+    hitVBlank_(false),
+    VBlankCallback(vBlankCallback),
+    BreakpointCallback(breakpointCallback)
 {
     if (!romPath.empty() && fs::exists(romPath))
     {
@@ -74,7 +77,6 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
     scheduler_.RegisterEvent(EventType::Timer1Overflow, std::bind(&GameBoyAdvance::Timer1Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
     scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::NotifyVBlank, vBlankCallback);
 }
 
 GameBoyAdvance::~GameBoyAdvance()
@@ -103,7 +105,7 @@ void GameBoyAdvance::Run()
     }
 }
 
-void GameBoyAdvance::SingleStep()
+void GameBoyAdvance::StepCPU()
 {
     while (true)
     {
@@ -119,6 +121,35 @@ void GameBoyAdvance::SingleStep()
     }
 }
 
+void GameBoyAdvance::StepFrame()
+{
+    breakOnVBlank_ = true;
+    hitVBlank_ = false;
+    bool encounteredBreakpoint = false;
+
+    while (!hitVBlank_ && !encounteredBreakpoint)
+    {
+        if (dmaMgr_.DmaRunning() || systemControl_.Halted())
+        {
+            scheduler_.FireNextEvent();
+        }
+        else
+        {
+            if (EncounteredBreakpoint())
+            {
+                encounteredBreakpoint = true;
+                breakpointCycle_ = scheduler_.GetTotalElapsedCycles();
+            }
+            else
+            {
+                cpu_.Step(systemControl_.IrqPending());
+            }
+        }
+    }
+
+    breakOnVBlank_ = false;
+}
+
 bool GameBoyAdvance::MainLoop(size_t samples)
 {
     apu_.ClearSampleCounter();
@@ -131,7 +162,7 @@ bool GameBoyAdvance::MainLoop(size_t samples)
         }
         else
         {
-            if (breakpoints_.contains(cpu_.GetNextAddrToExecute()) && (breakpointCycle_ != scheduler_.GetTotalElapsedCycles()))
+            if (EncounteredBreakpoint())
             {
                 breakpointCycle_ = scheduler_.GetTotalElapsedCycles();
                 return true;
@@ -394,6 +425,12 @@ void GameBoyAdvance::VBlank(int extraCycles)
     if (ppu_.GetVCOUNT() == 160)
     {
         dmaMgr_.CheckVBlank();
+        VBlankCallback();
+
+        if (breakOnVBlank_)
+        {
+            hitVBlank_ = true;
+        }
     }
 }
 

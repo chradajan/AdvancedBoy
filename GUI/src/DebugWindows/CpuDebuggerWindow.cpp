@@ -200,7 +200,6 @@ void BreakpointsList::UpdateList()
 
 CpuDebuggerWindow::CpuDebuggerWindow() :
     QWidget(),
-    runSingleFrame_(false),
     pcPage_(Page::INVALID),
     currPC_(U32_MAX),
     currArmMode_(true),
@@ -650,27 +649,23 @@ QGroupBox* CpuDebuggerWindow::CreateStackGroup()
     return groupBox;
 }
 
-void CpuDebuggerWindow::StepCpu()
-{
-    emit PauseSignal();
-    gba_api::SingleStep();
-    UpdateWidgets();
-    emit StepSignal();
-}
-
-void CpuDebuggerWindow::StepFrame()
-{
-    runSingleFrame_ = true;
-    emit ResumeSignal();
-}
-
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Button Actions
 ///---------------------------------------------------------------------------------------------------------------------------------
 
 void CpuDebuggerWindow::Run()
 {
-    emit ResumeSignal();
+    emit CpuDebugStepSignal(StepType::Run);
+}
+
+void CpuDebuggerWindow::StepCpu()
+{
+    emit CpuDebugStepSignal(StepType::CpuStep);
+}
+
+void CpuDebuggerWindow::StepFrame()
+{
+    emit CpuDebugStepSignal(StepType::FrameStep);
 }
 
 void CpuDebuggerWindow::AddBreakpointAction()

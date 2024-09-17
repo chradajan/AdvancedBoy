@@ -14,7 +14,7 @@
 
 namespace gui
 {
-RegisterViewerWindow::RegisterViewerWindow() : QWidget()
+RegisterViewerWindow::RegisterViewerWindow() : QWidget(), prevIndex_(0)
 {
     setWindowTitle("I/O Registers");
 
@@ -29,6 +29,8 @@ RegisterViewerWindow::RegisterViewerWindow() : QWidget()
 
     setLayout(layout);
     UpdateSelectedRegisterData();
+    adjustSize();
+    setFixedSize(size());
 }
 
 void RegisterViewerWindow::UpdateSelectedRegisterData()
@@ -37,8 +39,16 @@ void RegisterViewerWindow::UpdateSelectedRegisterData()
     layout()->replaceWidget(currentRegisterData, CreateRegisterData());
     delete currentRegisterData;
     update();
-    adjustSize();
-    setFixedSize(size());
+
+    int currIndex = registerSelect_->currentIndex();
+
+    if (prevIndex_ != currIndex)
+    {
+        adjustSize();
+        setFixedSize(size());
+    }
+
+    prevIndex_ = currIndex;
 }
 
 QComboBox* RegisterViewerWindow::CreateDropDown()

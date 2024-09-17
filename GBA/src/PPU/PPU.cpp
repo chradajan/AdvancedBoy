@@ -332,7 +332,6 @@ void PPU::VBlank(int extraCycles)
         dispstat.vBlank = 1;
         frameBuffer_.ResetFrameIndex();
         ++fpsCounter_;
-        scheduler_.ScheduleEvent(EventType::NotifyVBlank, 0);
 
         if (dispstat.vBlankIrqEnable)
         {

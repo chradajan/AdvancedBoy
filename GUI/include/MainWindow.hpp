@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
 #include <QtCore/QTimer>
@@ -38,11 +39,9 @@ public:
     void SetBiosPath(fs::path biosPath) { biosPath_ = biosPath; }
 
 public slots:
-    /// @brief Pause the emulator if it's running.
-    void PauseSlot() { PauseEmulation(); }
-
-    /// @brief Resume the emulator if it's paused.
-    void ResumeSlot() { ResumeEmulation(); }
+    /// @brief Slot to handle emulator control by the CPU Debugger Window.
+    /// @param stepType Duration to run the emulator for.
+    void CpuDebugStepSlot(StepType stepType);
 
 signals:
     /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
@@ -94,7 +93,7 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Callback function for whenever the GBA enters VBlank.
-    void VBlankCallback(int);
+    void VBlankCallback();
 
     /// @brief Callback function for whenever a breakpoint set in the CPU debugger is encountered.
     void BreakpointCallback();
@@ -105,6 +104,9 @@ private:
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
     void SendKeyPresses();
+
+    /// @brief Request an interruption of the emulation thread and wait for it to stop running.
+    void InterruptEmuThread();
 
     /// @brief Pause emulator if it's running and update emulation menu pause item.
     void PauseEmulation();
@@ -142,6 +144,7 @@ private:
     // Emulation control
     EmuThread emuThread_;
     fs::path biosPath_;
+    bool stepFrameMode_;
 
     // Screen control
     LCD screen_;

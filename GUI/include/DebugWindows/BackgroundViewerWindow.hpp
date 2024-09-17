@@ -22,7 +22,7 @@ public:
 
 public slots:
     /// @brief Update the image and information for the currently selected background.
-    void UpdateBackgroundViewSlot() { UpdateBackgroundView(); }
+    void UpdateBackgroundViewSlot() { if (isVisible()) UpdateBackgroundView(); }
 
 private:
     /// @brief Get information for the currently selected background and update the displayed image/data.

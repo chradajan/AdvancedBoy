@@ -5,6 +5,7 @@
 #include <utility>
 #include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/Utilities/Types.hpp>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
@@ -63,29 +64,17 @@ public:
     /// @brief CPU Debugger destructor.
     ~CpuDebuggerWindow();
 
-    /// @brief After the emulator has entered VBLank, emulation should pause if this is true.
-    /// @return Whether the step frame option was selected.
-    bool StepFrameMode() const { return runSingleFrame_; }
-
-    /// @brief Disable step frame mode when the next frame is ready.
-    void DisableStepFrameMode() { runSingleFrame_ = false; }
-
 public slots:
     /// @brief Slot for other widgets to signal that the debugger should be updated.
-    void UpdateCpuDebuggerSlot() { UpdateWidgets(); }
+    void UpdateCpuDebuggerSlot() { if (isVisible()) UpdateWidgets(); }
 
     /// @brief Slot for the breakpoints list to signal that a breakpoint has been removed.
     void BreakpointRemovedSlot(u32 breakpoint) { RemoveBreakpoint(breakpoint); }
 
 signals:
-    /// @brief Emit to pause emulation if it is currently running.
-    void PauseSignal();
-
-    /// @brief Emit to resume emulation if it is currently paused.
-    void ResumeSignal();
-
-    /// @brief Emit to notify any connected widgets that the CPU has been stepped.
-    void StepSignal();
+    /// @brief Emit to notify the main window to run the emulator for a step/frame/indefinitely.
+    /// @param stepType Duration to run the emulator for.
+    void CpuDebugStepSignal(StepType stepType);
 
     /// @brief Emit to notify the breakpoints list that it should be refreshed.
     void BreakpointsUpdatedSignal();
@@ -142,18 +131,18 @@ private:
     /// @return QGroupBox containing all the stack widgets.
     QGroupBox* CreateStackGroup();
 
-    /// @brief Action for the "Step" button. Steps the CPU once and emits relevant signals.
-    void StepCpu();
-
-    /// @brief Action for the "Step Frame" button. Runs the emulator until the next time it hits VBlank and emits relevant signals.
-    void StepFrame();
-
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Button Actions
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Action for the "Run" button. Emits relevant signals to resume emulation.
     void Run();
+
+    /// @brief Action for the "Step" button. Steps the CPU once and emits relevant signals.
+    void StepCpu();
+
+    /// @brief Action for the "Step Frame" button. Runs the emulator until the next time it hits VBlank and emits relevant signals.
+    void StepFrame();
 
     /// @brief Action for the "Add Breakpoint" button.
     void AddBreakpointAction();
@@ -175,9 +164,6 @@ private:
     /// @brief Event handler for a close event.
     /// @param event Close event.
     void closeEvent(QCloseEvent* event) override;
-
-    // Step mode
-    bool runSingleFrame_;
 
     // Disassembly
     QTextEdit* disassemblyWidget_;

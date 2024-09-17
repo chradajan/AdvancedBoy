@@ -19,7 +19,7 @@ namespace gba_api
 /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
 void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
-                   std::function<void(int)> vBlankCallback,
+                   std::function<void()> vBlankCallback,
                    std::function<void()> breakpointCallback);
 
 /// @brief Delete the current GBA instance if it exists.
@@ -54,7 +54,10 @@ void UpdateKeypad(KEYINPUT keyinput);
 ///---------------------------------------------------------------------------------------------------------------------------------
 
 /// @brief Run the emulator for a single CPU instruction.
-void SingleStep();
+void StepCPU();
+
+/// @brief Run the emulator until the next time it hits VBlank.
+void StepFrame();
 
 /// @brief Get debug info needed to draw a fully isolated background layer.
 /// @param bgIndex Index of background to display in debugger.

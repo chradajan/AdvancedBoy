@@ -30,6 +30,7 @@ namespace gui
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     emuThread_(this),
+    stepFrameMode_(false),
     screen_(this),
     fpsTimer_(this),
     romTitle_("Advanced Boy")
@@ -74,20 +75,11 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(this, &MainWindow::UpdateCpuDebuggerSignal,
             cpuDebuggerWindow_, &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
 
-    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::PauseSignal,
-            this, &MainWindow::PauseSlot);
-
-    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::ResumeSignal,
-            this, &MainWindow::ResumeSlot);
-
-    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::StepSignal,
-            bgViewerWindow_, &BackgroundViewerWindow::UpdateBackgroundViewSlot);
-
     connect(this, &MainWindow::UpdateRegisterViewerSignal,
             registerViewerWindow_, &RegisterViewerWindow::UpdateRegisterViewSlot);
 
-    connect(cpuDebuggerWindow_, &CpuDebuggerWindow::StepSignal,
-            registerViewerWindow_, &RegisterViewerWindow::UpdateRegisterViewSlot);
+    connect (cpuDebuggerWindow_, &CpuDebuggerWindow::CpuDebugStepSignal,
+             this, &MainWindow::CpuDebugStepSlot);
 }
 
 MainWindow::~MainWindow()
@@ -95,6 +87,32 @@ MainWindow::~MainWindow()
     delete bgViewerWindow_;
     delete cpuDebuggerWindow_;
     delete registerViewerWindow_;
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Slots
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void MainWindow::CpuDebugStepSlot(StepType stepType)
+{
+    switch (stepType)
+    {
+        case StepType::Run:
+            ResumeEmulation();
+            break;
+        case StepType::CpuStep:
+            InterruptEmuThread();
+            gba_api::StepCPU();
+            emit UpdateBackgroundViewSignal();
+            emit UpdateCpuDebuggerSignal();
+            emit UpdateRegisterViewerSignal();
+            break;
+        case StepType::FrameStep:
+            InterruptEmuThread();
+            stepFrameMode_ = true;
+            emuThread_.StartEmulator(StepType::FrameStep);
+            break;
+    }
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -194,19 +212,17 @@ void MainWindow::UpdateWindowTitle()
 /// Callbacks
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void MainWindow::VBlankCallback(int)
+void MainWindow::VBlankCallback()
 {
     RefreshScreen();
+    emit UpdateBackgroundViewSignal();
 
-    if (bgViewerWindow_->isVisible())
+    if (stepFrameMode_)
     {
-        emit UpdateBackgroundViewSignal();
-    }
-
-    if (cpuDebuggerWindow_->isVisible() && cpuDebuggerWindow_->StepFrameMode())
-    {
-        cpuDebuggerWindow_->DisableStepFrameMode();
-        emit cpuDebuggerWindow_->PauseSignal();
+        stepFrameMode_ = false;
+        pauseAction_->setChecked(true);
+        emit UpdateCpuDebuggerSignal();
+        emit UpdateRegisterViewerSignal();
     }
 }
 
@@ -214,7 +230,7 @@ void MainWindow::BreakpointCallback()
 {
     if (cpuDebuggerWindow_->isVisible())
     {
-        emit cpuDebuggerWindow_->PauseSignal();
+        PauseEmulation();
     }
 }
 
@@ -224,39 +240,23 @@ void MainWindow::BreakpointCallback()
 
 void MainWindow::StartEmulation(fs::path romPath)
 {
-    if (emuThread_.isRunning())
-    {
-        emuThread_.requestInterruption();
-        emuThread_.wait();
-    }
-
+    InterruptEmuThread();
     SDL_LockAudioDevice(audioDevice_);
     SDL_PauseAudioDevice(audioDevice_, 1);
     gba_api::PowerOff();
     gba_api::InitializeGBA(biosPath_,
                            romPath,
-                           std::bind(&MainWindow::VBlankCallback, this, std::placeholders::_1),
+                           std::bind(&MainWindow::VBlankCallback, this),
                            std::bind(&MainWindow::BreakpointCallback, this));
     romTitle_ = gba_api::GetTitle();
 
-    if (bgViewerWindow_->isVisible())
-    {
-        emit UpdateBackgroundViewSignal();
-    }
-
-    if (cpuDebuggerWindow_->isVisible())
-    {
-        emit UpdateCpuDebuggerSignal();
-    }
-
-    if (registerViewerWindow_->isVisible())
-    {
-        emit UpdateRegisterViewerSignal();
-    }
+    emit UpdateBackgroundViewSignal();
+    emit UpdateCpuDebuggerSignal();
+    emit UpdateRegisterViewerSignal();
 
     if (!pauseAction_->isChecked())
     {
-        emuThread_.start();
+        emuThread_.StartEmulator(StepType::Run);
     }
 
     SDL_UnlockAudioDevice(audioDevice_);
@@ -295,24 +295,20 @@ void MainWindow::SendKeyPresses()
     gba_api::UpdateKeypad(keyinput);
 }
 
-void MainWindow::PauseEmulation()
+void MainWindow::InterruptEmuThread()
 {
     if (emuThread_.isRunning())
     {
         emuThread_.requestInterruption();
         emuThread_.wait();
-
-        if (cpuDebuggerWindow_->isVisible())
-        {
-            emit UpdateCpuDebuggerSignal();
-        }
-
-        if (registerViewerWindow_->isVisible())
-        {
-            emit UpdateRegisterViewerSignal();
-        }
     }
+}
 
+void MainWindow::PauseEmulation()
+{
+    InterruptEmuThread();
+    emit UpdateCpuDebuggerSignal();
+    emit UpdateRegisterViewerSignal();
     pauseAction_->setChecked(true);
 }
 
@@ -320,7 +316,7 @@ void MainWindow::ResumeEmulation()
 {
     if (!emuThread_.isRunning())
     {
-        emuThread_.start();
+        emuThread_.StartEmulator(StepType::Run);
     }
 
     pauseAction_->setChecked(false);
@@ -375,8 +371,8 @@ void MainWindow::PauseButtonAction()
 
 void MainWindow::OpenBgMapsWindow()
 {
-    emit UpdateBackgroundViewSignal();
     bgViewerWindow_->show();
+    emit UpdateBackgroundViewSignal();
 }
 
 void MainWindow::OpenCpuDebugger()
@@ -387,13 +383,13 @@ void MainWindow::OpenCpuDebugger()
     }
 
     PauseEmulation();
-    emit UpdateCpuDebuggerSignal();
     cpuDebuggerWindow_->show();
+    emit UpdateCpuDebuggerSignal();
 }
 
 void MainWindow::OpenRegisterViewerWindow()
 {
-    emit UpdateRegisterViewerSignal();
     registerViewerWindow_->show();
+    emit UpdateRegisterViewerSignal();
 }
 }  // namespace gui
