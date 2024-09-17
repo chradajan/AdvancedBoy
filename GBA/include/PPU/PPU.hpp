@@ -165,6 +165,12 @@ public:
     /// @return VRAM.
     std::span<const std::byte> GetVRAM() const { return VRAM_; }
 
+    /// @brief Get the value of a PPU register for debugging purposes.
+    /// @param addr Address of register.
+    /// @param length Memory access size of the read.
+    /// @return Current value of specified register.
+    u32 DebugReadRegister(u32 addr, AccessSize length);
+
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Register access/updates

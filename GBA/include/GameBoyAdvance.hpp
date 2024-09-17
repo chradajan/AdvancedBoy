@@ -77,12 +77,12 @@ public:
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
 
-    /// @brief Run the emulator for a single CPU instruction.
-    void SingleStep();
-
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Debug
     ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Run the emulator for a single CPU instruction.
+    void SingleStep();
 
     /// @brief Get debug info needed to draw a fully isolated background layer.
     /// @param bgIndex Index of background to display in debugger.
@@ -118,6 +118,12 @@ public:
     /// @brief Get the list of breakpoints currently set.
     /// @return An unordered set of all current breakpoints.
     std::unordered_set<u32> const& GetBreakpoints() const { return breakpoints_; }
+
+    /// @brief Get the value of an I/O register for debugging purposes.
+    /// @param addr Address of register.
+    /// @param length Memory access size of the read.
+    /// @return Current value of specified register.
+    u32 DebugReadRegister(u32 addr, AccessSize length);
 
 private:
     /// @brief Main emulation loop.

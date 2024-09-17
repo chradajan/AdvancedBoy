@@ -204,4 +204,14 @@ std::unordered_set<u32> const& GetBreakpoints()
 
     return EMPTY_SET;
 }
+
+u32 DebugReadRegister(u32 addr, u8 size)
+{
+    if (GBA)
+    {
+        return GBA->DebugReadRegister(addr, AccessSize(size));
+    }
+
+    return 0;
+}
 }  // namespace gui

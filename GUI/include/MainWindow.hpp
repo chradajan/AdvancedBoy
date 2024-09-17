@@ -12,6 +12,7 @@
 namespace fs = std::filesystem;
 namespace gui { class BackgroundViewer; }
 namespace gui { class CpuDebugger; }
+namespace gui { class RegisterViewer; }
 
 namespace gui
 {
@@ -49,6 +50,9 @@ signals:
 
     /// @brief Emit this signal to notify the CPU Debugger to update its displayed data.
     void UpdateCpuDebuggerSignal();
+
+    /// @brief Emit this signal to notify the Register Viewer to update its displayed data.
+    void UpdateRegisterViewerSignal();
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -105,7 +109,7 @@ private:
     /// @brief Pause emulator if it's running and update emulation menu pause item.
     void PauseEmulation();
 
-    /// @brief 
+    /// @brief Resume emulator if it's current paused and update emulation menu pause item.
     void ResumeEmulation();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -127,6 +131,9 @@ private:
 
     /// @brief Action for clicking "CPU Debugger" menu item.
     void OpenCpuDebugger();
+
+    /// @brief Action for clicking "I/O Registers" menu item.
+    void OpenRegisterViewerWindow();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
@@ -162,5 +169,6 @@ private:
     // Debug menus
     BackgroundViewer* bgMapsWindow_;
     CpuDebugger* cpuDebugWindow_;
+    RegisterViewer* registerViewerWindow_;
 };
 }  // namespace gui

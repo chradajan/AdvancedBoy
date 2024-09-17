@@ -92,4 +92,10 @@ void RemoveBreakpoint(u32 breakpoint);
 /// @brief Get the list of breakpoints currently set.
 /// @return An unordered set of all current breakpoints.
 std::unordered_set<u32> const& GetBreakpoints();
+
+/// @brief Get the value of an I/O register.
+/// @param addr Address of register.
+/// @param size Size of the register in bytes.
+/// @return Current value of specified register.
+u32 DebugReadRegister(u32 addr, u8 size);
 }  // namespace gui

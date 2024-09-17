@@ -284,4 +284,9 @@ void PPU::DebugRenderMode4Background(bool frameSelect, BackgroundDebugInfo& debu
         ++pixelPtr;
     }
 }
+
+u32 PPU::DebugReadRegister(u32 addr, AccessSize length)
+{
+    return ReadMemoryBlock(registers_, addr, LCD_IO_ADDR_MIN, length);
+}
 }  // namespace graphics

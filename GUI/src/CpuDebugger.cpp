@@ -155,8 +155,8 @@ BreakpointsList::BreakpointsList() : QWidget()
     QPushButton* okButton = new QPushButton("Ok");
     QPushButton* removeButton = new QPushButton("Remove");
 
-    connect(okButton, QPushButton::clicked, this, BreakpointsList::close);
-    connect(removeButton, QPushButton::clicked, this, BreakpointsList::RemoveSelectedBreakpoint);
+    connect(okButton, &QPushButton::clicked, this, &BreakpointsList::close);
+    connect(removeButton, &QPushButton::clicked, this, &BreakpointsList::RemoveSelectedBreakpoint);
 
     grid->addWidget(list_, 0, 0, 1, 2);
     grid->addWidget(okButton, 1, 0);
@@ -221,11 +221,11 @@ CpuDebugger::CpuDebugger() :
 
     breakpointsWindow_ = new BreakpointsList();
 
-    connect(breakpointsWindow_, BreakpointsList::BreakpointRemovedSignal,
-            this, CpuDebugger::BreakpointRemovedSlot);
+    connect(breakpointsWindow_, &BreakpointsList::BreakpointRemovedSignal,
+            this, &CpuDebugger::BreakpointRemovedSlot);
 
-    connect(this, CpuDebugger::BreakpointsUpdatedSignal,
-            breakpointsWindow_, BreakpointsList::UpdateBreakpointsSlot);
+    connect(this, &CpuDebugger::BreakpointsUpdatedSignal,
+            breakpointsWindow_, &BreakpointsList::UpdateBreakpointsSlot);
 }
 
 CpuDebugger::~CpuDebugger()

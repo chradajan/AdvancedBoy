@@ -7,6 +7,7 @@
 #include <GBA/include/Types/Types.hpp>
 #include <GUI/include/BackgroundViewer.hpp>
 #include <GUI/include/CpuDebugger.hpp>
+#include <GUI/include/DebugWindows/RegisterViewer.hpp>
 #include <GUI/include/GBA.hpp>
 #include <SDL2/SDL.h>
 #include <QtWidgets/QApplication>
@@ -65,6 +66,7 @@ MainWindow::MainWindow(QWidget* parent) :
     // Debug options
     bgMapsWindow_ = new BackgroundViewer;
     cpuDebugWindow_ = new CpuDebugger;
+    registerViewerWindow_ = new RegisterViewer;
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
@@ -81,12 +83,19 @@ MainWindow::MainWindow(QWidget* parent) :
 
     connect(cpuDebugWindow_, &CpuDebugger::StepSignal,
             bgMapsWindow_, &BackgroundViewer::UpdateBackgroundViewSlot);
+
+    connect(this, &MainWindow::UpdateRegisterViewerSignal,
+            registerViewerWindow_, &RegisterViewer::UpdateRegisterViewSlot);
+
+    connect(cpuDebugWindow_, &CpuDebugger::StepSignal,
+            registerViewerWindow_, &RegisterViewer::UpdateRegisterViewSlot);
 }
 
 MainWindow::~MainWindow()
 {
     delete bgMapsWindow_;
     delete cpuDebugWindow_;
+    delete registerViewerWindow_;
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -149,15 +158,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
     gba_api::PowerOff();
 
-    if (bgMapsWindow_->isVisible())
-    {
-        bgMapsWindow_->close();
-    }
-
-    if (cpuDebugWindow_->isVisible())
-    {
-        cpuDebugWindow_->close();
-    }
+    bgMapsWindow_->close();
+    cpuDebugWindow_->close();
+    registerViewerWindow_->close();
 
     event->accept();
 }
@@ -238,9 +241,19 @@ void MainWindow::StartEmulation(fs::path romPath)
                            std::bind(&MainWindow::BreakpointCallback, this));
     romTitle_ = gba_api::GetTitle();
 
+    if (bgMapsWindow_->isVisible())
+    {
+        emit UpdateBackgroundViewSignal();
+    }
+
     if (cpuDebugWindow_->isVisible())
     {
         emit UpdateCpuDebuggerSignal();
+    }
+
+    if (registerViewerWindow_->isVisible())
+    {
+        emit UpdateRegisterViewerSignal();
     }
 
     if (!pauseAction_->isChecked())
@@ -295,6 +308,11 @@ void MainWindow::PauseEmulation()
         {
             emit UpdateCpuDebuggerSignal();
         }
+
+        if (registerViewerWindow_->isVisible())
+        {
+            emit UpdateRegisterViewerSignal();
+        }
     }
 
     pauseAction_->setChecked(true);
@@ -335,6 +353,10 @@ void MainWindow::InitializeMenuBar()
     QAction* cpuDebugger = new QAction("CPU Debugger", this);
     connect(cpuDebugger, &QAction::triggered, this, &MainWindow::OpenCpuDebugger);
     debugMenu_->addAction(cpuDebugger);
+
+    QAction* registerViewer = new QAction("View I/O Registers", this);
+    connect(registerViewer, &QAction::triggered, this, &MainWindow::OpenRegisterViewerWindow);
+    debugMenu_->addAction(registerViewer);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -355,6 +377,7 @@ void MainWindow::PauseButtonAction()
 
 void MainWindow::OpenBgMapsWindow()
 {
+    emit UpdateBackgroundViewSignal();
     bgMapsWindow_->show();
 }
 
@@ -368,5 +391,11 @@ void MainWindow::OpenCpuDebugger()
     PauseEmulation();
     emit UpdateCpuDebuggerSignal();
     cpuDebugWindow_->show();
+}
+
+void MainWindow::OpenRegisterViewerWindow()
+{
+    emit UpdateRegisterViewerSignal();
+    registerViewerWindow_->show();
 }
 }  // namespace gui

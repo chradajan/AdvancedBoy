@@ -146,22 +146,6 @@ bool GameBoyAdvance::MainLoop(size_t samples)
     return false;
 }
 
-void GameBoyAdvance::SingleStep()
-{
-    while (true)
-    {
-        while (dmaMgr_.DmaRunning() || systemControl_.Halted())
-        {
-            scheduler_.FireNextEvent();
-        }
-
-        if (cpu_.Step(systemControl_.IrqPending()))
-        {
-            break;
-        }
-    }
-}
-
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Bus functionality
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -435,6 +419,22 @@ void GameBoyAdvance::TimerOverflow(u8 index, int extraCycles)
 /// Debug
 ///---------------------------------------------------------------------------------------------------------------------------------
 
+void GameBoyAdvance::SingleStep()
+{
+    while (true)
+    {
+        while (dmaMgr_.DmaRunning() || systemControl_.Halted())
+        {
+            scheduler_.FireNextEvent();
+        }
+
+        if (cpu_.Step(systemControl_.IrqPending()))
+        {
+            break;
+        }
+    }
+}
+
 debug::cpu::CpuDebugInfo GameBoyAdvance::GetCpuDebugInfo()
 {
     debug::cpu::CpuDebugInfo debugInfo;
@@ -634,4 +634,31 @@ debug::DebugMemAccess GameBoyAdvance::GetDebugMemAccess(u32 addr)
     #pragma GCC diagnostic pop
 
     return debugMem;
+}
+
+u32 GameBoyAdvance::DebugReadRegister(u32 addr, AccessSize length)
+{
+    switch (addr)
+    {
+        case LCD_IO_ADDR_MIN ... LCD_IO_ADDR_MAX:
+            return ppu_.DebugReadRegister(addr, length);
+        case SOUND_IO_ADDR_MIN ... SOUND_IO_ADDR_MAX:
+            break;
+        case DMA_IO_ADDR_MIN ... DMA_IO_ADDR_MAX:
+            break;
+        case TIMER_IO_ADDR_MIN ... TIMER_IO_ADDR_MAX:
+            break;
+        case SERIAL_IO_1_ADDR_MIN ... SERIAL_IO_1_ADDR_MAX:
+            break;
+        case KEYPAD_IO_ADDR_MIN ... KEYPAD_IO_ADDR_MAX:
+            break;
+        case SERIAL_IO_2_ADDR_MIN ... SERIAL_IO_2_ADDR_MAX:
+            break;
+        case SYSTEM_CONTROL_IO_ADDR_MIN ... SYSTEM_CONTROL_IO_ADDR_MAX:
+            break;
+        default:
+            break;
+    }
+
+    return 0;
 }

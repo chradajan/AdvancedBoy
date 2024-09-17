@@ -9,3 +9,5 @@ target_sources(${PROJECT_NAME} PRIVATE
     main.cpp
     MainWindow.cpp
 )
+
+add_subdirectory(DebugWindows)
