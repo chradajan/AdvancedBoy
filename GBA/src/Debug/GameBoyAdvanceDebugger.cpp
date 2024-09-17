@@ -13,7 +13,8 @@ namespace debug
 GameBoyAdvanceDebugger::GameBoyAdvanceDebugger(GameBoyAdvance const& gba) :
     gba_(gba),
     cpuDebugger_(gba.cpu_),
-    ppuDebugger_(gba.ppu_)
+    ppuDebugger_(gba.ppu_),
+    systemControlDebugger_(gba.systemControl_)
 {
 }
 
@@ -190,7 +191,7 @@ u32 GameBoyAdvanceDebugger::ReadRegister(u32 addr, AccessSize length) const
         case SERIAL_IO_2_ADDR_MIN ... SERIAL_IO_2_ADDR_MAX:
             break;
         case SYSTEM_CONTROL_IO_ADDR_MIN ... SYSTEM_CONTROL_IO_ADDR_MAX:
-            break;
+            return systemControlDebugger_.ReadRegister(addr, length);
         default:
             break;
     }

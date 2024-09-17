@@ -39,7 +39,7 @@ public:
     /// @return VRAM.
     std::span<const std::byte> GetVRAM() const { return ppu_.VRAM_; }
 
-    /// @brief Get the value of a PPU register purposes.
+    /// @brief Get the value of a PPU register.
     /// @param addr Address of register.
     /// @param length Memory access size of the read.
     /// @return Current value of specified register.

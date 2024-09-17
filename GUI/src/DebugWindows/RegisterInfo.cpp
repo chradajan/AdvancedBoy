@@ -538,5 +538,123 @@ std::vector<Register> const IO_REGISTERS = {
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// APU
     ///-----------------------------------------------------------------------------------------------------------------------------
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// System Control
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    // IE
+    {
+        "IE",
+        "Interrupt Enable",
+        0x0400'0200,
+        2,
+        {
+            {"LCD V-Blank",             0x0001,         0,      DisplayFormat::BOOL},
+            {"LCD H-Blank",             0x0002,         1,      DisplayFormat::BOOL},
+            {"LCD V-Counter Match",     0x0004,         2,      DisplayFormat::BOOL},
+            {"Timer 0 Overflow",        0x0008,         3,      DisplayFormat::BOOL},
+            {"Timer 1 Overflow",        0x0010,         4,      DisplayFormat::BOOL},
+            {"Timer 2 Overflow",        0x0020,         5,      DisplayFormat::BOOL},
+            {"Timer 3 Overflow",        0x0040,         6,      DisplayFormat::BOOL},
+            {"Serial Communication",    0x0080,         7,      DisplayFormat::BOOL},
+            {"DMA 0",                   0x0100,         8,      DisplayFormat::BOOL},
+            {"DMA 1",                   0x0200,         9,      DisplayFormat::BOOL},
+            {"DMA 2",                   0x0400,         10,     DisplayFormat::BOOL},
+            {"DMA 3",                   0x0800,         11,     DisplayFormat::BOOL},
+            {"Keypad",                  0x1000,         12,     DisplayFormat::BOOL},
+            {"Game Pak",                0x2000,         13,     DisplayFormat::BOOL}
+        }
+    },
+
+    // IF
+    {
+        "IF",
+        "Interrupt Request",
+        0x0400'0202,
+        2,
+        {
+            {"LCD V-Blank",             0x0001,         0,      DisplayFormat::BOOL},
+            {"LCD H-Blank",             0x0002,         1,      DisplayFormat::BOOL},
+            {"LCD V-Counter Match",     0x0004,         2,      DisplayFormat::BOOL},
+            {"Timer 0 Overflow",        0x0008,         3,      DisplayFormat::BOOL},
+            {"Timer 1 Overflow",        0x0010,         4,      DisplayFormat::BOOL},
+            {"Timer 2 Overflow",        0x0020,         5,      DisplayFormat::BOOL},
+            {"Timer 3 Overflow",        0x0040,         6,      DisplayFormat::BOOL},
+            {"Serial Communication",    0x0080,         7,      DisplayFormat::BOOL},
+            {"DMA 0",                   0x0100,         8,      DisplayFormat::BOOL},
+            {"DMA 1",                   0x0200,         9,      DisplayFormat::BOOL},
+            {"DMA 2",                   0x0400,         10,     DisplayFormat::BOOL},
+            {"DMA 3",                   0x0800,         11,     DisplayFormat::BOOL},
+            {"Keypad",                  0x1000,         12,     DisplayFormat::BOOL},
+            {"Game Pak",                0x2000,         13,     DisplayFormat::BOOL}
+        }
+    },
+
+    // WAITCNT
+    {
+        "WAITCNT",
+        "Waitstate Control",
+        0x0400'0204,
+        2,
+        {
+            {"SRAM Wait Control",       0x0003,         0,      DisplayFormat::DEC},
+            {"WS0 First Access",        0x000C,         2,      DisplayFormat::DEC},
+            {"WS0 Second Access",       0x0010,         4,      DisplayFormat::DEC},
+            {"WS1 First Access",        0x0060,         5,      DisplayFormat::DEC},
+            {"WS1 Second Access",       0x0080,         7,      DisplayFormat::DEC},
+            {"WS2 First Access",        0x0300,         8,      DisplayFormat::DEC},
+            {"WS2 Second Access",       0x0400,         10,     DisplayFormat::DEC},
+            {"PHI Terminal Output",     0x1800,         11,     DisplayFormat::DEC},
+            {"Enable Prefetch Buffer",  0x4000,         14,     DisplayFormat::BOOL},
+            {"CGB Cart",                0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // IME
+    {
+        "IME",
+        "Interrupt Master Enable",
+        0x0400'0208,
+        2,
+        {
+            {"Enable Interrupts",       0x0001,         0,      DisplayFormat::BOOL}
+        }
+    },
+
+    // POSTFLG
+    {
+        "POSTFLG",
+        "Post Boot / Debug Control",
+        0x0400'0300,
+        1,
+        {
+            {"First Boot Flag",         0x01,           0,      DisplayFormat::BOOL}
+        }
+    },
+
+    // HALTCNT
+    {
+        "HALTCNT",
+        "Low Power Mode Control",
+        0x0400'0301,
+        1,
+        {
+            {"Stop",                    0x80,           7,      DisplayFormat::BOOL}
+        }
+    },
+
+    // Internal Memory Control
+    {
+        "Internal Memory Control",
+        "Undocumented",
+        0x0400'0800,
+        4,
+        {
+            {"Disable 32K+256K WRAM",   0x0000'0001,    0,      DisplayFormat::BOOL},
+            {"Enable 256K WRAM",        0x0000'0020,    5,      DisplayFormat::BOOL},
+            {"WRAM Wait State Control", 0x0F00'0000,    24,     DisplayFormat::DEC}
+        }
+    }
 };
 }  // namespace gui

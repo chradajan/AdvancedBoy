@@ -2,6 +2,7 @@
 
 #include <GBA/include/Debug/CPUDebugger.hpp>
 #include <GBA/include/Debug/PPUDebugger.hpp>
+#include <GBA/include/Debug/SystemControlDebugger.hpp>
 #include <GBA/include/GameBoyAdvance.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/Utilities/Types.hpp>
@@ -69,5 +70,6 @@ private:
     GameBoyAdvance const& gba_;
     CPUDebugger cpuDebugger_;
     PPUDebugger ppuDebugger_;
+    SystemControlDebugger systemControlDebugger_;
 };
 }  // namespace debug

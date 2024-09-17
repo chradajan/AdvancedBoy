@@ -6,6 +6,7 @@
 #include <GBA/include/Utilities/Types.hpp>
 
 class EventScheduler;
+namespace debug { class SystemControlDebugger; }
 
 /// @brief Possible waitstate regions to use for GamePak access.
 enum class WaitStateRegion
@@ -194,4 +195,7 @@ private:
 
     // External components
     EventScheduler& scheduler_;
+
+    // Debug
+    friend class debug::SystemControlDebugger;
 };

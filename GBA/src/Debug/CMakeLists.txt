@@ -5,5 +5,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     CPUDebugger.cpp
     GameBoyAdvanceDebugger.cpp
     PPUDebugger.cpp
+    SystemControlDebugger.cpp
     ThumbDisassembler.cpp
 )
