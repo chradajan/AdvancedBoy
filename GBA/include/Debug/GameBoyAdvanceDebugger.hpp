@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GBA/include/Debug/APUDebugger.hpp>
 #include <GBA/include/Debug/CPUDebugger.hpp>
 #include <GBA/include/Debug/PPUDebugger.hpp>
 #include <GBA/include/Debug/SystemControlDebugger.hpp>
@@ -68,6 +69,7 @@ public:
 
 private:
     GameBoyAdvance const& gba_;
+    APUDebugger apuDebugger_;
     CPUDebugger cpuDebugger_;
     PPUDebugger ppuDebugger_;
     SystemControlDebugger systemControlDebugger_;

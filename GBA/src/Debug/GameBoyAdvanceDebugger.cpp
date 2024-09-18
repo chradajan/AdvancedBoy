@@ -1,7 +1,9 @@
 #include <GBA/include/Debug/GameBoyAdvanceDebugger.hpp>
 #include <GBA/include/BIOS/BIOSManager.hpp>
 #include <GBA/include/Cartridge/GamePak.hpp>
+#include <GBA/include/Debug/APUDebugger.hpp>
 #include <GBA/include/Debug/ArmDisassembler.hpp>
+#include <GBA/include/Debug/CPUDebugger.hpp>
 #include <GBA/include/Debug/PPUDebugger.hpp>
 #include <GBA/include/Debug/ThumbDisassembler.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
@@ -12,6 +14,7 @@ namespace debug
 {
 GameBoyAdvanceDebugger::GameBoyAdvanceDebugger(GameBoyAdvance const& gba) :
     gba_(gba),
+    apuDebugger_(gba.apu_),
     cpuDebugger_(gba.cpu_),
     ppuDebugger_(gba.ppu_),
     systemControlDebugger_(gba.systemControl_)
@@ -179,7 +182,7 @@ u32 GameBoyAdvanceDebugger::ReadRegister(u32 addr, AccessSize length) const
         case LCD_IO_ADDR_MIN ... LCD_IO_ADDR_MAX:
             return ppuDebugger_.ReadRegister(addr, length);
         case SOUND_IO_ADDR_MIN ... SOUND_IO_ADDR_MAX:
-            break;
+            return apuDebugger_.ReadRegister(addr, length);
         case DMA_IO_ADDR_MIN ... DMA_IO_ADDR_MAX:
             break;
         case TIMER_IO_ADDR_MIN ... TIMER_IO_ADDR_MAX:

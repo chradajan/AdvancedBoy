@@ -539,6 +539,256 @@ std::vector<Register> const IO_REGISTERS = {
     /// APU
     ///-----------------------------------------------------------------------------------------------------------------------------
 
+    // SOUND1CNT_L
+    {
+        "SOUND1CNT_L",
+        "Channel 1 Sweep",
+        0x0400'0060,
+        2,
+        {
+            {"Sweep Shift Number",      0x0007,         0,      DisplayFormat::DEC},
+            {"Decrease Frequency",      0x0008,         3,      DisplayFormat::BOOL},
+            {"Sweep Time",              0x0070,         4,      DisplayFormat::DEC}
+        }
+    },
+
+    // SOUND1CNT_H
+    {
+        "SOUND1CNT_H",
+        "Channel 1 Duty/Len/Envelope",
+        0x0400'0062,
+        2,
+        {
+            {"Sound Length",            0x003F,         0,      DisplayFormat::DEC},
+            {"Wave Pattern Duty",       0x00C0,         6,      DisplayFormat::DEC},
+            {"Envelope Step-Time",      0x0700,         8,      DisplayFormat::DEC},
+            {"Increase Volume",         0x0800,         11,     DisplayFormat::BOOL},
+            {"Initial Envelope Volume", 0xF000,         12,     DisplayFormat::DEC}
+        }
+    },
+
+    // SOUND1CNT_X
+    {
+        "SOUND1CNT_X",
+        "Channel 1 Frequency/Control",
+        0x0400'0064,
+        2,
+        {
+            {"Frequency",               0x07FF,         0,      DisplayFormat::DEC},
+            {"Length Flag",             0x4000,         14,     DisplayFormat::BOOL},
+            {"Restart",                 0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUND2CNT_L
+    {
+        "SOUND2CNT_L",
+        "Channel 2 Duty/Len/Envelope",
+        0x0400'0068,
+        2,
+        {
+            {"Sound Length",            0x003F,         0,      DisplayFormat::DEC},
+            {"Wave Pattern Duty",       0x00C0,         6,      DisplayFormat::DEC},
+            {"Envelope Step-Time",      0x0700,         8,      DisplayFormat::DEC},
+            {"Increase Volume",         0x0800,         11,     DisplayFormat::BOOL},
+            {"Initial Envelope Volume", 0xF000,         12,     DisplayFormat::DEC}
+        }
+    },
+
+    // SOUND2CNT_H
+    {
+        "SOUND2CNT_H",
+        "Channel 2 Frequency/Control",
+        0x0400'006C,
+        2,
+        {
+            {"Frequency",               0x07FF,         0,      DisplayFormat::DEC},
+            {"Length Flag",             0x4000,         14,     DisplayFormat::BOOL},
+            {"Restart",                 0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUND3CNT_L
+    {
+        "SOUND3CNT_L",
+        "Channel 3 Stop/Wave RAM select",
+        0x0400'0070,
+        2,
+        {
+            {"Wave RAM Dimension",      0x0020,         5,      DisplayFormat::BOOL},
+            {"Wave RAM Bank",           0x0040,         6,      DisplayFormat::DEC},
+            {"Enable Playback",         0x0080,         7,      DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUND3CNT_H
+    {
+        "SOUND3CNT_H",
+        "Channel 3 Length/Volume",
+        0x0400'0072,
+        2,
+        {
+            {"Sound Length",            0x00FF,         0,      DisplayFormat::DEC},
+            {"Sound Volume",            0x6000,         13,     DisplayFormat::DEC},
+            {"Force 75% Volume",        0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUND3CNT_X
+    {
+        "SOUND3CNT_X",
+        "Channel 3 Frequency/Control",
+        0x0400'0074,
+        2,
+        {
+            {"Sample Rate",             0x07FF,         0,      DisplayFormat::DEC},
+            {"Length Flag",             0x4000,         14,     DisplayFormat::BOOL},
+            {"Restart",                 0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUND4CNT_L
+    {
+        "SOUND4CNT_L",
+        "Channel 4 Length/Envelope",
+        0x0400'0078,
+        2,
+        {
+            {"Sound Length",            0x003F,         0,      DisplayFormat::DEC},
+            {"Envelope Step-Time",      0x0700,         8,      DisplayFormat::DEC},
+            {"Increase Volume",         0x0800,         11,     DisplayFormat::BOOL},
+            {"Initial Volume",          0xF000,         12,     DisplayFormat::DEC}
+        }
+    },
+
+    // SOUND4CNT_H
+    {
+        "SOUND4CNT_H",
+        "Channel 4 Frequency/Control",
+        0x0400'007C,
+        2,
+        {
+            {"Dividing Ratio (r)",      0x0007,         0,      DisplayFormat::DEC},
+            {"Short Shift Register",    0x0008,         3,      DisplayFormat::BOOL},
+            {"Clock Shift (s)",         0x00F0,         4,      DisplayFormat::DEC},
+            {"Length Flag",             0x4000,         14,     DisplayFormat::BOOL},
+            {"Restart",                 0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUNDCNT_L
+    {
+        "SOUNDCNT_L",
+        "Channel L/R Volume/Enable",
+        0x0400'0080,
+        2,
+        {
+            {"PSG Master Volume Right", 0x0007,         0,      DisplayFormat::DEC},
+            {"PSG Master Volume Left",  0x0070,         4,      DisplayFormat::DEC},
+            {"Enable Channel 1 - Right",0x0100,         8,      DisplayFormat::BOOL},
+            {"Enable Channel 2 - Right",0x0200,         9,      DisplayFormat::BOOL},
+            {"Enable Channel 3 - Right",0x0400,         10,     DisplayFormat::BOOL},
+            {"Enable Channel 4 - Right",0x0800,         11,     DisplayFormat::BOOL},
+            {"Enable Channel 1 - Left" ,0x1000,         12,     DisplayFormat::BOOL},
+            {"Enable Channel 2 - Left" ,0x2000,         13,     DisplayFormat::BOOL},
+            {"Enable Channel 3 - Left" ,0x4000,         14,     DisplayFormat::BOOL},
+            {"Enable Channel 4 - Left" ,0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUNDCNT_H
+    {
+        "SOUNDCNT_H",
+        "DMA Sound Control/Mixing",
+        0x0400'0082,
+        2,
+        {
+            {"Channel 1-4 Volume",      0x0003,         0,      DisplayFormat::DEC},
+            {"DMA Sound A Full Volume", 0x0004,         2,      DisplayFormat::BOOL},
+            {"DMA Sound B Full Volume", 0x0008,         3,      DisplayFormat::BOOL},
+            {"DMA Sound A Enable Right",0x0100,         8,      DisplayFormat::BOOL},
+            {"DMA Sound B Enable Left", 0x0200,         9,      DisplayFormat::BOOL},
+            {"DMA Sound A Timer",       0x0400,         10,     DisplayFormat::DEC},
+            {"DMA Sound A Reset",       0x0800,         11,     DisplayFormat::BOOL},
+            {"DMA Sound B Enable Right",0x1000,         12,     DisplayFormat::BOOL},
+            {"DMA Sound B Enable Left", 0x2000,         13,     DisplayFormat::BOOL},
+            {"DMA Sound B Timer",       0x4000,         14,     DisplayFormat::DEC},
+            {"DMA Sound B Reset",       0x8000,         15,     DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUNDCNT_X
+    {
+        "SOUNDCNT_X",
+        "Sound On/Off",
+        0x0400'0084,
+        2,
+        {
+            {"Channel 1 Enable",        0x0001,         0,      DisplayFormat::BOOL},
+            {"Channel 2 Enable",        0x0002,         1,      DisplayFormat::BOOL},
+            {"Channel 3 Enable",        0x0004,         2,      DisplayFormat::BOOL},
+            {"Channel 4 Enable",        0x0008,         3,      DisplayFormat::BOOL},
+            {"PSG/FIFO Master Enable",  0x0080,         7,      DisplayFormat::BOOL}
+        }
+    },
+
+    // SOUNDBIAS
+    {
+        "SOUNDBIAS",
+        "Sound PWM Control",
+        0x0400'0088,
+        2,
+        {
+            {"Bias Level",              0x03FE,         1,      DisplayFormat::HEX},
+            {"Sampling Frequency",      0xC000,         14,     DisplayFormat::DEC}
+        }
+    },
+
+    // WAVE RAM 0
+    {
+        "WAVE_RAM0",
+        "Channel 3 Wave Pattern RAM",
+        0x0400'0090,
+        4,
+        {
+            {"Samples",                 0xFFFF'FFFF,    0,      DisplayFormat::HEX}
+        }
+    },
+
+    // WAVE RAM 1
+    {
+        "WAVE_RAM1",
+        "Channel 3 Wave Pattern RAM",
+        0x0400'0094,
+        4,
+        {
+            {"Samples",                 0xFFFF'FFFF,    0,      DisplayFormat::HEX}
+        }
+    },
+
+    // WAVE RAM 2
+    {
+        "WAVE_RAM2",
+        "Channel 3 Wave Pattern RAM",
+        0x0400'0098,
+        4,
+        {
+            {"Samples",                 0xFFFF'FFFF,    0,      DisplayFormat::HEX}
+        }
+    },
+
+    // WAVE RAM 3
+    {
+        "WAVE_RAM3",
+        "Channel 3 Wave Pattern RAM",
+        0x0400'009C,
+        4,
+        {
+            {"Samples",                 0xFFFF'FFFF,    0,      DisplayFormat::HEX}
+        }
+    },
+
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// System Control
     ///-----------------------------------------------------------------------------------------------------------------------------

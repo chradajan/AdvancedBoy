@@ -15,6 +15,8 @@
 #include <GBA/include/Utilities/RingBuffer.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
+namespace debug { class APUDebugger; }
+
 namespace audio
 {
 /// @brief Audio Processing Unit.
@@ -140,5 +142,8 @@ private:
 
     // External components
     EventScheduler& scheduler_;
+
+    // Debug
+    friend class debug::APUDebugger;
 };
 }  // namespace audio
