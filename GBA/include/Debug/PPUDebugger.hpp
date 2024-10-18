@@ -52,9 +52,9 @@ public:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Draw full background and get background info for debugger.
+    /// @param debugInfo Reference to background debug info to be populated.
     /// @param bgIndex Index of background to display in debugger.
-    /// @return Background debug info.
-    BackgroundDebugInfo GetBackgroundDebugInfo(u8 bgIndex) const;
+    void GetBackgroundDebugInfo(BackgroundDebugInfo& debugInfo, u8 bgIndex) const;
 
     /// @brief Get debug info for a regular tiled background.
     /// @param bgIndex Selected background index.
@@ -87,7 +87,7 @@ public:
     /// @brief Get debug info needed to display sprites in sprite debugger window.
     /// @param sprites Reference to sprites to update with current OAM data.
     /// @param regTransforms Apply transforms (horizontal and vertical flip) to regular sprites.
-/// @param affTransforms Apply transforms (use affine matrix) to affine sprites.
+    /// @param affTransforms Apply transforms (use affine matrix) to affine sprites.
     void GetSpriteDebugInfo(SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms) const;
 
 private:

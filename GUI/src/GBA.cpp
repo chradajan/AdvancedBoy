@@ -139,14 +139,17 @@ void StepFrame()
     }
 }
 
-debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
+void GetBgDebugInfo(debug::BackgroundDebugInfo& debugInfo, u8 bgIndex)
 {
     if (GBADebugger)
     {
-        return GBADebugger->GetBgDebugInfo(bgIndex);
+        GBADebugger->GetBgDebugInfo(debugInfo, bgIndex);
     }
-
-    return {};
+    else
+    {
+        debugInfo.width = 0;
+        debugInfo.height = 0;
+    }
 }
 
 void GetSpriteDebugInfo(debug::SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms)

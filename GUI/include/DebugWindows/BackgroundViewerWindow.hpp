@@ -1,10 +1,12 @@
 #pragma once
 
 #include <GBA/include/Debug/DebugTypes.hpp>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QScrollArea>
+#include <QtWidgets/QSpinBox>
 #include <QtWidgets/QWidget>
 
 namespace gui
@@ -22,15 +24,22 @@ public:
 
 public slots:
     /// @brief Update the image and information for the currently selected background.
-    void UpdateBackgroundViewSlot() { if (isVisible()) UpdateBackgroundView(); }
+    /// @param updateBg Whether to fetch the latest background data from the GBA.
+    void UpdateBackgroundViewSlot(bool updateBg) { if (isVisible()) UpdateBackgroundView(updateBg); }
+
+private slots:
+    /// @brief Slot to handle a BG select button being clicked.
+    /// @param bgIndex Index of BG corresponding to the clicked button.
+    void SetSelectedBg(int bgIndex);
 
 private:
     /// @brief Get information for the currently selected background and update the displayed image/data.
-    void UpdateBackgroundView();
+    /// @param updateBg Whether to fetch the latest background data from the GBA.
+    void UpdateBackgroundView(bool updateBg);
 
     /// @brief Initialize widgets needed to adjust background scale and selection.
     /// @return Widget to add to main layout.
-    [[nodiscard]] QGroupBox* CreateSelectionGroup();
+    [[nodiscard]] QGroupBox* CreateControlGroup();
 
     /// @brief Initialize widgets needed to view information about the selected background.
     /// @return Widget to add to main layout.
@@ -40,15 +49,13 @@ private:
     /// @return Widget to add to main layout.
     [[nodiscard]] QScrollArea* CreateBackgroundImage();
 
-    /// @brief Action for background selection buttons.
-    /// @param bgIndex Index of background to select.
-    void SetSelectedBg(u8 bgIndex);
+    // Data
+    debug::BackgroundDebugInfo debugInfo_;
+    int selectedBg_;
 
-    // Info
-    u8 selectedBg_;
-
-    // Map selection
-    QComboBox* scaleBox_;
+    // Controls
+    QSpinBox* scaleBox_;
+    QCheckBox* transparencyControl_;
 
     // BG Info
     QLabel* priorityLabel_;
@@ -56,7 +63,10 @@ private:
     QLabel* tileBaseLabel_;
     QLabel* sizeLabel_;
     QLabel* offsetLabel_;
-    QLabel* matrixLabel_;
+    QLabel* paLabel_;
+    QLabel* pbLabel_;
+    QLabel* pcLabel_;
+    QLabel* pdLabel_;
 
     // Map view
     QLabel* bgImageLabel_;

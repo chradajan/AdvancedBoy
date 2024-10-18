@@ -44,7 +44,8 @@ public slots:
 
 signals:
     /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
-    void UpdateBackgroundViewSignal();
+    /// @param updateBg Whether to fetch the latest background data from the GBA.
+    void UpdateBackgroundViewSignal(bool updateBg);
 
     /// @brief Emit this signal to notify the Sprite Viewer to update its displayed image/data.
     /// @param updateSprites Whether to update the content of sprites_ with the latest OAM data.

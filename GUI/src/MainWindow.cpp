@@ -102,7 +102,7 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
         case StepType::CpuStep:
             InterruptEmuThread();
             gba_api::StepCPU();
-            emit UpdateBackgroundViewSignal();
+            emit UpdateBackgroundViewSignal(false);
             emit UpdateSpriteViewerSignal(false);
             emit UpdateCpuDebuggerSignal();
             emit UpdateRegisterViewerSignal();
@@ -216,7 +216,7 @@ void MainWindow::UpdateWindowTitle()
 void MainWindow::VBlankCallback()
 {
     RefreshScreen();
-    emit UpdateBackgroundViewSignal();
+    emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);
     emit UpdateRegisterViewerSignal();
 
@@ -252,8 +252,8 @@ void MainWindow::StartEmulation(fs::path romPath)
                            std::bind(&MainWindow::BreakpointCallback, this));
     romTitle_ = gba_api::GetTitle();
 
-    emit UpdateBackgroundViewSignal();
-    emit UpdateSpriteViewerSignal(false);
+    emit UpdateBackgroundViewSignal(true);
+    emit UpdateSpriteViewerSignal(true);
     emit UpdateCpuDebuggerSignal();
     emit UpdateRegisterViewerSignal();
 
@@ -396,7 +396,7 @@ void MainWindow::PauseButtonAction()
 void MainWindow::OpenBgMapsWindow()
 {
     bgViewerWindow_->show();
-    emit UpdateBackgroundViewSignal();
+    emit UpdateBackgroundViewSignal(true);
 }
 
 void MainWindow::OpenSpriteViewerWindow()

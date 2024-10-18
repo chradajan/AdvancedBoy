@@ -11,6 +11,8 @@
 #include <QtWidgets/QRadioButton>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QWidget>
+#include <QtWidgets/QFormLayout>
+#include <QtWidgets/QButtonGroup>
 
 namespace gui
 {
@@ -21,116 +23,173 @@ BackgroundViewerWindow::BackgroundViewerWindow() : QWidget()
     setWindowTitle("Background Viewer");
 
     QGridLayout* grid = new QGridLayout;
-    grid->addWidget(CreateSelectionGroup(), 0, 0);
+    grid->addWidget(CreateControlGroup(), 0, 0);
     grid->addWidget(CreateBgInfoGroup(), 1, 0);
     grid->addWidget(CreateBackgroundImage(), 0, 1, 3, 1);
 
     setLayout(grid);
+    debugInfo_.width = 0;
+    debugInfo_.height = 0;
     selectedBg_ = 0;
 }
 
-void BackgroundViewerWindow::UpdateBackgroundView()
+void BackgroundViewerWindow::SetSelectedBg(int bgIndex)
 {
-    if (!isVisible())
+    if (selectedBg_ != bgIndex)
     {
-        return;
-    }
-
-    auto debugInfo = gba_api::GetBgDebugInfo(selectedBg_);
-    auto image =
-        QImage(reinterpret_cast<const uchar*>(debugInfo.buffer.data()), debugInfo.width, debugInfo.height, QImage::Format_RGB555);
-    image.rgbSwap();
-    u8 scale = scaleBox_->currentIndex() + 1;
-    bgImageLabel_->setPixmap(QPixmap::fromImage(image).scaled(debugInfo.width * scale, debugInfo.height * scale));
-    bgImageLabel_->resize(debugInfo.width * scale, debugInfo.height * scale);
-
-    priorityLabel_->setText(QString::number(debugInfo.priority));
-    tileBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo.mapBaseAddr)));
-    mapBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo.tileBaseAddr)));
-    sizeLabel_->setText(QString::fromStdString(std::format("{}x{}", debugInfo.width, debugInfo.height)));
-
-    if (debugInfo.regular)
-    {
-        offsetLabel_->setText(QString::fromStdString(std::format("{}, {}", debugInfo.xOffset, debugInfo.yOffset)));
-        matrixLabel_->setText("N/A");
-    }
-    else
-    {
-        offsetLabel_->setText(QString::fromStdString(std::format("{:.2f}, {:.2f}", debugInfo.refX, debugInfo.refY)));
-        matrixLabel_->setText(QString::fromStdString(std::format("{:{}.2f} {:{}.2f}\n{:{}.2f} {:{}.2f}",
-                                                                 debugInfo.pa, 7,
-                                                                 debugInfo.pb, 7,
-                                                                 debugInfo.pc, 7,
-                                                                 debugInfo.pd, 7)));
+        selectedBg_ = bgIndex;
+        UpdateBackgroundView(true);
     }
 }
 
-QGroupBox* BackgroundViewerWindow::CreateSelectionGroup()
+void BackgroundViewerWindow::UpdateBackgroundView(bool updateBg)
 {
-    QGroupBox* groupBox = new QGroupBox("Select map");
-
-    QLabel* scaleLabel = new QLabel("Scale");
-    scaleBox_ = new QComboBox;
-    scaleBox_->setMaximumWidth(75);
-
-    for (u8 scale = 1; scale < 5; ++scale)
+    if (updateBg)
     {
-        scaleBox_->addItem(QString::fromStdString(std::format("{}x", scale)));
+        gba_api::GetBgDebugInfo(debugInfo_, selectedBg_);
     }
 
-    QRadioButton* bg0Button = new QRadioButton("Background 0");
-    connect(bg0Button, &QRadioButton::clicked, this, [=, this] () { this->SetSelectedBg(0); });
-    QRadioButton* bg1Button = new QRadioButton("Background 1");
-    connect(bg1Button, &QRadioButton::clicked, this, [=, this] () { this->SetSelectedBg(1); });
-    QRadioButton* bg2Button = new QRadioButton("Background 2");
-    connect(bg2Button, &QRadioButton::clicked, this, [=, this] () { this->SetSelectedBg(2); });
-    QRadioButton* bg3Button = new QRadioButton("Background 3");
-    connect(bg3Button, &QRadioButton::clicked, this, [=, this] () { this->SetSelectedBg(3); });
-    bg0Button->setChecked(true);
+    bool invalid = (debugInfo_.width == 0) || (debugInfo_.height == 0);
+    QImage::Format format = transparencyControl_->isChecked() ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+    auto image = QImage(reinterpret_cast<const uchar*>(&debugInfo_.buffer[0]), debugInfo_.width, debugInfo_.height, format);
+    u8 scale = scaleBox_->value();
+    bgImageLabel_->setPixmap(QPixmap::fromImage(image).scaled(debugInfo_.width * scale, debugInfo_.height * scale));
+    bgImageLabel_->resize(debugInfo_.width * scale, debugInfo_.height * scale);
 
+    if (invalid)
+    {
+        priorityLabel_->setText("---");
+        tileBaseLabel_->setText("---");
+        mapBaseLabel_->setText("---");
+        sizeLabel_->setText("---");
+        offsetLabel_->setText("---");
+        paLabel_->setText("---");
+        pbLabel_->setText("---");
+        pcLabel_->setText("---");
+        pdLabel_->setText("---");
+    }
+    else
+    {
+        priorityLabel_->setText(QString::number(debugInfo_.priority));
+        tileBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo_.mapBaseAddr)));
+        mapBaseLabel_->setText(QString::fromStdString(std::format("0x{:08X}", debugInfo_.tileBaseAddr)));
+        sizeLabel_->setText(QString::fromStdString(std::format("{}x{}", debugInfo_.width, debugInfo_.height)));
+
+        if (debugInfo_.regular)
+        {
+            offsetLabel_->setText(QString::fromStdString(std::format("{}, {}", debugInfo_.xOffset, debugInfo_.yOffset)));
+            paLabel_->setText("---");
+            pbLabel_->setText("---");
+            pcLabel_->setText("---");
+            pdLabel_->setText("---");
+        }
+        else
+        {
+            offsetLabel_->setText(QString::fromStdString(std::format("{:.2f}, {:.2f}", debugInfo_.refX, debugInfo_.refY)));
+            paLabel_->setText(QString::fromStdString(std::format("{:.2f}", debugInfo_.pa)));
+            pbLabel_->setText(QString::fromStdString(std::format("{:.2f}", debugInfo_.pb)));
+            pcLabel_->setText(QString::fromStdString(std::format("{:.2f}", debugInfo_.pc)));
+            pdLabel_->setText(QString::fromStdString(std::format("{:.2f}", debugInfo_.pd)));
+        }
+    }
+}
+
+QGroupBox* BackgroundViewerWindow::CreateControlGroup()
+{
+    QGroupBox* groupBox = new QGroupBox("Control");
     QVBoxLayout* groupLayout = new QVBoxLayout;
-    groupLayout->addWidget(scaleLabel);
-    groupLayout->addWidget(scaleBox_);
-    groupLayout->addSpacing(15);
-    groupLayout->addWidget(bg0Button);
-    groupLayout->addWidget(bg1Button);
-    groupLayout->addWidget(bg2Button);
-    groupLayout->addWidget(bg3Button);
+
+    // Controls
+    QWidget* controlWidget = new QWidget;
+    QFormLayout* controlLayout = new QFormLayout;
+
+    scaleBox_ = new QSpinBox;
+    scaleBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    scaleBox_->setMinimum(1);
+    scaleBox_->setMaximum(4);
+    scaleBox_->setSuffix("x  ");
+    scaleBox_->setValue(1);
+    connect(scaleBox_, &QSpinBox::valueChanged, this, [=, this] () { this->UpdateBackgroundView(false); });
+    controlLayout->addRow("Scale", scaleBox_);
+
+    transparencyControl_ = new QCheckBox;
+    connect(transparencyControl_, &QCheckBox::checkStateChanged, this, [=, this] () { this->UpdateBackgroundView(false); });
+    controlLayout->addRow("Transparency Mode", transparencyControl_);
+
+    controlWidget->setLayout(controlLayout);
+    groupLayout->addWidget(controlWidget);
+
+    // BG Select
+    QWidget* buttonWidget = new QWidget;
+    QVBoxLayout* buttonLayout = new QVBoxLayout;
+    QButtonGroup* buttonGroup = new QButtonGroup;
+
+    QRadioButton* button0 = new QRadioButton("Background 0");
+    button0->setChecked(true);
+    buttonLayout->addWidget(button0);
+    buttonGroup->addButton(button0, 0);
+    QRadioButton* button1 = new QRadioButton("Background 1");
+    buttonLayout->addWidget(button1);
+    buttonGroup->addButton(button1, 1);
+    QRadioButton* button2 = new QRadioButton("Background 2");
+    buttonLayout->addWidget(button2);
+    buttonGroup->addButton(button2, 2);
+    QRadioButton* button3 = new QRadioButton("Background 3");
+    buttonLayout->addWidget(button3);
+    buttonGroup->addButton(button3, 3);
+
+    connect(buttonGroup, &QButtonGroup::idClicked, this, &BackgroundViewerWindow::SetSelectedBg);
+    buttonWidget->setLayout(buttonLayout);
+    groupLayout->addWidget(buttonWidget);
+
+    groupBox->setLayout(groupLayout);
     groupBox->setFixedWidth(200);
     groupBox->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    groupBox->setLayout(groupLayout);
 
     return groupBox;
 }
 
 QGroupBox* BackgroundViewerWindow::CreateBgInfoGroup()
 {
-    QGroupBox* groupBox = new QGroupBox("Map info");
-    QGridLayout* groupLayout  = new QGridLayout;
+    QGroupBox* groupBox = new QGroupBox("Map Info");
+    QVBoxLayout* groupLayout = new QVBoxLayout;
 
-    groupLayout->addWidget(new QLabel("Priority"), 0, 0);
+    // BG Info
+    QWidget* bgInfoWidget = new QWidget;
+    QFormLayout* bgInfoLayout = new QFormLayout;
+
     priorityLabel_ = new QLabel("0");
-    groupLayout->addWidget(priorityLabel_, 0, 1);
+    bgInfoLayout->addRow("Priority:", priorityLabel_);
 
-    groupLayout->addWidget(new QLabel("Map base"), 1, 0);
-    mapBaseLabel_ = new QLabel("0x06000000");
-    groupLayout->addWidget(mapBaseLabel_, 1, 1);
+    mapBaseLabel_ = new QLabel("---");
+    bgInfoLayout->addRow("Map Base:", mapBaseLabel_);
 
-    groupLayout->addWidget(new QLabel("Tile base"), 2, 0);
-    tileBaseLabel_ = new QLabel("0x06000000");
-    groupLayout->addWidget(tileBaseLabel_, 2, 1);
+    tileBaseLabel_ = new QLabel("---");
+    bgInfoLayout->addRow("Tile Base:", tileBaseLabel_);
 
-    groupLayout->addWidget(new QLabel("Size"), 3, 0);
-    sizeLabel_ = new QLabel("0x0");
-    groupLayout->addWidget(sizeLabel_, 3, 1);
+    sizeLabel_ = new QLabel("---");
+    bgInfoLayout->addRow("Size:", sizeLabel_);
 
-    groupLayout->addWidget(new QLabel("Offset"), 4, 0);
-    offsetLabel_ = new QLabel("0, 0");
-    groupLayout->addWidget(offsetLabel_, 4, 1);
+    offsetLabel_ = new QLabel("---");
+    bgInfoLayout->addRow("Offset", offsetLabel_);
 
-    groupLayout->addWidget(new QLabel("Matrix"), 5, 0);
-    matrixLabel_ = new QLabel("N/A");
-    groupLayout->addWidget(matrixLabel_, 5, 1);
+    bgInfoWidget->setLayout(bgInfoLayout);
+    groupLayout->addWidget(bgInfoWidget);
+
+    // Matrix
+    QGroupBox* matrixWidget = new QGroupBox("Matrix");
+    QFormLayout* matrixLayout = new QFormLayout;
+
+    paLabel_ = new QLabel("---");
+    pbLabel_ = new QLabel("---");
+    matrixLayout->addRow(paLabel_, pbLabel_);
+    pcLabel_ = new QLabel("---");
+    pdLabel_ = new QLabel("---");
+    matrixLayout->addRow(pcLabel_, pdLabel_);
+
+    matrixWidget->setLayout(matrixLayout);
+    matrixWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    groupLayout->addWidget(matrixWidget);
 
     groupBox->setLayout(groupLayout);
     groupBox->setFixedWidth(200);
@@ -149,11 +208,5 @@ QScrollArea* BackgroundViewerWindow::CreateBackgroundImage()
 
     scrollArea->setWidget(bgImageLabel_);
     return scrollArea;
-}
-
-void BackgroundViewerWindow::SetSelectedBg(u8 bgIndex)
-{
-    selectedBg_ = bgIndex;
-    UpdateBackgroundView();
 }
 }  // namespace gui

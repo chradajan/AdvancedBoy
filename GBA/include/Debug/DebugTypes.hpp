@@ -70,7 +70,7 @@ struct CpuDebugInfo
 struct BackgroundDebugInfo
 {
     // Image
-    std::vector<u16> buffer;
+    std::array<u32, 1024 * 1024> buffer;
     u16 width;
     u16 height;
 

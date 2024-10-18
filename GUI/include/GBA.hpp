@@ -60,9 +60,9 @@ void StepCPU();
 void StepFrame();
 
 /// @brief Get debug info needed to draw a fully isolated background layer.
+/// @param debugInfo Reference to background debug info to be populated.
 /// @param bgIndex Index of background to display in debugger.
-/// @return Debug info needed to display a background layer.
-debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex);
+void GetBgDebugInfo(debug::BackgroundDebugInfo& debugInfo, u8 bgIndex);
 
 /// @brief Get debug info needed to display sprites in sprite debugger window.
 /// @param sprites Reference to sprites to update with current OAM data.

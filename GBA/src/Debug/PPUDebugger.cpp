@@ -71,11 +71,10 @@ u32 PPUDebugger::ReadRegister(u32 addr, AccessSize length) const
     return ReadMemoryBlock(ppu_.registers_, addr, LCD_IO_ADDR_MIN, length);
 }
 
-BackgroundDebugInfo PPUDebugger::GetBackgroundDebugInfo(u8 bgIndex) const
+void PPUDebugger::GetBackgroundDebugInfo(BackgroundDebugInfo& debugInfo, u8 bgIndex) const
 {
     auto dispcnt = ppu_.GetDISPCNT();
     auto bgcnt = ppu_.GetBGCNT(bgIndex);
-    BackgroundDebugInfo debugInfo = {};
     debugInfo.priority = bgcnt.priority;
     debugInfo.mapBaseAddr = VRAM_ADDR_MIN + (bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE);
     debugInfo.tileBaseAddr = VRAM_ADDR_MIN + (bgcnt.charBaseBlock * CHAR_BLOCK_SIZE);
@@ -100,8 +99,6 @@ BackgroundDebugInfo PPUDebugger::GetBackgroundDebugInfo(u8 bgIndex) const
     {
        RenderRegularBackground(bgIndex, bgcnt, debugInfo);
     }
-
-    return debugInfo;
 }
 
 void PPUDebugger::RenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebugInfo& debugInfo) const
@@ -109,7 +106,6 @@ void PPUDebugger::RenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDeb
     debugInfo.regular = true;
     debugInfo.width = (bgcnt.screenSize & 0b01) ? 512 : 256;
     debugInfo.height = (bgcnt.screenSize & 0b10) ? 512 : 256;
-    debugInfo.buffer.resize(debugInfo.width * debugInfo.height);
     debugInfo.xOffset = MemCpyInit<u16>(&ppu_.registers_[0x10 + (4 * bgIndex)]) & 0x01FF;
     debugInfo.yOffset = MemCpyInit<u16>(&ppu_.registers_[0x12 + (4 * bgIndex)]) & 0x01FF;
     u8 screenBlockIndex = bgcnt.screenBaseBlock;
@@ -163,7 +159,8 @@ void PPUDebugger::RenderRegularScreenBlock(BGCNT bgcnt,
                         u8 charBlockEntryCol = hFlip ? (j ^ 7) : j;
                         u8 paletteIndex  = charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol];
                         u16 bgr555 = ppu_.GetBgColor(paletteIndex);
-                        debugInfo.buffer[insertIndex + j] = bgr555;
+                        bool transparent = paletteIndex == 0;
+                        debugInfo.buffer[insertIndex + j] = BGR555ToARGB32(bgr555, transparent);;
                     }
 
                     insertIndex += debugInfo.width;
@@ -187,7 +184,8 @@ void PPUDebugger::RenderRegularScreenBlock(BGCNT bgcnt,
                             charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol / 2].rightColorIndex;
 
                         u16 bgr555 = ppu_.GetBgColor(palette, paletteIndex);
-                        debugInfo.buffer[insertIndex + j] = bgr555;
+                        bool transparent = paletteIndex == 0;
+                        debugInfo.buffer[insertIndex + j] = BGR555ToARGB32(bgr555, transparent);
                     }
 
                     insertIndex += debugInfo.width;
@@ -222,7 +220,6 @@ void PPUDebugger::RenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebu
 
     debugInfo.width = mapWidthTiles * 8;
     debugInfo.height = mapWidthTiles * 8;
-    debugInfo.buffer.resize(debugInfo.width * debugInfo.height);
     BackgroundCharBlockView charBlock(ppu_.VRAM_, bgcnt.charBaseBlock);
     auto tilePtr = reinterpret_cast<const u8*>(&ppu_.VRAM_[bgcnt.screenBaseBlock * SCREEN_BLOCK_SIZE]);
 
@@ -259,7 +256,8 @@ void PPUDebugger::RenderAffineBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDebu
                 {
                     u8 paletteIndex  = charBlockEntry.pixels[charBlockEntryRow][charBlockEntryCol];
                     u16 bgr555 = ppu_.GetBgColor(paletteIndex);
-                    debugInfo.buffer[insertIndex + charBlockEntryCol] = bgr555;
+                    bool transparent = paletteIndex == 0;
+                    debugInfo.buffer[insertIndex + charBlockEntryCol] = BGR555ToARGB32(bgr555, transparent);
                 }
 
                 insertIndex += debugInfo.width;
@@ -276,13 +274,12 @@ void PPUDebugger::RenderMode3Background(BackgroundDebugInfo& debugInfo) const
     auto* pixelPtr = reinterpret_cast<const u16*>(ppu_.VRAM_.data());
     debugInfo.width = 240;
     debugInfo.height = 160;
-    debugInfo.buffer.resize(240 * 160);
     debugInfo.xOffset = 0;
     debugInfo.yOffset = 0;
 
-    for (u16& pixel : debugInfo.buffer)
+    for (u32 i = 0; i < 240 * 160; ++i)
     {
-        pixel = *pixelPtr;
+        debugInfo.buffer[i] = BGR555ToARGB32(*pixelPtr, false);
         ++pixelPtr;
     }
 }
@@ -294,13 +291,14 @@ void PPUDebugger::RenderMode4Background(bool frameSelect, BackgroundDebugInfo& d
     auto pixelPtr = reinterpret_cast<const u8*>(&ppu_.VRAM_[bitmapIndex]);
     debugInfo.width = 240;
     debugInfo.height = 160;
-    debugInfo.buffer.resize(240 * 160);
     debugInfo.xOffset = 0;
     debugInfo.yOffset = 0;
 
-    for (u16& pixel : debugInfo.buffer)
+    for (u32 i = 0; i < 240 * 160; ++i)
     {
-        pixel = ppu_.GetBgColor(*pixelPtr);
+        u16 bgr555 = ppu_.GetBgColor(*pixelPtr);
+        bool transparent = *pixelPtr == 0;
+        debugInfo.buffer[i] = BGR555ToARGB32(bgr555, transparent);
         ++pixelPtr;
     }
 }
