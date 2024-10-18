@@ -1,9 +1,12 @@
 #include <GUI/include/MainWindow.hpp>
+#include <array>
 #include <cstring>
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <set>
+#include <string>
+#include <utility>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
@@ -18,6 +21,15 @@
 
 namespace
 {
+constexpr std::array<std::pair<std::string, u32>, 6> EMU_SPEEDS = {{
+    {"1/4x", 16'777'216 / 4},
+    {"1/2x", 16'777'216 / 2},
+    {"1x", 16'777'216},
+    {"2x", 16'777'216 * 2},
+    {"3x", 16'777'216 * 3},
+    {"4x", 16'777'216 * 4}
+}};
+
 /// @brief Audio callback for SDL audio thread.
 /// @param stream Pointer to buffer to store audio samples in.
 /// @param len Size of buffer in bytes.
@@ -100,7 +112,7 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
             ResumeEmulation();
             break;
         case StepType::CpuStep:
-            InterruptEmuThread();
+            StopEmulationThreads();
             gba_api::StepCPU();
             emit UpdateBackgroundViewSignal(false);
             emit UpdateSpriteViewerSignal(false);
@@ -108,7 +120,7 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
             emit UpdateRegisterViewerSignal();
             break;
         case StepType::FrameStep:
-            InterruptEmuThread();
+            StopEmulationThreads();
             stepFrameMode_ = true;
             emuThread_.StartEmulator(StepType::FrameStep);
             break;
@@ -165,14 +177,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    if (emuThread_.isRunning())
-    {
-        SDL_LockAudioDevice(audioDevice_);
-        SDL_PauseAudioDevice(audioDevice_, 1);
-        emuThread_.requestInterruption();
-        emuThread_.wait();
-    }
-
+    StopEmulationThreads();
     gba_api::PowerOff();
 
     bgViewerWindow_->close();
@@ -242,9 +247,7 @@ void MainWindow::BreakpointCallback()
 
 void MainWindow::StartEmulation(fs::path romPath)
 {
-    InterruptEmuThread();
-    SDL_LockAudioDevice(audioDevice_);
-    SDL_PauseAudioDevice(audioDevice_, 1);
+    StopEmulationThreads();
     gba_api::PowerOff();
     gba_api::InitializeGBA(biosPath_,
                            romPath,
@@ -259,11 +262,8 @@ void MainWindow::StartEmulation(fs::path romPath)
 
     if (!pauseButton_->isChecked())
     {
-        emuThread_.StartEmulator(StepType::Run);
+        StartEmulationThreads();
     }
-
-    SDL_UnlockAudioDevice(audioDevice_);
-    SDL_PauseAudioDevice(audioDevice_, 0);
 }
 
 void MainWindow::SendKeyPresses()
@@ -298,10 +298,22 @@ void MainWindow::SendKeyPresses()
     gba_api::UpdateKeypad(keyinput);
 }
 
-void MainWindow::InterruptEmuThread()
+void MainWindow::StartEmulationThreads()
+{
+    if (!emuThread_.isRunning())
+    {
+        emuThread_.StartEmulator(StepType::Run);
+        SDL_UnlockAudioDevice(audioDevice_);
+        SDL_PauseAudioDevice(audioDevice_, 0);
+    }
+}
+
+void MainWindow::StopEmulationThreads()
 {
     if (emuThread_.isRunning())
     {
+        SDL_LockAudioDevice(audioDevice_);
+        SDL_PauseAudioDevice(audioDevice_, 1);
         emuThread_.requestInterruption();
         emuThread_.wait();
     }
@@ -309,7 +321,7 @@ void MainWindow::InterruptEmuThread()
 
 void MainWindow::PauseEmulation()
 {
-    InterruptEmuThread();
+    StopEmulationThreads();
     emit UpdateCpuDebuggerSignal();
     emit UpdateRegisterViewerSignal();
     pauseButton_->setChecked(true);
@@ -317,12 +329,13 @@ void MainWindow::PauseEmulation()
 
 void MainWindow::ResumeEmulation()
 {
-    if (!emuThread_.isRunning())
-    {
-        emuThread_.StartEmulator(StepType::Run);
-    }
-
+    StartEmulationThreads();
     pauseButton_->setChecked(false);
+}
+
+void MainWindow::SetEmulationSpeed(u32 cpuClockSpeed)
+{
+    gba_api::SetCpuClockSpeed(cpuClockSpeed);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -346,10 +359,27 @@ QMenu* MainWindow::CreateEmulationMenu()
 {
     QMenu* emulationMenu = new QMenu("Emulation");
 
+    // Pause
     pauseButton_ = new QAction("Pause");
+    pauseButton_->setShortcut((QKeySequence(Qt::CTRL | Qt::Key_P)));
     pauseButton_->setCheckable(true);
     connect(pauseButton_, &QAction::triggered, this, &MainWindow::PauseButtonAction);
     emulationMenu->addAction(pauseButton_);
+
+    // Emulation speed
+    QMenu* speedMenu = new QMenu("Emulation Speed");
+    QActionGroup* speedGroup = new QActionGroup(speedMenu);
+
+    for (auto [str, speed] : EMU_SPEEDS)
+    {
+        QAction* speedAction = new QAction(QString::fromStdString(str), speedGroup);
+        speedAction->setCheckable(true);
+        speedAction->setChecked(str == "1x");
+        connect(speedAction, &QAction::triggered, this, [=, this] () { this->SetEmulationSpeed(speed); });
+        speedMenu->addAction(speedAction);
+    }
+
+    emulationMenu->addMenu(speedMenu);
 
     return emulationMenu;
 }

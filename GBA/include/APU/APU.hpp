@@ -10,11 +10,12 @@
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
-#include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/RingBuffer.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
+class ClockManager;
+class EventScheduler;
 namespace debug { class APUDebugger; }
 
 namespace audio
@@ -30,8 +31,9 @@ public:
     APU& operator=(APU&&) = delete;
 
     /// @brief Initialize the APU.
+    /// @param clockMgr Reference to clock manager.
     /// @param scheduler Reference to event scheduler to post audio events to.
-    explicit APU(EventScheduler& scheduler);
+    explicit APU(ClockManager const& clockMgr, EventScheduler& scheduler);
 
     /// @brief Read an address mapped to APU registers.
     /// @param addr Address of APU register(s).
@@ -141,6 +143,7 @@ private:
     u32 sampleCounter_;
 
     // External components
+    ClockManager const& clockMgr_;
     EventScheduler& scheduler_;
 
     // Debug

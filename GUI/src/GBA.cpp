@@ -16,6 +16,7 @@ static std::unique_ptr<GameBoyAdvance> GBA;
 static std::unique_ptr<debug::GameBoyAdvanceDebugger> GBADebugger;
 static std::unordered_set<u32> EMPTY_SET = {};
 static debug::Mnemonic EmptyMnemonic = {"???", "", "???", {}};
+static u32 ClockSpeed = 16'777'216;
 
 namespace gba_api
 {
@@ -30,6 +31,7 @@ void InitializeGBA(fs::path biosPath,
     }
 
     GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, vBlankCallback, breakpointCallback);
+    GBA->SetCpuClockSpeed(ClockSpeed);
     GBADebugger = std::make_unique<debug::GameBoyAdvanceDebugger>(*GBA);
 }
 
@@ -121,6 +123,16 @@ void UpdateKeypad(KEYINPUT keyinput)
     {
         GBA->UpdateKeypad(keyinput);
     }
+}
+
+void SetCpuClockSpeed(u32 clockSpeed)
+{
+    if (GBA)
+    {
+        GBA->SetCpuClockSpeed(clockSpeed);
+    }
+
+    ClockSpeed = clockSpeed;
 }
 
 void StepCPU()

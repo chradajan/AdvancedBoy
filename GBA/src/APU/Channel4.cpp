@@ -7,13 +7,14 @@
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {
-Channel4::Channel4(EventScheduler& scheduler) : scheduler_(scheduler)
+Channel4::Channel4(ClockManager const& clockMgr, EventScheduler& scheduler) : clockMgr_(clockMgr), scheduler_(scheduler)
 {
     registers_.fill(std::byte{0});
     envelopeIncrease_ = false;
@@ -80,12 +81,12 @@ void Channel4::Start(SOUND4CNT sound4cnt)
 
     if (envelopePace_ != 0)
     {
-        scheduler_.ScheduleEvent(EventType::Channel4Envelope, envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP);
+        scheduler_.ScheduleEvent(EventType::Channel4Envelope, envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep());
     }
 
     if (sound4cnt.lengthEnable)
     {
-        int cyclesUntilEvent = (64 - sound4cnt.initialLengthTimer) * CPU_CYCLES_PER_SOUND_LENGTH;
+        int cyclesUntilEvent = (64 - sound4cnt.initialLengthTimer) * clockMgr_.GetCpuCyclesPerSoundLength();
         scheduler_.ScheduleEvent(EventType::Channel4LengthTimer, cyclesUntilEvent);
     }
 
@@ -154,7 +155,7 @@ void Channel4::Envelope(int extraCycles)
 
     if (reschedule)
     {
-        int cyclesUntilNextEvent = (envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP) - extraCycles;
+        int cyclesUntilNextEvent = (envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep()) - extraCycles;
         scheduler_.ScheduleEvent(EventType::Channel4Envelope, cyclesUntilNextEvent);
     }
 }

@@ -15,6 +15,7 @@
 #include <GBA/include/Keypad/Keypad.hpp>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/PPU/PPU.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
@@ -46,30 +47,9 @@ public:
     /// @brief Save backup media to disk.
     ~GameBoyAdvance();
 
-    /// @brief Get a pointer to the pixel data of the most recently completed frame.
-    /// @return Pointer to raw pixel data.
-    uchar* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
-
-    /// @brief Get FPS counter from PPU.
-    /// @return Number of times the PPU has entered VBlank since last check.
-    int GetFPSCounter() { return ppu_.GetAndResetFPSCounter(); }
-
-    /// @brief Get the title of the ROM currently running.
-    /// @return Current ROM title.
-    std::string GetTitle() const { return gamePak_ ? gamePak_->GetTitle() : ""; }
-
-    /// @brief Update the KEYINPUT register based on current user input.
-    /// @param keyinput KEYINPUT value.
-    void UpdateKeypad(KEYINPUT keyinput) { keypad_.UpdateKeypad(keyinput); }
-
-    /// @brief Transfer audio samples from internal buffer to external one.
-    /// @param buffer Buffer to transfer samples to.
-    /// @param cnt Number of samples to transfer.
-    void DrainAudioBuffer(float* buffer, size_t cnt) { apu_.DrainBuffer(buffer, cnt); }
-
-    /// @brief Check how many samples are ready to be transferred from the internal buffer.
-    /// @return Current number of buffered audio samples.
-    size_t AvailableSamples() const { return apu_.AvailableSamples(); }
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Emulation Control
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Run the emulator until the internal audio buffer is full.
     void Run();
@@ -79,6 +59,14 @@ public:
 
     /// @brief Run the emulator until the next time it hits VBlank.
     void StepFrame();
+
+    /// @brief Set the CPU clock speed.
+    /// @param clockSpeed New CPU clock speed in Hz.
+    void SetCpuClockSpeed(u32 clockSpeed) { clockMgr_.SetCpuClockSpeed(clockSpeed); }
+
+    /// @brief Update the KEYINPUT register based on current user input.
+    /// @param keyinput KEYINPUT value.
+    void UpdateKeypad(KEYINPUT keyinput) { keypad_.UpdateKeypad(keyinput); }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Breakpoints
@@ -102,6 +90,31 @@ public:
     /// @brief Get the list of breakpoints currently set.
     /// @return An unordered set of all current breakpoints.
     std::unordered_set<u32> const& GetBreakpoints() const { return breakpoints_; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// GUI getters
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get a pointer to the pixel data of the most recently completed frame.
+    /// @return Pointer to raw pixel data.
+    uchar* GetRawFrameBuffer() { return ppu_.GetRawFrameBuffer(); }
+
+    /// @brief Get FPS counter from PPU.
+    /// @return Number of times the PPU has entered VBlank since last check.
+    int GetFPSCounter() { return ppu_.GetAndResetFPSCounter(); }
+
+    /// @brief Get the title of the ROM currently running.
+    /// @return Current ROM title.
+    std::string GetTitle() const { return gamePak_ ? gamePak_->GetTitle() : ""; }
+
+    /// @brief Transfer audio samples from internal buffer to external one.
+    /// @param buffer Buffer to transfer samples to.
+    /// @param cnt Number of samples to transfer.
+    void DrainAudioBuffer(float* buffer, size_t cnt) { apu_.DrainBuffer(buffer, cnt); }
+
+    /// @brief Check how many samples are ready to be transferred from the internal buffer.
+    /// @return Current number of buffered audio samples.
+    size_t AvailableSamples() const { return apu_.AvailableSamples(); }
 
 private:
     /// @brief Main emulation loop.
@@ -194,6 +207,7 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Non-components
+    ClockManager clockMgr_;
     EventScheduler scheduler_;
 
     // Components

@@ -215,7 +215,7 @@ QGroupBox* SpriteViewerWindow::CreateSpriteInfoGroup()
     controlsLayout->addRow("Index", indexBox_);
 
     transparencyControl_ = new QCheckBox;
-    connect(transparencyControl_, &QCheckBox::checkStateChanged, this, SpriteViewerWindow::UpdateSpriteImage);
+    connect(transparencyControl_, &QCheckBox::checkStateChanged, this, &SpriteViewerWindow::UpdateSpriteImage);
     controlsLayout->addRow("Transparency Mode", transparencyControl_);
 
     regTransforms_ = new QCheckBox;

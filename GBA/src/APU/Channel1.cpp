@@ -6,13 +6,14 @@
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {
-Channel1::Channel1(EventScheduler& scheduler) : scheduler_(scheduler)
+Channel1::Channel1(ClockManager const& clockMgr, EventScheduler& scheduler) : clockMgr_(clockMgr), scheduler_(scheduler)
 {
     registers_.fill(std::byte{0});
     envelopeIncrease_ = false;
@@ -80,21 +81,21 @@ void Channel1::Start(SOUND1CNT sound1cnt)
     scheduler_.UnscheduleEvent(EventType::Channel1FrequencySweep);
 
     // Schedule relevant events
-    scheduler_.ScheduleEvent(EventType::Channel1Clock, ((0x0800 - sound1cnt.period) * CPU_CYCLES_PER_GB_CYCLE));
+    scheduler_.ScheduleEvent(EventType::Channel1Clock, ((0x0800 - sound1cnt.period) * clockMgr_.GetCpuCyclesPerGbCycle()));
 
     if (sound1cnt.envelopePace != 0)
     {
-        scheduler_.ScheduleEvent(EventType::Channel1Envelope, envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP);
+        scheduler_.ScheduleEvent(EventType::Channel1Envelope, envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep());
     }
 
     if (sound1cnt.lengthEnable)
     {
-        int cyclesUntilEvent = (64 - sound1cnt.initialLengthTimer) * CPU_CYCLES_PER_SOUND_LENGTH;
+        int cyclesUntilEvent = (64 - sound1cnt.initialLengthTimer) * clockMgr_.GetCpuCyclesPerSoundLength();
         scheduler_.ScheduleEvent(EventType::Channel1LengthTimer, cyclesUntilEvent);
     }
 
     u8 sweepPace = std::max(sound1cnt.sweepPace, static_cast<u64>(1));
-    scheduler_.ScheduleEvent(EventType::Channel1FrequencySweep, sweepPace * CPU_CYCLES_PER_FREQUENCY_SWEEP);
+    scheduler_.ScheduleEvent(EventType::Channel1FrequencySweep, sweepPace * clockMgr_.GetCpuCyclesPerFrequencySweep());
 }
 
 void Channel1::Clock(int extraCycles)
@@ -105,7 +106,7 @@ void Channel1::Clock(int extraCycles)
     }
 
     dutyCycleIndex_ = (dutyCycleIndex_ + 1) % 8;
-    int cyclesUntilNextEvent =  ((0x0800 - GetSOUND1CNT().period) * CPU_CYCLES_PER_GB_CYCLE) - extraCycles;
+    int cyclesUntilNextEvent =  ((0x0800 - GetSOUND1CNT().period) * clockMgr_.GetCpuCyclesPerGbCycle()) - extraCycles;
     scheduler_.ScheduleEvent(EventType::Channel1Clock, cyclesUntilNextEvent);
 }
 
@@ -133,7 +134,7 @@ void Channel1::Envelope(int extraCycles)
 
     if (reschedule)
     {
-        int cyclesUntilNextEvent = (envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP) - extraCycles;
+        int cyclesUntilNextEvent = (envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep()) - extraCycles;
         scheduler_.ScheduleEvent(EventType::Channel1Envelope, cyclesUntilNextEvent);
     }
 }
@@ -182,7 +183,7 @@ void Channel1::FrequencySweep(int extraCycles)
 
     if (!frequencyOverflow_)
     {
-        int cyclesUntilNextEvent = (sweepPace * CPU_CYCLES_PER_FREQUENCY_SWEEP) - extraCycles;
+        int cyclesUntilNextEvent = (sweepPace * clockMgr_.GetCpuCyclesPerFrequencySweep()) - extraCycles;
         scheduler_.ScheduleEvent(EventType::Channel1FrequencySweep, cyclesUntilNextEvent);
     }
 }

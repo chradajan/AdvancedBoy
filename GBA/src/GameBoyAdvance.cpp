@@ -15,6 +15,7 @@
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/PPU/PPU.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/TimerManager.hpp>
@@ -40,9 +41,10 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
                                fs::path romPath,
                                std::function<void()> vBlankCallback,
                                std::function<void()> breakpointCallback) :
+    clockMgr_(),
     scheduler_(),
     systemControl_(scheduler_),
-    apu_(scheduler_),
+    apu_(clockMgr_, scheduler_),
     biosMgr_(biosPath, {&cpu::ARM7TDMI::GetPC, cpu_}),
     cpu_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_),
     dmaMgr_({&GameBoyAdvance::ReadMem, *this}, {&GameBoyAdvance::WriteMem, *this}, scheduler_, systemControl_),

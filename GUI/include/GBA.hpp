@@ -49,6 +49,10 @@ std::string GetTitle();
 /// @param keyinput KEYINPUT value.
 void UpdateKeypad(KEYINPUT keyinput);
 
+/// @brief Set the CPU clock speed.
+/// @param clockSpeed New CPU clock speed in Hz.
+void SetCpuClockSpeed(u32 clockSpeed);
+
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Debug
 ///---------------------------------------------------------------------------------------------------------------------------------

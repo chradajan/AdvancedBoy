@@ -6,6 +6,7 @@
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
+class ClockManager;
 class EventScheduler;
 namespace debug { class APUDebugger; }
 
@@ -21,8 +22,9 @@ public:
     Channel4& operator=(Channel4&&) = delete;
 
     /// @brief Initialize channel 4.
+    /// @param clockMgr Reference to clock manager.
     /// @param scheduler Reference to scheduler to post audio events to.
-    Channel4(EventScheduler& scheduler);
+    explicit Channel4(ClockManager const& clockMgr, EventScheduler& scheduler);
 
     /// @brief Read a Channel 4 register.
     /// @param addr Address of register(s) to read.
@@ -93,6 +95,7 @@ private:
     u16 lsfr_;
 
     // External components
+    ClockManager const& clockMgr_;
     EventScheduler& scheduler_;
 
     // Debug

@@ -109,14 +109,21 @@ private:
     /// @brief Update the GBA keypad based on which keys are currently pressed.
     void SendKeyPresses();
 
-    /// @brief Request an interruption of the emulation thread and wait for it to stop running.
-    void InterruptEmuThread();
+    /// @brief If the emulator thread isn't already running, start it and the audio callback thread.
+    void StartEmulationThreads();
+
+    /// @brief If the emulator thread is running, stop it and the audio callback thread.
+    void StopEmulationThreads();
 
     /// @brief Pause emulator if it's running and update emulation menu pause item.
     void PauseEmulation();
 
     /// @brief Resume emulator if it's current paused and update emulation menu pause item.
     void ResumeEmulation();
+
+    /// @brief Speed up or slow down emulation by setting the CPU clock speed.
+    /// @param cpuClockSpeed New CPU clock speed in Hz.
+    void SetEmulationSpeed(u32 cpuClockSpeed);
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Menu bars

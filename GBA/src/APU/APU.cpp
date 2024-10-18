@@ -4,26 +4,33 @@
 #include <cstddef>
 #include <functional>
 #include <utility>
+#include <GBA/include/APU/Channel1.hpp>
+#include <GBA/include/APU/Channel2.hpp>
+#include <GBA/include/APU/Channel4.hpp>
 #include <GBA/include/APU/Constants.hpp>
+#include <GBA/include/APU/DmaAudio.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <GBA/include/Utilities/RingBuffer.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {
-APU::APU(EventScheduler& scheduler) :
-    channel1_(scheduler),
-    channel2_(scheduler),
-    channel4_(scheduler),
+APU::APU(ClockManager const& clockMgr, EventScheduler& scheduler) :
+    channel1_(clockMgr, scheduler),
+    channel2_(clockMgr, scheduler),
+    channel4_(clockMgr, scheduler),
+    clockMgr_(clockMgr),
     scheduler_(scheduler)
 {
     unimplementedRegisters_.fill(std::byte{0});
     registers_.fill(std::byte{0});
 
     scheduler_.RegisterEvent(EventType::SampleAPU, std::bind(&APU::Sample, this, std::placeholders::_1));
-    scheduler.ScheduleEvent(EventType::SampleAPU, CPU_CYCLES_PER_SAMPLE);
+    scheduler.ScheduleEvent(EventType::SampleAPU, clockMgr_.GetCpuCyclesPerSample());
 }
 
 MemReadData APU::ReadReg(u32 addr, AccessSize length)
@@ -170,7 +177,7 @@ void APU::WriteCntRegisters(u32 addr, u32 val, AccessSize length)
 
 void APU::Sample(int extraCycles)
 {
-    scheduler_.ScheduleEvent(EventType::SampleAPU, CPU_CYCLES_PER_SAMPLE - extraCycles);
+    scheduler_.ScheduleEvent(EventType::SampleAPU, clockMgr_.GetCpuCyclesPerSample() - extraCycles);
 
     auto soundCnt_L = GetSOUNDCNT_L();
     auto soundCnt_H = GetSOUNDCNT_H();

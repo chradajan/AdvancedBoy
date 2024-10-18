@@ -6,13 +6,14 @@
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
+#include <GBA/include/System/ClockManager.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace audio
 {
-Channel2::Channel2(EventScheduler& scheduler) : scheduler_(scheduler)
+Channel2::Channel2(ClockManager const& clockMgr, EventScheduler& scheduler) : clockMgr_(clockMgr), scheduler_(scheduler)
 {
     registers_.fill(std::byte{0});
     envelopeIncrease_ = false;
@@ -77,16 +78,16 @@ void Channel2::Start(SOUND2CNT sound2cnt)
     scheduler_.UnscheduleEvent(EventType::Channel2LengthTimer);
 
     // Schedule relevant events
-    scheduler_.ScheduleEvent(EventType::Channel2Clock, ((0x800 - sound2cnt.period) * CPU_CYCLES_PER_GB_CYCLE));
+    scheduler_.ScheduleEvent(EventType::Channel2Clock, ((0x800 - sound2cnt.period) * clockMgr_.GetCpuCyclesPerGbCycle()));
 
     if (sound2cnt.envelopePace != 0)
     {
-        scheduler_.ScheduleEvent(EventType::Channel2Envelope, envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP);
+        scheduler_.ScheduleEvent(EventType::Channel2Envelope, envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep());
     }
 
     if (sound2cnt.lengthEnable)
     {
-        int cyclesUntilEvent = (64 - sound2cnt.initialLengthTimer) * CPU_CYCLES_PER_SOUND_LENGTH;
+        int cyclesUntilEvent = (64 - sound2cnt.initialLengthTimer) * clockMgr_.GetCpuCyclesPerSoundLength();
         scheduler_.ScheduleEvent(EventType::Channel2LengthTimer, cyclesUntilEvent);
     }
 }
@@ -99,7 +100,7 @@ void Channel2::Clock(int extraCycles)
     }
 
     dutyCycleIndex_ = (dutyCycleIndex_ + 1) % 8;
-    int cyclesUntilNextEvent =  ((0x800 - GetSOUND2CNT().period) * CPU_CYCLES_PER_GB_CYCLE) - extraCycles;
+    int cyclesUntilNextEvent =  ((0x800 - GetSOUND2CNT().period) * clockMgr_.GetCpuCyclesPerGbCycle()) - extraCycles;
     scheduler_.ScheduleEvent(EventType::Channel2Clock, cyclesUntilNextEvent);
 }
 
@@ -127,7 +128,7 @@ void Channel2::Envelope(int extraCycles)
 
     if (reschedule)
     {
-        int cyclesUntilNextEvent = (envelopePace_ * CPU_CYCLES_PER_ENVELOPE_SWEEP) - extraCycles;
+        int cyclesUntilNextEvent = (envelopePace_ * clockMgr_.GetCpuCyclesPerEnvelopeSweep()) - extraCycles;
         scheduler_.ScheduleEvent(EventType::Channel2Envelope, cyclesUntilNextEvent);
     }
 }
