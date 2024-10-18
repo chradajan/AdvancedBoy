@@ -218,13 +218,13 @@ void MainWindow::VBlankCallback()
     RefreshScreen();
     emit UpdateBackgroundViewSignal();
     emit UpdateSpriteViewerSignal(true);
+    emit UpdateRegisterViewerSignal();
 
     if (stepFrameMode_)
     {
         stepFrameMode_ = false;
         pauseButton_->setChecked(true);
         emit UpdateCpuDebuggerSignal();
-        emit UpdateRegisterViewerSignal();
     }
 }
 

@@ -5,6 +5,8 @@
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QWidget>
 
+namespace gui { struct Register; }
+
 namespace gui
 {
 class RegisterViewerWindow : public QWidget
@@ -33,12 +35,15 @@ private:
     [[nodiscard]] QComboBox* CreateDropDown();
 
     /// @brief Generate a form with all the fields for the selected register.
+    /// @param reg Field info for selected register.
+    /// @param registerVal Current value of selected register.
     /// @return QGroupBox containing fields for selected register.
-    [[nodiscard]] QGroupBox* CreateRegisterData();
+    [[nodiscard]] QGroupBox* CreateRegisterData(Register const& reg, u32 regVal) const;
 
     // Data
     QComboBox* registerSelect_;
     QGroupBox* registerData_;
+    u32 prevRegVal_;
     int prevIndex_;
 };
 }  // namespace gui

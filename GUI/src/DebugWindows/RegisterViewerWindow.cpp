@@ -14,7 +14,7 @@
 
 namespace gui
 {
-RegisterViewerWindow::RegisterViewerWindow() : QWidget(), prevIndex_(0)
+RegisterViewerWindow::RegisterViewerWindow() : QWidget(), prevRegVal_(U32_MAX), prevIndex_(0)
 {
     setWindowTitle("I/O Registers");
 
@@ -35,12 +35,19 @@ RegisterViewerWindow::RegisterViewerWindow() : QWidget(), prevIndex_(0)
 
 void RegisterViewerWindow::UpdateSelectedRegisterData()
 {
+    int currIndex = registerSelect_->currentIndex();
+    Register const& reg = IO_REGISTERS[currIndex];
+    u32 regVal = gba_api::DebugReadRegister(reg.addr, reg.size);
+
+    if ((currIndex == prevIndex_) && (regVal == prevRegVal_))
+    {
+        return;
+    }
+
     QWidget* currentRegisterData = layout()->itemAt(1)->widget();
-    layout()->replaceWidget(currentRegisterData, CreateRegisterData());
+    layout()->replaceWidget(currentRegisterData, CreateRegisterData(reg, regVal));
     delete currentRegisterData;
     update();
-
-    int currIndex = registerSelect_->currentIndex();
 
     if (prevIndex_ != currIndex)
     {
@@ -48,6 +55,7 @@ void RegisterViewerWindow::UpdateSelectedRegisterData()
         setFixedSize(size());
     }
 
+    prevRegVal_ = regVal;
     prevIndex_ = currIndex;
 }
 
@@ -68,7 +76,7 @@ QComboBox* RegisterViewerWindow::CreateDropDown()
     return registerSelect_;
 }
 
-QGroupBox* RegisterViewerWindow::CreateRegisterData()
+QGroupBox* RegisterViewerWindow::CreateRegisterData(Register const& reg, u32 regVal) const
 {
     QGroupBox* groupBox = new QGroupBox;
     QFormLayout* layout = new QFormLayout;
@@ -77,15 +85,12 @@ QGroupBox* RegisterViewerWindow::CreateRegisterData()
     layout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
     layout->setLabelAlignment(Qt::AlignLeft);
 
-    int index = registerSelect_->currentIndex();
-    Register const& selectedRegister = IO_REGISTERS[index];
-    u32 registerVal = gba_api::DebugReadRegister(selectedRegister.addr, selectedRegister.size);
-    std::string groupBoxTitle = std::format("{} = 0x{:0{}X}", selectedRegister.name, registerVal, selectedRegister.size * 2);
+    std::string groupBoxTitle = std::format("{} = 0x{:0{}X}", reg.name, regVal, reg.size * 2);
     groupBox->setTitle(QString::fromStdString(groupBoxTitle));
 
-    for (RegisterField const& field : selectedRegister.fields)
+    for (RegisterField const& field : reg.fields)
     {
-        u32 fieldVal = (registerVal & field.mask) >> field.shift;
+        u32 fieldVal = (regVal & field.mask) >> field.shift;
         QWidget* fieldWidget = nullptr;
 
         switch (field.format)
