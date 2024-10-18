@@ -40,8 +40,8 @@ void BackgroundViewerWindow::UpdateBackgroundView()
     auto image =
         QImage(reinterpret_cast<const uchar*>(debugInfo.buffer.data()), debugInfo.width, debugInfo.height, QImage::Format_RGB555);
     image.rgbSwap();
-    bgImageLabel_->setPixmap(QPixmap::fromImage(image));
     u8 scale = scaleBox_->currentIndex() + 1;
+    bgImageLabel_->setPixmap(QPixmap::fromImage(image).scaled(debugInfo.width * scale, debugInfo.height * scale));
     bgImageLabel_->resize(debugInfo.width * scale, debugInfo.height * scale);
 
     priorityLabel_->setText(QString::number(debugInfo.priority));

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <array>
 #include <span>
 #include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/PPU/PPU.hpp>
 #include <GBA/include/PPU/Registers.hpp>
+#include <GBA/include/PPU/VramViews.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace debug
@@ -81,6 +83,12 @@ public:
     /// @param frameSelect Which bitmap frame to draw.
     /// @param debugInfo Reference to debug info to update.
     void RenderMode4Background(bool frameSelect, BackgroundDebugInfo& debugInfo) const;
+
+    /// @brief Get debug info needed to display sprites in sprite debugger window.
+    /// @param sprites Reference to sprites to update with current OAM data.
+    /// @param regTransforms Apply transforms (horizontal and vertical flip) to regular sprites.
+/// @param affTransforms Apply transforms (use affine matrix) to affine sprites.
+    void GetSpriteDebugInfo(SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms) const;
 
 private:
     graphics::PPU const& ppu_;

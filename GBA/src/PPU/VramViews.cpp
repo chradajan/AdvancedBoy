@@ -64,12 +64,17 @@ u8 BackgroundCharBlockView::GetAffinePaletteIndex(u16 index, u8 tileX, u8 tileY)
 /// Sprite views
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+void Populate1dRegularSpriteRow(ObjSpan vram,
+                                SpriteRow& colors,
+                                OamEntry const& entry,
+                                u8 width,
+                                u8 height,
+                                i16 verticalOffset,
+                                bool horizontalFlip,
+                                bool verticalFlip)
 {
     u8 widthTiles = width / 8;
     u8 heightTiles = height / 8;
-    bool verticalFlip = entry.attribute1.verticalFlip;
-    bool horizontalFlip = entry.attribute1.horizontalFlip;
     bool colorMode = entry.attribute0.colorMode;
 
     u32 baseTileOffset = verticalFlip ?
@@ -123,13 +128,18 @@ void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
     }
 }
 
-void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset)
+void Populate2dRegularSpriteRow(ObjSpan vram,
+                                SpriteRow& colors,
+                                OamEntry const& entry,
+                                u8 width,
+                                u8 height,
+                                i16 verticalOffset,
+                                bool horizontalFlip,
+                                bool verticalFlip)
 {
     u8 widthTiles = width / 8;
     u8 heightTiles = height / 8;
     bool colorMode = entry.attribute0.colorMode;
-    bool verticalFlip = entry.attribute1.verticalFlip;
-    bool horizontalFlip = entry.attribute1.horizontalFlip;
     u32 baseTile = colorMode ? (entry.attribute2.tile & ~0x01) : entry.attribute2.tile;
 
     baseTile += verticalFlip ?

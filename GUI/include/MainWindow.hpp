@@ -1,9 +1,14 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <set>
 #include <string>
 #include <GBA/include/Utilities/Types.hpp>
+#include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
+#include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
+#include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
+#include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
 #include <QtCore/QTimer>
@@ -11,9 +16,6 @@
 #include <SDL2/SDL.h>
 
 namespace fs = std::filesystem;
-namespace gui { class BackgroundViewerWindow; }
-namespace gui { class CpuDebuggerWindow; }
-namespace gui { class RegisterViewerWindow; }
 
 namespace gui
 {
@@ -26,9 +28,6 @@ public:
     /// @brief Initialize GUI.
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
-
-    /// @brief Main window destructor.
-    ~MainWindow();
 
     /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
     /// @param romPath Path to GBA ROM.
@@ -46,6 +45,10 @@ public slots:
 signals:
     /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
     void UpdateBackgroundViewSignal();
+
+    /// @brief Emit this signal to notify the Sprite Viewer to update its displayed image/data.
+    /// @param updateSprites Whether to update the content of sprites_ with the latest OAM data.
+    void UpdateSpriteViewerSignal(bool updateSprites);
 
     /// @brief Emit this signal to notify the CPU Debugger to update its displayed data.
     void UpdateCpuDebuggerSignal();
@@ -121,6 +124,18 @@ private:
     /// @brief Initialize the menu bar options.
     void InitializeMenuBar();
 
+    /// @brief Create items under the File menu option.
+    /// @return Pointer to file menu.
+    [[nodiscard]] QMenu* CreateFileMenu();
+
+    /// @brief Create items under the Emulation menu option.
+    /// @return Pointer to emulation menu.
+    [[nodiscard]] QMenu* CreateEmulationMenu();
+
+    /// @brief Create items under the Debug menu option.
+    /// @return Pointer to debug menu.
+    [[nodiscard]] QMenu* CreateDebugMenu();
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Actions
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -131,8 +146,11 @@ private:
     /// @brief Action for clicking "View BG Maps" menu item.
     void OpenBgMapsWindow();
 
+    /// @brief Action for clicking "View Sprites" menu item.
+    void OpenSpriteViewerWindow();
+
     /// @brief Action for clicking "CPU Debugger" menu item.
-    void OpenCpuDebugger();
+    void OpenCpuDebuggerWindow();
 
     /// @brief Action for clicking "I/O Registers" menu item.
     void OpenRegisterViewerWindow();
@@ -159,18 +177,13 @@ private:
     // Keypad
     std::set<int> pressedKeys_;
 
-    // Menu bar
-    QMenu* fileMenu_;
-    QMenu* emulationMenu_;
-    QMenu* debugMenu_;
-    QMenu* optionsMenu_;
-
     // Emulation menu
-    QAction* pauseAction_;
+    QAction* pauseButton_;
 
     // Debug menus
-    BackgroundViewerWindow* bgViewerWindow_;
-    CpuDebuggerWindow* cpuDebuggerWindow_;
-    RegisterViewerWindow* registerViewerWindow_;
+    std::unique_ptr<BackgroundViewerWindow> bgViewerWindow_;
+    std::unique_ptr<SpriteViewerWindow> spriteViewerWindow_;
+    std::unique_ptr<CpuDebuggerWindow> cpuDebuggerWindow_;
+    std::unique_ptr<RegisterViewerWindow> registerViewerWindow_;
 };
 }  // namespace gui

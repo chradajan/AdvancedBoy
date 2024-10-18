@@ -191,7 +191,16 @@ private:
 /// @param width Width of the sprite in pixels.
 /// @param height Height of the sprite in pixels.
 /// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
-void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+/// @param horizontalFlip Whether to horizontally flip the sprite.
+/// @param verticalFlip Whether to vertically flip the sprite.
+void Populate1dRegularSpriteRow(ObjSpan vram,
+                                SpriteRow& colors,
+                                OamEntry const& entry,
+                                u8 width,
+                                u8 height,
+                                i16 verticalOffset,
+                                bool horizontalFlip,
+                                bool verticalFlip);
 
 /// @brief Fetch the color index of each pixel in a single row for a regular sprite that uses 2D mapping.
 /// @param vram Span representing the OBJ char blocks.
@@ -200,7 +209,16 @@ void Populate1dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const&
 /// @param width Width of the sprite in pixels.
 /// @param height Height of the sprite in pixels.
 /// @param verticalOffset Difference between current scanline and y-coordinate of the sprite.
-void Populate2dRegularSpriteRow(ObjSpan vram, SpriteRow& colors, OamEntry const& entry, u8 width, u8 height, i16 verticalOffset);
+/// @param horizontalFlip Whether to horizontally flip the sprite.
+/// @param verticalFlip Whether to vertically flip the sprite.
+void Populate2dRegularSpriteRow(ObjSpan vram,
+                                SpriteRow& colors,
+                                OamEntry const& entry,
+                                u8 width,
+                                u8 height,
+                                i16 verticalOffset,
+                                bool horizontalFlip,
+                                bool verticalFlip);
 
 /// @brief Get the color index of a pixel within an OBJ char block using 1D mapping.
 /// @param vram Span representing the OBJ char blocks.

@@ -30,15 +30,15 @@ private:
 
     /// @brief Initialize widgets needed to adjust background scale and selection.
     /// @return Widget to add to main layout.
-    QGroupBox* CreateSelectionGroup();
+    [[nodiscard]] QGroupBox* CreateSelectionGroup();
 
     /// @brief Initialize widgets needed to view information about the selected background.
     /// @return Widget to add to main layout.
-    QGroupBox* CreateBgInfoGroup();
+    [[nodiscard]] QGroupBox* CreateBgInfoGroup();
 
     /// @brief Initialize widgets needed to display the background image.
     /// @return Widget to add to main layout.
-    QScrollArea* CreateBackgroundImage();
+    [[nodiscard]] QScrollArea* CreateBackgroundImage();
 
     /// @brief Action for background selection buttons.
     /// @param bgIndex Index of background to select.

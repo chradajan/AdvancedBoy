@@ -65,7 +65,16 @@ public:
     /// @brief Get debug info needed to draw a fully isolated background layer.
     /// @param bgIndex Index of background to display in debugger.
     /// @return Debug info needed to display a background layer.
-    debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) { return ppuDebugger_.GetBackgroundDebugInfo(bgIndex); }
+    BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex) const { return ppuDebugger_.GetBackgroundDebugInfo(bgIndex); }
+
+    /// @brief Get debug info needed to display sprites in sprite debugger window.
+    /// @param sprites Reference to sprites to update with current OAM data.
+    /// @param regTransforms Apply transforms (horizontal and vertical flip) to regular sprites.
+    /// @param affTransforms Apply transforms (use affine matrix) to affine sprites.
+    void GetSpriteDebugInfo(SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms) const
+    {
+        ppuDebugger_.GetSpriteDebugInfo(sprites, regTransforms, affTransforms);
+    }
 
 private:
     GameBoyAdvance const& gba_;

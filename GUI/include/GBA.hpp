@@ -64,6 +64,12 @@ void StepFrame();
 /// @return Debug info needed to display a background layer.
 debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex);
 
+/// @brief Get debug info needed to display sprites in sprite debugger window.
+/// @param sprites Reference to sprites to update with current OAM data.
+/// @param regTransforms Apply transforms (horizontal and vertical flip) to regular sprites.
+/// @param affTransforms Apply transforms (use affine matrix) to affine sprites.
+void GetSpriteDebugInfo(debug::SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms);
+
 /// @brief Get debug info to be shown in the CPU Debugger.
 /// @return CPU debug info.
 debug::CpuDebugInfo GetCpuDebugInfo();

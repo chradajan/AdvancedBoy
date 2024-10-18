@@ -2,12 +2,14 @@
 #include <cstring>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <set>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
 #include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
 #include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
+#include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/GBA.hpp>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMainWindow>
@@ -64,29 +66,26 @@ MainWindow::MainWindow(QWidget* parent) :
     fpsTimer_.start(1000);
 
     // Debug options
-    bgViewerWindow_ = new BackgroundViewerWindow;
-    cpuDebuggerWindow_ = new CpuDebuggerWindow;
-    registerViewerWindow_ = new RegisterViewerWindow;
+    bgViewerWindow_ = std::make_unique<BackgroundViewerWindow>();
+    spriteViewerWindow_ = std::make_unique<SpriteViewerWindow>();
+    cpuDebuggerWindow_ = std::make_unique<CpuDebuggerWindow>();
+    registerViewerWindow_ = std::make_unique<RegisterViewerWindow>();
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
-            bgViewerWindow_, &BackgroundViewerWindow::UpdateBackgroundViewSlot);
+            bgViewerWindow_.get(), &BackgroundViewerWindow::UpdateBackgroundViewSlot);
+
+    connect(this, &MainWindow::UpdateSpriteViewerSignal,
+            spriteViewerWindow_.get(), &SpriteViewerWindow::UpdateSpriteViewerSlot);
 
     connect(this, &MainWindow::UpdateCpuDebuggerSignal,
-            cpuDebuggerWindow_, &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
+            cpuDebuggerWindow_.get(), &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
 
     connect(this, &MainWindow::UpdateRegisterViewerSignal,
-            registerViewerWindow_, &RegisterViewerWindow::UpdateRegisterViewSlot);
+            registerViewerWindow_.get(), &RegisterViewerWindow::UpdateRegisterViewSlot);
 
-    connect (cpuDebuggerWindow_, &CpuDebuggerWindow::CpuDebugStepSignal,
+    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
              this, &MainWindow::CpuDebugStepSlot);
-}
-
-MainWindow::~MainWindow()
-{
-    delete bgViewerWindow_;
-    delete cpuDebuggerWindow_;
-    delete registerViewerWindow_;
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -104,6 +103,7 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
             InterruptEmuThread();
             gba_api::StepCPU();
             emit UpdateBackgroundViewSignal();
+            emit UpdateSpriteViewerSignal(false);
             emit UpdateCpuDebuggerSignal();
             emit UpdateRegisterViewerSignal();
             break;
@@ -178,6 +178,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
     bgViewerWindow_->close();
     cpuDebuggerWindow_->close();
     registerViewerWindow_->close();
+    spriteViewerWindow_->close();
 
     event->accept();
 }
@@ -216,11 +217,12 @@ void MainWindow::VBlankCallback()
 {
     RefreshScreen();
     emit UpdateBackgroundViewSignal();
+    emit UpdateSpriteViewerSignal(true);
 
     if (stepFrameMode_)
     {
         stepFrameMode_ = false;
-        pauseAction_->setChecked(true);
+        pauseButton_->setChecked(true);
         emit UpdateCpuDebuggerSignal();
         emit UpdateRegisterViewerSignal();
     }
@@ -251,10 +253,11 @@ void MainWindow::StartEmulation(fs::path romPath)
     romTitle_ = gba_api::GetTitle();
 
     emit UpdateBackgroundViewSignal();
+    emit UpdateSpriteViewerSignal(false);
     emit UpdateCpuDebuggerSignal();
     emit UpdateRegisterViewerSignal();
 
-    if (!pauseAction_->isChecked())
+    if (!pauseButton_->isChecked())
     {
         emuThread_.StartEmulator(StepType::Run);
     }
@@ -309,7 +312,7 @@ void MainWindow::PauseEmulation()
     InterruptEmuThread();
     emit UpdateCpuDebuggerSignal();
     emit UpdateRegisterViewerSignal();
-    pauseAction_->setChecked(true);
+    pauseButton_->setChecked(true);
 }
 
 void MainWindow::ResumeEmulation()
@@ -319,7 +322,7 @@ void MainWindow::ResumeEmulation()
         emuThread_.StartEmulator(StepType::Run);
     }
 
-    pauseAction_->setChecked(false);
+    pauseButton_->setChecked(false);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -328,29 +331,50 @@ void MainWindow::ResumeEmulation()
 
 void MainWindow::InitializeMenuBar()
 {
-    fileMenu_ = menuBar()->addMenu("File");
-    emulationMenu_ = menuBar()->addMenu("Emulation");
-    debugMenu_ = menuBar()->addMenu("Debug");
-    optionsMenu_ = menuBar()->addMenu("Options");
+    menuBar()->addMenu(CreateFileMenu());
+    menuBar()->addMenu(CreateEmulationMenu());
+    menuBar()->addMenu(CreateDebugMenu());
+}
 
-    // Emulation
-    pauseAction_ = new QAction("Pause", this);
-    pauseAction_->setCheckable(true);
-    connect(pauseAction_, &QAction::triggered, this, &MainWindow::PauseButtonAction);
-    emulationMenu_->addAction(pauseAction_);
+QMenu* MainWindow::CreateFileMenu()
+{
+    QMenu* fileMenu = new QMenu("File");
+    return fileMenu;
+}
 
-    // Debug
-    QAction* bgMaps = new QAction("View BG Maps", this);
-    connect(bgMaps, &QAction::triggered, this, &MainWindow::OpenBgMapsWindow);
-    debugMenu_->addAction(bgMaps);
+QMenu* MainWindow::CreateEmulationMenu()
+{
+    QMenu* emulationMenu = new QMenu("Emulation");
 
-    QAction* cpuDebugger = new QAction("CPU Debugger", this);
-    connect(cpuDebugger, &QAction::triggered, this, &MainWindow::OpenCpuDebugger);
-    debugMenu_->addAction(cpuDebugger);
+    pauseButton_ = new QAction("Pause");
+    pauseButton_->setCheckable(true);
+    connect(pauseButton_, &QAction::triggered, this, &MainWindow::PauseButtonAction);
+    emulationMenu->addAction(pauseButton_);
 
-    QAction* registerViewer = new QAction("View I/O Registers", this);
+    return emulationMenu;
+}
+
+QMenu* MainWindow::CreateDebugMenu()
+{
+    QMenu* debugMenu = new QMenu("Debug");
+
+    QAction* bgViewer = new QAction("View BG Maps");
+    connect(bgViewer, &QAction::triggered, this, &MainWindow::OpenBgMapsWindow);
+    debugMenu->addAction(bgViewer);
+
+    QAction* spriteViewer = new QAction("View Sprites");
+    connect(spriteViewer, &QAction::triggered, this, &MainWindow::OpenSpriteViewerWindow);
+    debugMenu->addAction(spriteViewer);
+
+    QAction* cpuDebugger = new QAction("CPU Debugger");
+    connect(cpuDebugger, &QAction::triggered, this, &MainWindow::OpenCpuDebuggerWindow);
+    debugMenu->addAction(cpuDebugger);
+
+    QAction* registerViewer = new QAction("View I/O Registers");
     connect(registerViewer, &QAction::triggered, this, &MainWindow::OpenRegisterViewerWindow);
-    debugMenu_->addAction(registerViewer);
+    debugMenu->addAction(registerViewer);
+
+    return debugMenu;
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -359,7 +383,7 @@ void MainWindow::InitializeMenuBar()
 
 void MainWindow::PauseButtonAction()
 {
-    if (pauseAction_->isChecked())
+    if (pauseButton_->isChecked())
     {
         PauseEmulation();
     }
@@ -375,7 +399,13 @@ void MainWindow::OpenBgMapsWindow()
     emit UpdateBackgroundViewSignal();
 }
 
-void MainWindow::OpenCpuDebugger()
+void MainWindow::OpenSpriteViewerWindow()
+{
+    spriteViewerWindow_->show();
+    emit UpdateSpriteViewerSignal(true);
+}
+
+void MainWindow::OpenCpuDebuggerWindow()
 {
     if (cpuDebuggerWindow_->isVisible())
     {

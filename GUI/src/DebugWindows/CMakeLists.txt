@@ -5,4 +5,5 @@ target_sources(${PROJECT_NAME} PRIVATE
     CpuDebuggerWindow.cpp
     RegisterInfo.cpp
     RegisterViewerWindow.cpp
+    SpriteViewerWindow.cpp
 )

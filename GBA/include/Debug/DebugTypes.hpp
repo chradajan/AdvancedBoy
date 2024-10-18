@@ -6,6 +6,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
@@ -91,4 +92,41 @@ struct BackgroundDebugInfo
     float pc;
     float pd;
 };
+
+struct Sprite
+{
+    bool enabled;
+
+    // Image
+    std::array<u32, 128 * 128> buffer;
+    u8 width;
+    u8 height;
+
+    // Location
+    u16 x;
+    u8 y;
+    u16 tileIndex;
+    u8 oamIndex;
+
+    // Effects
+    std::string gxfMode;
+    bool mosaic;
+    u8 palette;
+    u8 priority;
+
+    // Regular sprite
+    bool regular;
+    bool horizontalFlip;
+    bool verticalFlip;
+
+    // Affine sprite
+    bool doubleSize;
+    u8 parameterIndex;
+    float pa;
+    float pb;
+    float pc;
+    float pd;
+};
+
+using SpriteDebugInfo = std::array<Sprite, 128>;
 }  // namespace debug

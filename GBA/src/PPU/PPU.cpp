@@ -1007,11 +1007,25 @@ void PPU::RenderRegSprite(bool oneDim, i16 x, i16 y, u8 width, u8 height, OamEnt
 
     if (oneDim)
     {
-        Populate1dRegularSpriteRow(objCharBlocks, colors, entry, width, height, verticalOffset);
+        Populate1dRegularSpriteRow(objCharBlocks,
+                                   colors,
+                                   entry,
+                                   width,
+                                   height,
+                                   verticalOffset,
+                                   entry.attribute1.horizontalFlip,
+                                   entry.attribute1.verticalFlip);
     }
     else
     {
-        Populate2dRegularSpriteRow(objCharBlocks, colors, entry, width, height, verticalOffset);
+        Populate2dRegularSpriteRow(objCharBlocks,
+                                   colors,
+                                   entry,
+                                   width,
+                                   height,
+                                   verticalOffset,
+                                   entry.attribute1.horizontalFlip,
+                                   entry.attribute1.verticalFlip);
     }
 
     u8 onScreenPixels = rightEdge - leftEdge + 1;
@@ -1102,12 +1116,20 @@ void PPU::PushSpritePixel(u8 dot, u16 color, u8 priority, bool transparent, bool
     {
         // Visible Sprite
         Pixel& currentPixel = frameBuffer_.GetSpritePixel(dot);
+        u8 priorityToSet = priority;
+
+        if (currentPixel.initialized && (currentPixel.priority < priority))
+        {
+            priorityToSet = currentPixel.priority;
+        }
 
         if (frameBuffer_.GetWindowSettings(dot).objEnabled && !transparent &&
             (!currentPixel.initialized || (priority < currentPixel.priority) || currentPixel.transparent))
         {
             currentPixel = Pixel(PixelSrc::OBJ, color, priority, transparent, semiTransparent);
         }
+
+        currentPixel.priority = priorityToSet;
     }
     else if (!transparent)
     {

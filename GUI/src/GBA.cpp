@@ -149,6 +149,21 @@ debug::BackgroundDebugInfo GetBgDebugInfo(u8 bgIndex)
     return {};
 }
 
+void GetSpriteDebugInfo(debug::SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms)
+{
+    if (GBADebugger)
+    {
+        GBADebugger->GetSpriteDebugInfo(sprites, regTransforms, affTransforms);
+    }
+    else
+    {
+        for (auto& sprite : sprites)
+        {
+            sprite.enabled = false;
+        }
+    }
+}
+
 debug::CpuDebugInfo GetCpuDebugInfo()
 {
     if (GBADebugger)

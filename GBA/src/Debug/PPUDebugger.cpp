@@ -28,7 +28,7 @@ float CalculateReferencePoint(i32 ref, u16 width)
     return val;
 }
 
-/// @brief Convert fixed point affine background scaling parameter to floating point value.
+/// @brief Convert fixed point affine scaling parameter to floating point value.
 /// @param ref Fixed point value.
 /// @return Floating point representation of scaling parameter.
 float CalculateScalingParameter(i16 ref)
@@ -45,6 +45,22 @@ float CalculateScalingParameter(i16 ref)
     }
 
     return val;
+}
+
+inline u32 BGR555ToARGB32(u16 bgr555, bool transparent)
+{
+    u8 r = bgr555 & 0x001F;
+    r = (r << 3) | (r >> 2);
+
+    u8 g = (bgr555 & 0x03E0) >> 5;
+    g = (g << 3) | (g >> 2);
+
+    u8 b = (bgr555 & 0x7C00) >> 10;
+    b = (b << 3) | (b >> 2);
+
+    u8 a = transparent ? 0 : U8_MAX;
+
+    return (a << 24) | (r << 16) | (g << 8) | b;
 }
 }  // namespace
 
@@ -116,7 +132,10 @@ void PPUDebugger::RenderRegularBackground(u8 bgIndex, BGCNT bgcnt, BackgroundDeb
     }
 }
 
-void PPUDebugger::RenderRegularScreenBlock(BGCNT bgcnt, u8 screenBlockIndex, u32 bufferBaseIndex, BackgroundDebugInfo& debugInfo) const
+void PPUDebugger::RenderRegularScreenBlock(BGCNT bgcnt,
+                                           u8 screenBlockIndex,
+                                           u32 bufferBaseIndex,
+                                           BackgroundDebugInfo& debugInfo) const
 {
     auto screenBlockEntryPtr = reinterpret_cast<const ScreenBlockEntry*>(&ppu_.VRAM_[screenBlockIndex * SCREEN_BLOCK_SIZE]);
     BackgroundCharBlockView charBlock(ppu_.VRAM_, bgcnt.charBaseBlock);
@@ -283,6 +302,256 @@ void PPUDebugger::RenderMode4Background(bool frameSelect, BackgroundDebugInfo& d
     {
         pixel = ppu_.GetBgColor(*pixelPtr);
         ++pixelPtr;
+    }
+}
+
+void PPUDebugger::GetSpriteDebugInfo(SpriteDebugInfo& sprites, bool regTransforms, bool affTransforms) const
+{
+    Oam oam(reinterpret_cast<const OamEntry*>(ppu_.OAM_.data()), 128);
+    AffineMatrices matrices(reinterpret_cast<const AffineMatrix*>(ppu_.OAM_.data()), AFFINE_MATRIX_COUNT);
+    SpriteRow colorIndexes;
+    ObjSpan objCharBlocks(&ppu_.VRAM_[OBJ_CHAR_BLOCK_BASE_ADDR], OBJ_CHAR_BLOCKS_SIZE);
+    bool oneDimMapping = ppu_.GetDISPCNT().objCharacterVramMapping;
+
+    for (u8 i = 0; i < 128; ++i)
+    {
+        OamEntry const& oamEntry = oam[i];
+        Sprite& debugEntry = sprites[i];
+
+        if ((oamEntry.attribute0.objMode == 2) || (oamEntry.attribute0.gfxMode == 3))  // Skip disabled sprites and illegal gfx mode
+        {
+            debugEntry.enabled = false;
+            continue;
+        }
+
+        u8 height;
+        u8 width;
+        u8 dimensions = (oamEntry.attribute0.shape << 2) | oamEntry.attribute1.size;
+
+        switch (dimensions)
+        {
+            // Square
+            case 0b0000:
+                height = 8;
+                width = 8;
+                break;
+            case 0b0001:
+                height = 16;
+                width = 16;
+                break;
+            case 0b0010:
+                height = 32;
+                width = 32;
+                break;
+            case 0b0011:
+                height = 64;
+                width = 64;
+                break;
+
+            // Horizontal
+            case 0b0100:
+                height = 8;
+                width = 16;
+                break;
+            case 0b0101:
+                height = 8;
+                width = 32;
+                break;
+            case 0b0110:
+                height = 16;
+                width = 32;
+                break;
+            case 0b0111:
+                height = 32;
+                width = 64;
+                break;
+
+            // Vertical
+            case 0b1000:
+                height = 16;
+                width = 8;
+                break;
+            case 0b1001:
+                height = 32;
+                width = 8;
+                break;
+            case 0b1010:
+                height = 32;
+                width = 16;
+                break;
+            case 0b1011:
+                height = 64;
+                width = 32;
+                break;
+
+            // Illegal combinations
+            default:
+                debugEntry.enabled = false;
+                continue;
+        }
+
+        debugEntry.enabled = true;
+        debugEntry.width = width;
+        debugEntry.height = height;
+        debugEntry.x = oamEntry.attribute1.x;
+        debugEntry.y = oamEntry.attribute0.y;
+        debugEntry.tileIndex = oamEntry.attribute2.tile;
+        debugEntry.oamIndex = i;
+        debugEntry.mosaic = oamEntry.attribute0.mosaic;
+        debugEntry.priority = oamEntry.attribute2.priority;
+
+        bool colorMode = oamEntry.attribute0.colorMode;
+        debugEntry.palette = colorMode ? U8_MAX : oamEntry.attribute2.palette;
+
+        switch (oamEntry.attribute0.gfxMode)
+        {
+            case 0:
+                debugEntry.gxfMode = "Normal";
+                break;
+            case 1:
+                debugEntry.gxfMode = "Alpha Blend";
+                break;
+            case 2:
+                debugEntry.gxfMode = "Window";
+                break;
+            default:
+                debugEntry.gxfMode = "Illegal";
+                break;
+        }
+
+        if (oamEntry.attribute0.objMode == 0)
+        {
+            debugEntry.regular = true;
+            debugEntry.doubleSize = false;
+            debugEntry.horizontalFlip = oamEntry.attribute1.horizontalFlip;
+            debugEntry.verticalFlip = oamEntry.attribute1.verticalFlip;
+
+            u16 bufferIndex = 0;
+
+            for (u8 row = 0; row < height; ++row)
+            {
+                bool hFlip = regTransforms ? oamEntry.attribute1.horizontalFlip : false;
+                bool vFlip = regTransforms ? oamEntry.attribute1.verticalFlip : false;
+
+                if (oneDimMapping)
+                {
+                    Populate1dRegularSpriteRow(objCharBlocks,
+                                               colorIndexes,
+                                               oamEntry,
+                                               width,
+                                               height,
+                                               row,
+                                               hFlip,
+                                               vFlip);
+                }
+                else
+                {
+                    Populate2dRegularSpriteRow(objCharBlocks,
+                                               colorIndexes,
+                                               oamEntry,
+                                               width,
+                                               height,
+                                               row,
+                                               hFlip,
+                                               vFlip);
+                }
+
+                for (u8 col = 0; col < width; ++col)
+                {
+                    u8 colorIndex = colorIndexes[col];
+                    u16 bgr555 = colorMode ? ppu_.GetSpriteColor(colorIndex) : ppu_.GetSpriteColor(debugEntry.palette, colorIndex);
+                    bool transparent = colorIndex == 0;
+                    debugEntry.buffer[bufferIndex++] = BGR555ToARGB32(bgr555, transparent);
+                }
+            }
+        }
+        else
+        {
+            debugEntry.regular = false;
+            debugEntry.doubleSize = oamEntry.attribute0.objMode == 3;
+            debugEntry.horizontalFlip = false;
+            debugEntry.verticalFlip = false;
+            debugEntry.parameterIndex = oamEntry.attribute1.paramSelect;
+
+            AffineMatrix const& matrix = matrices[debugEntry.parameterIndex];
+            debugEntry.pa = CalculateScalingParameter(matrix.pa);
+            debugEntry.pb = CalculateScalingParameter(matrix.pb);
+            debugEntry.pc = CalculateScalingParameter(matrix.pc);
+            debugEntry.pd = CalculateScalingParameter(matrix.pd);
+
+            u16 bufferIndex = 0;
+
+            if (affTransforms)
+            {
+                // Bounds
+                u8 widthTiles = width / 8;
+                u8 halfWidth = width / 2;
+                u8 halfHeight = height / 2;
+
+                // Rotation center
+                i16 x0 = debugEntry.doubleSize ? width : halfWidth;
+                i16 y0 = debugEntry.doubleSize ? height : halfHeight;
+
+                // Pixel
+                u32 transparentPixel =
+                    BGR555ToARGB32(colorMode ? ppu_.GetSpriteColor(0) : ppu_.GetSpriteColor(debugEntry.palette, 0), true);
+
+                for (u8 row = 0; row < (debugEntry.doubleSize ? height * 2 : height); ++row)
+                {
+                    // Screen/affine positions
+                    i16 x1 = 0;
+                    i16 y1 = row;
+                    i32 affineX = (matrix.pa * (x1 - x0)) + (matrix.pb * (y1 - y0)) + (halfWidth << 8);
+                    i32 affineY = (matrix.pc * (x1 - x0)) + (matrix.pd * (y1 - y0)) + (halfHeight << 8);
+
+                    for (u8 col = 0; col < (debugEntry.doubleSize ? width * 2 : width); ++col)
+                    {
+                        i32 textureX = affineX >> 8;
+                        i32 textureY = affineY >> 8;
+                        affineX += matrix.pa;
+                        affineY += matrix.pc;
+
+                        if ((textureX < 0) || (textureX >= width) || (textureY < 0) || (textureY >= height))
+                        {
+                            debugEntry.buffer[bufferIndex++] = transparentPixel;
+                            continue;
+                        }
+
+                        u8 colorIndex = oneDimMapping ?
+                            Get1dAffineColorIndex(objCharBlocks, debugEntry.tileIndex, textureX, textureY, widthTiles, colorMode) :
+                            Get2dAffineColorIndex(objCharBlocks, debugEntry.tileIndex, textureX, textureY, colorMode);
+
+                        u16 bgr555 = colorMode ? ppu_.GetSpriteColor(colorIndex) :
+                                                 ppu_.GetSpriteColor(debugEntry.palette, colorIndex);
+                        bool transparent = colorIndex == 0;
+                        debugEntry.buffer[bufferIndex++] = BGR555ToARGB32(bgr555, transparent);
+                    }
+                }
+            }
+            else
+            {
+                for (u8 row = 0; row < height; ++row)
+                {
+                    if (oneDimMapping)
+                    {
+                        Populate1dRegularSpriteRow(objCharBlocks, colorIndexes, oamEntry, width, height, row, false, false);
+                    }
+                    else
+                    {
+                        Populate2dRegularSpriteRow(objCharBlocks, colorIndexes, oamEntry, width, height, row, false, false);
+                    }
+
+                    for (u8 col = 0; col < width; ++col)
+                    {
+                        u8 colorIndex = colorIndexes[col];
+                        u16 bgr555 = colorMode ? ppu_.GetSpriteColor(colorIndex) :
+                                                 ppu_.GetSpriteColor(debugEntry.palette, colorIndex);
+                        bool transparent = colorIndex == 0;
+                        debugEntry.buffer[bufferIndex++] = BGR555ToARGB32(bgr555, transparent);
+                    }
+                }
+            }
+        }
     }
 }
 }  // namespace debug
