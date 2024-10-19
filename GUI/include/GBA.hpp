@@ -15,10 +15,12 @@ namespace gba_api
 /// @brief Initialize a GBA instance if one doesn't already exist.
 /// @param biosPath Path to BIOS ROM file to load.
 /// @param romPath Path to GBA ROM file to load.
+/// @param saveDir Path to directory to store save files and save states.
 /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
 /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
 void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
+                   fs::path saveDir,
                    std::function<void()> vBlankCallback,
                    std::function<void()> breakpointCallback);
 

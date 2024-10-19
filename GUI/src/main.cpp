@@ -12,13 +12,13 @@ namespace fs = std::filesystem;
 int main(int argv, char** args)
 {
     QApplication app(argv, args);
+    QCoreApplication::setApplicationName("AdvancedBoy");
     gui::MainWindow mainWindow;
     mainWindow.show();
 
-    if (app.arguments().size() > 2)
+    if (app.arguments().size() > 12)
     {
-        mainWindow.SetBiosPath(app.arguments().at(1).toStdString());
-        mainWindow.StartEmulation(app.arguments().at(2).toStdString());
+        mainWindow.StartEmulation(app.arguments().at(1).toStdString());
     }
 
     return app.exec();

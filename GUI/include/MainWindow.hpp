@@ -11,6 +11,7 @@
 #include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
+#include <GUI/include/PersistentData.hpp>
 #include <QtCore/QTimer>
 #include <QtWidgets/QMainWindow>
 #include <SDL2/SDL.h>
@@ -32,10 +33,6 @@ public:
     /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
     /// @param romPath Path to GBA ROM.
     void StartEmulation(fs::path romPath);
-
-    /// @brief Update the path to the BIOS file.
-    /// @param biosPath Path to GBA BIOS.
-    void SetBiosPath(fs::path biosPath) { biosPath_ = biosPath; }
 
 public slots:
     /// @brief Slot to handle emulator control by the CPU Debugger Window.
@@ -169,7 +166,6 @@ private:
 
     // Emulation control
     EmuThread emuThread_;
-    fs::path biosPath_;
     bool stepFrameMode_;
 
     // Screen control
@@ -193,5 +189,8 @@ private:
     std::unique_ptr<SpriteViewerWindow> spriteViewerWindow_;
     std::unique_ptr<CpuDebuggerWindow> cpuDebuggerWindow_;
     std::unique_ptr<RegisterViewerWindow> registerViewerWindow_;
+
+    // Settings
+    PersistentData settings_;
 };
 }  // namespace gui

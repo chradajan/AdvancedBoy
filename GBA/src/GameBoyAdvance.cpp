@@ -39,6 +39,7 @@ u32 ForceAlignAddress(u32 addr, AccessSize length)
 
 GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
                                fs::path romPath,
+                               fs::path saveDir,
                                std::function<void()> vBlankCallback,
                                std::function<void()> breakpointCallback) :
     clockMgr_(),
@@ -61,7 +62,7 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
 {
     if (!romPath.empty() && fs::exists(romPath))
     {
-        gamePak_ = std::make_unique<cartridge::GamePak>(romPath, scheduler_, systemControl_);
+        gamePak_ = std::make_unique<cartridge::GamePak>(romPath, saveDir, scheduler_, systemControl_);
 
         if (!gamePak_->GamePakLoaded())
         {

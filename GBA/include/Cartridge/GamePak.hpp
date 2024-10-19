@@ -29,9 +29,10 @@ public:
 
     /// @brief Load cartridge ROM into memory and load a save file if one exists.
     /// @param romPath Path to ROM. Looks for save file in the same directory.
+    /// @param saveDir Path to directory to save backup media into.
     /// @param scheduler Reference to event scheduler to determine prefetched waitstate timing.
     /// @param systemControl Reference to system control to check waitstate settings.
-    explicit GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& systemControl);
+    explicit GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, SystemControl& systemControl);
 
     /// @brief Read an address in GamePak memory.
     /// @param addr Address to read from.

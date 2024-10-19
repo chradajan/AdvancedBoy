@@ -17,7 +17,7 @@
 
 namespace cartridge
 {
-GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& systemControl) :
+GamePak::GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, SystemControl& systemControl) :
     scheduler_(scheduler),
     systemControl_(systemControl)
 {
@@ -63,8 +63,15 @@ GamePak::GamePak(fs::path romPath, EventScheduler& scheduler, SystemControl& sys
 
     // Determine backup type and load save file if present
     auto backupType = DetectBackupType();
-    fs::path savePath = romPath;
-    savePath.replace_extension("sav");
+    std::string saveFileName = title_;
+    std::replace(saveFileName.begin(), saveFileName.end(), ' ', '_');
+    fs::path savePath = saveDir / saveFileName;
+    savePath += ".sav";
+
+    if (savePath.filename().empty())
+    {
+        savePath.replace_filename(romPath.filename());
+    }
 
     switch (backupType)
     {

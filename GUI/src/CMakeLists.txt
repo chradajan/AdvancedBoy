@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     LCD.cpp
     main.cpp
     MainWindow.cpp
+    PersistentData.cpp
 )
 
 add_subdirectory(DebugWindows)

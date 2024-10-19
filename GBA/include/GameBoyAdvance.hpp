@@ -37,10 +37,12 @@ public:
     /// @brief Initialize the GBA.
     /// @param biosPath Path to BIOS ROM file.
     /// @param romPath Path to GamePak ROM file.
+    /// @param saveDir Path to directory to store save files and save states.
     /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
     /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
     explicit GameBoyAdvance(fs::path biosPath,
                             fs::path romPath,
+                            fs::path saveDir,
                             std::function<void()> vBlankCallback,
                             std::function<void()> breakpointCallback);
 

@@ -70,9 +70,6 @@ MainWindow::MainWindow(QWidget* parent) :
     audioSpec.callback = &AudioCallback;
     audioDevice_ = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
 
-    // Paths
-    biosPath_ = "../bios/gba_bios.bin";
-
     // Window title
     connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
     fpsTimer_.start(1000);
@@ -249,11 +246,13 @@ void MainWindow::StartEmulation(fs::path romPath)
 {
     StopEmulationThreads();
     gba_api::PowerOff();
-    gba_api::InitializeGBA(biosPath_,
+    gba_api::InitializeGBA(settings_.GetBiosPath(),
                            romPath,
+                           settings_.GetSaveDirectory(),
                            std::bind(&MainWindow::VBlankCallback, this),
                            std::bind(&MainWindow::BreakpointCallback, this));
     romTitle_ = gba_api::GetTitle();
+    settings_.AddRecentRom(romPath);
 
     emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);
