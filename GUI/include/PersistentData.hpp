@@ -25,11 +25,20 @@ public:
     /// @brief Get the path to the GBA BIOS file.
     fs::path GetBiosPath() const;
 
+    /// @brief Set the path of the directory that a ROM was last loaded from.
+    void SetFileDialogPath(fs::path dialogDir);
+
+    /// @brief Get the path of the directory that a ROM was last loaded from.
+    fs::path GetFileDialogPath() const;
+
     /// @brief Add a path to a ROM file to the list of recently loaded ROMs.
     void AddRecentRom(fs::path romPath);
 
     /// @brief Get the list of recently opened ROMs.
     std::vector<fs::path> GetRecentRoms() const;
+
+    /// @brief Clear any recently loaded ROMs.
+    void ClearRecentRoms();
 
 private:
     /// @brief If a config file does not exist, generate one with default settings.

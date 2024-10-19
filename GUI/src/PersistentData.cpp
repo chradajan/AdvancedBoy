@@ -1,4 +1,5 @@
 #include <GUI/include/PersistentData.hpp>
+#include <algorithm>
 #include <filesystem>
 #include <vector>
 #include <QtCore/QSettings>
@@ -48,22 +49,36 @@ fs::path PersistentData::GetBiosPath() const
     return settingsPtr_->value("Paths/BiosPath").toString().toStdString();
 }
 
+void PersistentData::SetFileDialogPath(fs::path dialogDir)
+{
+    settingsPtr_->setValue("Paths/FileDialogPath", QString::fromStdString(dialogDir.string()));
+}
+
+fs::path PersistentData::GetFileDialogPath() const
+{
+    return settingsPtr_->value("Paths/FileDialogPath").toString().toStdString();
+}
+
 void PersistentData::AddRecentRom(fs::path romPath)
 {
     auto recentRoms = GetRecentRoms();
-    settingsPtr_->beginGroup("RecentRoms");
+    auto it = std::find(recentRoms.begin(), recentRoms.end(), romPath);
 
-    for (int i = 3; i >= 0; --i)
+    if (it != recentRoms.end())
     {
-        fs::path pathToMove = settingsPtr_->value("Recent" + QString::number(i)).toString().toStdString();
-
-        if (fs::exists(pathToMove) && fs::is_regular_file(pathToMove))
-        {
-            settingsPtr_->setValue("Recent" + QString::number(i + 1), QString::fromStdString(pathToMove.string()));
-        }
+        recentRoms.erase(it);
     }
 
+    settingsPtr_->beginGroup("RecentRoms");
     settingsPtr_->setValue("Recent0", QString::fromStdString(romPath.string()));
+    int i = 1;
+
+    for (fs::path recentRom : recentRoms)
+    {
+        QString key = "Recent" + QString::number(i++);
+        settingsPtr_->setValue(key, QString::fromStdString(recentRom.string()));
+    }
+
     settingsPtr_->endGroup();
 }
 
@@ -86,11 +101,24 @@ std::vector<fs::path> PersistentData::GetRecentRoms() const
     return recentRoms;
 }
 
+void PersistentData::ClearRecentRoms()
+{
+    settingsPtr_->beginGroup("RecentRoms");
+
+    for (QString key : { "Recent0", "Recent1", "Recent2", "Recent3", "Recent4" })
+    {
+        settingsPtr_->setValue(key, "");
+    }
+
+    settingsPtr_->endGroup();
+}
+
 void PersistentData::WriteDefaultSettings()
 {
     settingsPtr_->beginGroup("Paths");
     settingsPtr_->setValue("SaveDir", QString::fromStdString((baseDir_ / "Saves").string()));
     settingsPtr_->setValue("BiosPath", "");
+    settingsPtr_->setValue("FileDialogPath", "");
     settingsPtr_->endGroup();
 
     settingsPtr_->beginGroup("RecentRoms");

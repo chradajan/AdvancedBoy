@@ -32,7 +32,8 @@ public:
 
     /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
     /// @param romPath Path to GBA ROM.
-    void StartEmulation(fs::path romPath);
+    /// @param ignoreCurrentPath If true, start emulation regardless of romPath is same as what's currently running.
+    void StartEmulation(fs::path romPath, bool ignoreCurrentPath = false);
 
 public slots:
     /// @brief Slot to handle emulator control by the CPU Debugger Window.
@@ -133,6 +134,12 @@ private:
     /// @return Pointer to file menu.
     [[nodiscard]] QMenu* CreateFileMenu();
 
+    /// @brief Get the recently opened ROMs and add them as options to the Recents menu.
+    void PopulateRecentsMenu();
+
+    /// @brief Clear any recently loaded ROMs and reset the recents menu.
+    void ClearRecentsMenu();
+
     /// @brief Create items under the Emulation menu option.
     /// @return Pointer to emulation menu.
     [[nodiscard]] QMenu* CreateEmulationMenu();
@@ -160,11 +167,15 @@ private:
     /// @brief Action for clicking "I/O Registers" menu item.
     void OpenRegisterViewerWindow();
 
+    /// @brief Action for clicking "Load ROM" menu item.
+    void OpenLoadRomDialog();
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     // Emulation control
+    fs::path currentRomPath_;
     EmuThread emuThread_;
     bool stepFrameMode_;
 
@@ -181,7 +192,8 @@ private:
     // Keypad
     std::set<int> pressedKeys_;
 
-    // Emulation menu
+    // Menus
+    QMenu* recentsMenu_;
     QAction* pauseButton_;
 
     // Debug menus

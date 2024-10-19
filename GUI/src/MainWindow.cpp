@@ -7,6 +7,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
@@ -15,6 +16,7 @@
 #include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/GBA.hpp>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QtWidgets>
 #include <SDL2/SDL.h>
@@ -43,6 +45,7 @@ namespace gui
 {
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
+    currentRomPath_(""),
     emuThread_(this),
     stepFrameMode_(false),
     screen_(this),
@@ -242,8 +245,13 @@ void MainWindow::BreakpointCallback()
 /// Emulation management
 ///---------------------------------------------------------------------------------------------------------------------------------
 
-void MainWindow::StartEmulation(fs::path romPath)
+void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
 {
+    if (!ignoreCurrentPath && (currentRomPath_ == romPath))
+    {
+        return;
+    }
+
     StopEmulationThreads();
     gba_api::PowerOff();
     gba_api::InitializeGBA(settings_.GetBiosPath(),
@@ -251,9 +259,11 @@ void MainWindow::StartEmulation(fs::path romPath)
                            settings_.GetSaveDirectory(),
                            std::bind(&MainWindow::VBlankCallback, this),
                            std::bind(&MainWindow::BreakpointCallback, this));
+
+    currentRomPath_ = romPath;
     romTitle_ = gba_api::GetTitle();
     settings_.AddRecentRom(romPath);
-
+    PopulateRecentsMenu();
     emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);
     emit UpdateCpuDebuggerSignal();
@@ -351,7 +361,45 @@ void MainWindow::InitializeMenuBar()
 QMenu* MainWindow::CreateFileMenu()
 {
     QMenu* fileMenu = new QMenu("File");
+
+    QAction* loadRomAction = new QAction("Load ROM");
+    connect(loadRomAction, &QAction::triggered, this, &MainWindow::OpenLoadRomDialog);
+    fileMenu->addAction(loadRomAction);
+
+    recentsMenu_ = new QMenu("Recent");
+    PopulateRecentsMenu();
+    fileMenu->addMenu(recentsMenu_);
+
+    fileMenu->addSeparator();
+    QAction* quitAction = new QAction("Exit");
+    connect(quitAction, &QAction::triggered, this, &MainWindow::close);
+    fileMenu->addAction(quitAction);
+
     return fileMenu;
+}
+
+void MainWindow::PopulateRecentsMenu()
+{
+    recentsMenu_->clear();
+    auto recentRoms = settings_.GetRecentRoms();
+
+    for (fs::path romPath : recentRoms)
+    {
+        QAction* action = new QAction(QString::fromStdString(romPath.string()));
+        connect(action, &QAction::triggered, this, [=, this] () { this->StartEmulation(romPath); });
+        recentsMenu_->addAction(action);
+    }
+
+    recentsMenu_->addSeparator();
+    QAction* clearAction = new QAction("Clear");
+    connect(clearAction, &QAction::triggered, this, &MainWindow::ClearRecentsMenu);
+    recentsMenu_->addAction(clearAction);
+}
+
+void MainWindow::ClearRecentsMenu()
+{
+    settings_.ClearRecentRoms();
+    PopulateRecentsMenu();
 }
 
 QMenu* MainWindow::CreateEmulationMenu()
@@ -450,5 +498,19 @@ void MainWindow::OpenRegisterViewerWindow()
 {
     registerViewerWindow_->show();
     emit UpdateRegisterViewerSignal();
+}
+
+void MainWindow::OpenLoadRomDialog()
+{
+    auto romFileDialog = QFileDialog(this);
+    romFileDialog.setFileMode(QFileDialog::FileMode::ExistingFile);
+    QString startingDir = QString::fromStdString(settings_.GetFileDialogPath().string());
+    fs::path romPath = romFileDialog.getOpenFileName(this, "Select ROM...", startingDir, "GBA (*.gba)").toStdString();
+
+    if (fs::exists(romPath) && fs::is_regular_file(romPath))
+    {
+        settings_.SetFileDialogPath(romPath.parent_path());
+        StartEmulation(romPath);
+    }
 }
 }  // namespace gui
