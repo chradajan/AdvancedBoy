@@ -1,6 +1,7 @@
 #include <GBA/include/APU/Channel1.hpp>
 #include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
@@ -60,6 +61,28 @@ u8 Channel1::Sample() const
     }
 
     return currentVolume_ * DUTY_CYCLE[GetSOUND1CNT().waveDuty][dutyCycleIndex_];
+}
+
+void Channel1::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(registers_);
+    SerializeTrivialType(envelopeIncrease_);
+    SerializeTrivialType(envelopePace_);
+    SerializeTrivialType(currentVolume_);
+    SerializeTrivialType(dutyCycleIndex_);
+    SerializeTrivialType(lengthTimerExpired_);
+    SerializeTrivialType(frequencyOverflow_);
+}
+
+void Channel1::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(registers_);
+    DeserializeTrivialType(envelopeIncrease_);
+    DeserializeTrivialType(envelopePace_);
+    DeserializeTrivialType(currentVolume_);
+    DeserializeTrivialType(dutyCycleIndex_);
+    DeserializeTrivialType(lengthTimerExpired_);
+    DeserializeTrivialType(frequencyOverflow_);
 }
 
 void Channel1::Start(SOUND1CNT sound1cnt)

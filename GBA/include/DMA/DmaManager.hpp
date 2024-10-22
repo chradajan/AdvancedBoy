@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <utility>
 #include <GBA/include/DMA/DmaChannel.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -66,6 +67,18 @@ public:
 
     /// @brief Check for any DMA channels set to refill FIFO B.
     void CheckFifoB() { CheckSpecialTiming(fifoB_); }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Callback function to resume normal execution after a DMA transfer completes.

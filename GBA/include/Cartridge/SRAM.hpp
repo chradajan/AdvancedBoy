@@ -46,6 +46,18 @@ public:
     /// @brief Save backup media to the saved path.
     void Save() const override;
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const override;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState) override;
+
 private:
     std::array<std::byte, 32 * KiB> sram_;
 

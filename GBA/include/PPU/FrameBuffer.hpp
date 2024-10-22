@@ -123,6 +123,9 @@ public:
     /// @return Pointer to raw pixel data.
     uchar* GetRawFrameBuffer();
 
+    /// @brief Reset all scanline buffers and the pixel index for loading a save state.
+    void Reset();
+
 private:
     // Current scanline data
     std::array<std::vector<Pixel>, LCD_WIDTH> scanline_;

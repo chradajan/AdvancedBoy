@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Utilities/Types.hpp>
@@ -36,6 +37,18 @@ public:
     /// @param length Memory access size of the write.
     /// @return Number of cycles taken to write.
     int WriteReg(u32 addr, u32 val, AccessSize length);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Check if Gamepad IRQ should be requested.

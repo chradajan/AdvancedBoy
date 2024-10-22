@@ -1,6 +1,7 @@
 #include <GBA/include/APU/Channel4.hpp>
 #include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
@@ -59,6 +60,26 @@ u8 Channel4::Sample() const
     }
 
     return (lsfr_ & 0x0001) * currentVolume_;
+}
+
+void Channel4::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(registers_);
+    SerializeTrivialType(envelopeIncrease_);
+    SerializeTrivialType(envelopePace_);
+    SerializeTrivialType(currentVolume_);
+    SerializeTrivialType(lengthTimerExpired_);
+    SerializeTrivialType(lsfr_);
+}
+
+void Channel4::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(registers_);
+    DeserializeTrivialType(envelopeIncrease_);
+    DeserializeTrivialType(envelopePace_);
+    DeserializeTrivialType(currentVolume_);
+    DeserializeTrivialType(lengthTimerExpired_);
+    DeserializeTrivialType(lsfr_);
 }
 
 void Channel4::Start(SOUND4CNT sound4cnt)

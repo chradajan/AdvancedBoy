@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <filesystem>
+#include <fstream>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace fs = std::filesystem;
@@ -43,6 +44,18 @@ public:
 
     /// @brief Save backup media to the saved path.
     virtual void Save() const = 0;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    virtual void Serialize(std::ofstream& saveState) const = 0;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    virtual void Deserialize(std::ifstream& saveState) = 0;
 
 protected:
     fs::path savePath_;

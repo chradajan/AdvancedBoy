@@ -51,3 +51,15 @@ MemReadData BIOSManager::ReadMem(u32 addr, AccessSize length)
     lastSuccessfulFetch_ = ReadMemoryBlock(biosROM_, addr, BIOS_ADDR_MIN, length);
     return {cycles, lastSuccessfulFetch_, false};
 }
+
+void BIOSManager::Serialize(std::ofstream& saveState) const
+{
+    SerializeTrivialType(lastSuccessfulFetch_);
+    SerializeTrivialType(biosLoaded_);
+}
+
+void BIOSManager::Deserialize(std::ifstream& saveState)
+{
+    DeserializeTrivialType(lastSuccessfulFetch_);
+    DeserializeTrivialType(biosLoaded_);
+}

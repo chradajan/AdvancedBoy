@@ -1,4 +1,5 @@
 #include <GBA/include/APU/DmaAudio.hpp>
+#include <fstream>
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
@@ -79,6 +80,22 @@ void DmaAudio::CheckFifoClear(SOUNDCNT_H& soundcnt_h)
         sampleB_ = 0;
         soundcnt_h.dmaResetB = 0;
     }
+}
+
+void DmaAudio::Serialize(std::ofstream& saveState) const
+{
+    fifoA_.Serialize(saveState);
+    fifoB_.Serialize(saveState);
+    SerializeTrivialType(sampleA_);
+    SerializeTrivialType(sampleB_);
+}
+
+void DmaAudio::Deserialize(std::ifstream& saveState)
+{
+    fifoA_.Deserialize(saveState);
+    fifoB_.Deserialize(saveState);
+    DeserializeTrivialType(sampleA_);
+    DeserializeTrivialType(sampleB_);
 }
 
 void DmaAudio::FifoPush(DmaSoundFifo& fifo, u32 val, u8 sampleCount)

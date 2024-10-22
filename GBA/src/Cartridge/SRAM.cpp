@@ -76,4 +76,14 @@ void SRAM::Save() const
         saveFile.write(reinterpret_cast<const char*>(sram_.data()), sram_.size());
     }
 }
+
+void SRAM::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(sram_);
+}
+
+void SRAM::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(sram_);
+}
 }  // namespace cartridge

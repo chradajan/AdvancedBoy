@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <span>
 #include <GBA/include/Memory/MemoryMap.hpp>
@@ -187,6 +188,39 @@ int PPU::WriteReg(u32 addr, u32 val, AccessSize length)
     }
 
     return 1;
+}
+
+///-----------------------------------------------------------------------------------------------------------------------------
+/// Save States
+///-----------------------------------------------------------------------------------------------------------------------------
+
+void PPU::Serialize(std::ofstream& saveState) const
+{
+    SerializeTrivialType(window0EnabledOnScanline_);
+    SerializeTrivialType(window1EnabledOnScanline_);
+    SerializeTrivialType(bg2RefX_);
+    SerializeTrivialType(bg2RefY_);
+    SerializeTrivialType(bg3RefX_);
+    SerializeTrivialType(bg3RefY_);
+    SerializeArray(PRAM_);
+    SerializeArray(OAM_);
+    SerializeArray(VRAM_);
+    SerializeArray(registers_);
+}
+
+void PPU::Deserialize(std::ifstream& saveState)
+{
+    DeserializeTrivialType(window0EnabledOnScanline_);
+    DeserializeTrivialType(window1EnabledOnScanline_);
+    DeserializeTrivialType(bg2RefX_);
+    DeserializeTrivialType(bg2RefY_);
+    DeserializeTrivialType(bg3RefX_);
+    DeserializeTrivialType(bg3RefY_);
+    DeserializeArray(PRAM_);
+    DeserializeArray(OAM_);
+    DeserializeArray(VRAM_);
+    DeserializeArray(registers_);
+    frameBuffer_.Reset();
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------

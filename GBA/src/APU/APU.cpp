@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <fstream>
 #include <utility>
 #include <GBA/include/APU/Channel1.hpp>
 #include <GBA/include/APU/Channel2.hpp>
@@ -126,6 +127,26 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
     }
 
     return 1;
+}
+
+void APU::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(unimplementedRegisters_);
+    SerializeArray(registers_);
+    channel1_.Serialize(saveState);
+    channel2_.Serialize(saveState);
+    channel4_.Serialize(saveState);
+    dmaFifos_.Serialize(saveState);
+}
+
+void APU::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(unimplementedRegisters_);
+    DeserializeArray(registers_);
+    channel1_.Deserialize(saveState);
+    channel2_.Deserialize(saveState);
+    channel4_.Deserialize(saveState);
+    dmaFifos_.Deserialize(saveState);
 }
 
 std::pair<u32, bool> APU::ReadCntRegisters(u32 addr, AccessSize length)

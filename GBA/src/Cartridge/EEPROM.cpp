@@ -5,6 +5,7 @@
 #include <vector>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/SystemControl.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace cartridge
@@ -138,5 +139,22 @@ void EEPROM::Save() const
             saveFile.write(reinterpret_cast<const char*>(eeprom_.data()), eeprom_.size() * sizeof(u64));
         }
     }
+}
+
+void EEPROM::Serialize(std::ofstream& saveState) const
+{
+    size_t size = eeprom_.size();
+    SerializeTrivialType(size);
+    SerializeArray(eeprom_);
+    SerializeTrivialType(readIndex_);
+}
+
+void EEPROM::Deserialize(std::ifstream& saveState)
+{
+    size_t size;
+    DeserializeTrivialType(size);
+    eeprom_.resize(size);
+    DeserializeArray(eeprom_);
+    DeserializeTrivialType(readIndex_);
 }
 }  // namespace cartridge

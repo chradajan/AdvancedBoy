@@ -212,4 +212,28 @@ void Flash::ProcessCommand(FlashCommand cmd)
             break;
     }
 }
+
+void Flash::Serialize(std::ofstream& saveState) const
+{
+    for (auto const& bank : flash_)
+    {
+        SerializeArray(bank);
+    }
+
+    SerializeTrivialType(bank_);
+    SerializeTrivialType(state_);
+    SerializeTrivialType(chipIdMode_);
+}
+
+void Flash::Deserialize(std::ifstream& saveState)
+{
+    for (auto& bank : flash_)
+    {
+        DeserializeArray(bank);
+    }
+
+    DeserializeTrivialType(bank_);
+    DeserializeTrivialType(state_);
+    DeserializeTrivialType(chipIdMode_);
+}
 }  // namespace cartridge

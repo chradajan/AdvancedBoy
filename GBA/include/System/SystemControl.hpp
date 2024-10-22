@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <GBA/include/Utilities/Types.hpp>
 
 class EventScheduler;
@@ -88,6 +89,18 @@ public:
     /// @brief Check if the GamePak prefetcher is enabled.
     /// @return Whether prefetcher is currently enabled.
     bool GamePakPrefetchEnabled() const { return GetWAITCNT().prefetchBuffer; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------

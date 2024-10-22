@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <GBA/include/Timers/Timer.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
@@ -42,6 +43,18 @@ public:
     /// @param index Index of timer that overflowed.
     /// @param extraCycles How many cycles have passed since the overflow event.
     void TimerOverflow(u8 index, int extraCycles);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     std::array<Timer, 4> timers_;

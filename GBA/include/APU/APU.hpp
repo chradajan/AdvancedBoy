@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <utility>
 #include <GBA/include/APU/Channel1.hpp>
 #include <GBA/include/APU/Channel2.hpp>
@@ -80,6 +81,18 @@ public:
     /// @brief Check how many audio samples are currently stored in the internal buffer.
     /// @return Number of available samples. One sample means a single left or right sample.
     size_t AvailableSamples() const { return sampleBuffer_.GetAvailable(); }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------

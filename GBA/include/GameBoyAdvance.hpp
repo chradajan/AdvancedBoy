@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <string>
@@ -48,6 +49,22 @@ public:
 
     /// @brief Save backup media to disk.
     ~GameBoyAdvance();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
+
+    /// @brief Get the path of the file where backup media will be saved to.
+/// @return Backup media save file path.
+    fs::path GetSavePath() const { return gamePak_ ? gamePak_->GetSavePath() : ""; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Emulation Control

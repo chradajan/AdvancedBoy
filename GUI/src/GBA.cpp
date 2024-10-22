@@ -2,6 +2,7 @@
 #include <array>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -135,6 +136,35 @@ void SetCpuClockSpeed(u32 clockSpeed)
 
     ClockSpeed = clockSpeed;
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Save states
+///---------------------------------------------------------------------------------------------------------------------------------
+
+fs::path GetSavePath()
+{
+    return GBA ? GBA->GetSavePath() : "";
+}
+
+void CreateSaveState(std::ofstream& saveState)
+{
+    if (GBA)
+    {
+        GBA->Serialize(saveState);
+    }
+}
+
+void LoadSaveState(std::ifstream& saveState)
+{
+    if (GBA)
+    {
+        GBA->Deserialize(saveState);
+    }
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Debug
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void StepCPU()
 {

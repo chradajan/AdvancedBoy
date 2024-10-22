@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <span>
 #include <GBA/include/Utilities/Functor.hpp>
 #include <GBA/include/Utilities/Types.hpp>
@@ -40,6 +41,18 @@ public:
     /// @brief Check if BIOS was successfully loaded into memory.
     /// @return True if BIOS is loaded.
     bool BiosLoaded() const { return biosLoaded_; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     GetPCCallback GetPC;

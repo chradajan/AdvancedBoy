@@ -1,6 +1,7 @@
 #include <GBA/include/Keypad/Keypad.hpp>
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/SystemControl.hpp>
@@ -32,6 +33,16 @@ int Keypad::WriteReg(u32 addr, u32 val, AccessSize length)
     std::memcpy(&registers_[KEYINPUT::STATUS_INDEX], &keyinput, sizeof(KEYINPUT));
     CheckKeypadIRQ();
     return 1;
+}
+
+void Keypad::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(registers_);
+}
+
+void Keypad::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(registers_);
 }
 
 void Keypad::CheckKeypadIRQ()

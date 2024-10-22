@@ -3,13 +3,18 @@
 #include <GBA/include/Utilities/CircularBuffer.hpp>
 #include <array>
 #include <cstdint>
+#include <fstream>
 #include <stdexcept>
+#include <type_traits>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 template <typename T, size_t len>
 CircularBuffer<T, len>::CircularBuffer() noexcept
 {
     static_assert(len != 0);
+    static_assert(std::is_standard_layout_v<T>, "Circular Buffer type must be standard layout type");
+    static_assert(std::is_trivially_copyable_v<T>, "Circular Buffer type must be trivially copyable");
     Clear();
 }
 
@@ -87,4 +92,22 @@ void CircularBuffer<T, len>::Clear() noexcept
     head_ = 0;
     tail_ = 0;
     count_ = 0;
+}
+
+template <typename T, size_t len>
+void CircularBuffer<T, len>::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(buffer_);
+    SerializeTrivialType(head_);
+    SerializeTrivialType(tail_);
+    SerializeTrivialType(count_);
+}
+
+template <typename T, size_t len>
+void CircularBuffer<T, len>::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(buffer_);
+    DeserializeTrivialType(head_);
+    DeserializeTrivialType(tail_);
+    DeserializeTrivialType(count_);
 }

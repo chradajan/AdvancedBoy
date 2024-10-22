@@ -64,6 +64,18 @@ public:
     /// @brief Save backup media to the saved path.
     void Save() const override;
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const override;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState) override;
+
 private:
     std::vector<u64> eeprom_;
     u16 readIndex_;

@@ -1,5 +1,6 @@
 #include <GBA/include/Timers/Timer.hpp>
 #include <bit>
+#include <fstream>
 #include <optional>
 #include <stdexcept>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -171,5 +172,17 @@ void Timer::UpdateInternalCounter(u16 divider)
     {
         internalTimer_ = GetReload() + (cyclesSinceTimerStarted.value() / divider);
     }
+}
+
+void Timer::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(registers_);
+    SerializeTrivialType(internalTimer_);
+}
+
+void Timer::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(registers_);
+    DeserializeTrivialType(internalTimer_);
 }
 }  // namespace timers

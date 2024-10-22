@@ -1,4 +1,10 @@
 #include <GBA/include/DMA/DmaChannel.hpp>
+#include <array>
+#include <cstddef>
+#include <cstring>
+#include <fstream>
+#include <optional>
+#include <utility>
 #include <GBA/include/Cartridge/GamePak.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/SystemControl.hpp>
@@ -135,6 +141,22 @@ ExecuteResult DmaChannel::Execute()
     }
 
     return {xferCycles, enabled, interrupt};
+}
+
+void DmaChannel::Serialize(std::ofstream& saveState) const
+{
+    SerializeArray(registers_);
+    SerializeTrivialType(internalSrcAddr_);
+    SerializeTrivialType(internalDestAddr_);
+    SerializeTrivialType(internalWordCount_);
+}
+
+void DmaChannel::Deserialize(std::ifstream& saveState)
+{
+    DeserializeArray(registers_);
+    DeserializeTrivialType(internalSrcAddr_);
+    DeserializeTrivialType(internalDestAddr_);
+    DeserializeTrivialType(internalWordCount_);
 }
 
 XferType DmaChannel::DetermineStartTiming(DMACNT dmacnt) const

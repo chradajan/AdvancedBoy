@@ -1,7 +1,9 @@
 #include <GUI/include/MainWindow.hpp>
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
+#include <format>
 #include <functional>
 #include <memory>
 #include <set>
@@ -264,6 +266,7 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
     romTitle_ = gba_api::GetTitle();
     settings_.AddRecentRom(romPath);
     PopulateRecentsMenu();
+    UpdateSaveStateActions(gba_api::GetSavePath());
     emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);
     emit UpdateCpuDebuggerSignal();
@@ -358,6 +361,34 @@ void MainWindow::InitializeMenuBar()
     menuBar()->addMenu(CreateDebugMenu());
 }
 
+void MainWindow::UpdateSaveStateActions(fs::path savePath)
+{
+    if (savePath.empty())
+    {
+        return;
+    }
+
+    for (u8 i = 0; i < 5; ++i)
+    {
+        savePath.replace_extension(".s" + std::to_string(i));
+
+        if (!fs::exists(savePath) || !fs::is_regular_file(savePath))
+        {
+            saveStateActions_[i]->setText("Save to slot " + QString::number(i + 1) + " - Empty");
+            loadStateActions_[i]->setText("Load from slot " + QString::number(i + 1) + " - Empty");
+        }
+        else
+        {
+            auto time = std::chrono::clock_cast<std::chrono::system_clock>(
+                            std::chrono::time_point_cast<std::chrono::seconds>(
+                                fs::last_write_time(savePath)));
+            std::string timeStr = std::format("{0:%D} {0:%H}:{0:%M}:{0:%S}", time);
+            saveStateActions_[i]->setText("Save to slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));
+            loadStateActions_[i]->setText("Load from slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));
+        }
+    }
+}
+
 QMenu* MainWindow::CreateFileMenu()
 {
     QMenu* fileMenu = new QMenu("File");
@@ -408,7 +439,7 @@ QMenu* MainWindow::CreateEmulationMenu()
 
     // Pause
     pauseButton_ = new QAction("Pause");
-    pauseButton_->setShortcut((QKeySequence(Qt::CTRL | Qt::Key_P)));
+    pauseButton_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_P));
     pauseButton_->setCheckable(true);
     connect(pauseButton_, &QAction::triggered, this, &MainWindow::PauseButtonAction);
     emulationMenu->addAction(pauseButton_);
@@ -427,6 +458,29 @@ QMenu* MainWindow::CreateEmulationMenu()
     }
 
     emulationMenu->addMenu(speedMenu);
+    emulationMenu->addSeparator();
+
+    // Save states
+    QMenu* saveStateMenu = new QMenu("Save State");
+    QMenu* loadStateMenu = new QMenu("Load State");
+
+    for (u8 i = 0; i < 5; ++i)
+    {
+        Qt::Key shortcutKey = static_cast<Qt::Key>(static_cast<u32>(Qt::Key_1) + i);
+
+        saveStateActions_[i] = new QAction("Save to slot " + QString::number(i + 1) + " - Empty");
+        saveStateActions_[i]->setShortcut(QKeySequence(shortcutKey));
+        connect(saveStateActions_[i], &QAction::triggered, this, [=, this] () { this->SaveState(i); });
+        saveStateMenu->addAction(saveStateActions_[i]);
+
+        loadStateActions_[i] = new QAction("Load from slot " + QString::number(i + 1) + " - Empty");
+        loadStateActions_[i]->setShortcut(QKeySequence(Qt::CTRL | shortcutKey));
+        connect(loadStateActions_[i], &QAction::triggered, this, [=, this] () { this->LoadState(i); });
+        loadStateMenu->addAction(loadStateActions_[i]);
+    }
+
+    emulationMenu->addMenu(saveStateMenu);
+    emulationMenu->addMenu(loadStateMenu);
 
     return emulationMenu;
 }
@@ -512,5 +566,51 @@ void MainWindow::OpenLoadRomDialog()
         settings_.SetFileDialogPath(romPath.parent_path());
         StartEmulation(romPath);
     }
+}
+
+void MainWindow::SaveState(u8 index)
+{
+    fs::path savePath = gba_api::GetSavePath();
+    savePath.replace_extension(".s" + std::to_string(index));
+
+    if (savePath.empty())
+    {
+        return;
+    }
+
+    std::ofstream saveState(savePath, std::ios::binary);
+
+    if (saveState.fail())
+    {
+        return;
+    }
+
+    StopEmulationThreads();
+    gba_api::StepFrame();
+    gba_api::CreateSaveState(saveState);
+    UpdateSaveStateActions(savePath);
+    StartEmulationThreads();
+}
+
+void MainWindow::LoadState(u8 index)
+{
+    fs::path savePath = gba_api::GetSavePath();
+    savePath.replace_extension(".s" + std::to_string(index));
+
+    if (savePath.empty())
+    {
+        return;
+    }
+
+    std::ifstream saveState(savePath, std::ios::binary);
+
+    if (saveState.fail())
+    {
+        return;
+    }
+
+    StopEmulationThreads();
+    gba_api::LoadSaveState(saveState);
+    StartEmulationThreads();
 }
 }  // namespace gui

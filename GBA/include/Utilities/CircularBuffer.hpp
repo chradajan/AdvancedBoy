@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <fstream>
 #include <GBA/include/Utilities/Types.hpp>
 
 template <typename T, size_t len>
@@ -40,6 +41,14 @@ public:
 
     /// @brief Reset the buffer to an empty state.
     void Clear() noexcept;
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     std::array<T, len> buffer_;

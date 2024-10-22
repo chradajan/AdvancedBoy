@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <optional>
 #include <utility>
 #include <GBA/include/System/SystemControl.hpp>
@@ -76,6 +77,18 @@ public:
     /// @return Number of cycles taken to perform the transfer, whether this channel is still enabled post transfer, and if this
     ///         channel is set to trigger an IRQ, the interrupt type corresponding to this channel.
     ExecuteResult Execute();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     struct DMACNT

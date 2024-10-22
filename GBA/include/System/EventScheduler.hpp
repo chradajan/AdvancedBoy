@@ -1,7 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <fstream>
 #include <functional>
 #include <optional>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 #include <GBA/include/Utilities/Types.hpp>
@@ -61,6 +64,8 @@ struct Event
     u64 cycleToExecute_;
 };
 
+static_assert(std::is_trivial_v<Event>, "Event must be trivial type");
+
 /// @brief Scheduler for scheduling and dispatching system events.
 class EventScheduler
 {
@@ -112,7 +117,22 @@ public:
     /// @return If the event is currently in the queue, return the number of cycles since it was queued.
     std::optional<int> ElapsedCycles(EventType event);
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
+
 private:
+    /// @brief Rearrange queue into a min heap.
+    void MakeMinHeap() { std::make_heap(queue_.begin(), queue_.end(), std::greater<>{}); }
+
     /// @brief Execute any scheduled events which were scheduled to execute at or before the current total cycle count.
     void CheckEventQueue();
 

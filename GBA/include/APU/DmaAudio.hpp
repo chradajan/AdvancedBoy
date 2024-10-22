@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Utilities/CircularBuffer.hpp>
@@ -39,6 +40,18 @@ public:
     /// @brief Check if either FIFO needs to be reset after SOUNDCNT_H was potentially written.
     /// @param soundcnt_h New SOUNDCNT_H value. Clears FIFO reset bits if necessary.
     void CheckFifoClear(SOUNDCNT_H& soundcnt_h);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Push samples into a FIFO.

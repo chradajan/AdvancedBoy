@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <string>
 #include <unordered_set>
@@ -54,6 +55,22 @@ void UpdateKeypad(KEYINPUT keyinput);
 /// @brief Set the CPU clock speed.
 /// @param clockSpeed New CPU clock speed in Hz.
 void SetCpuClockSpeed(u32 clockSpeed);
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Save states
+///---------------------------------------------------------------------------------------------------------------------------------
+
+/// @brief Get the path of the file where backup media will be saved to.
+/// @return Backup media save file path.
+fs::path GetSavePath();
+
+/// @brief Write data to save state file.
+/// @param saveState Save state stream to write to.
+void CreateSaveState(std::ofstream& saveState);
+
+/// @brief Load data from save state file.
+/// @param saveState Save state stream to read from.
+void LoadSaveState(std::ifstream& saveState);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Debug

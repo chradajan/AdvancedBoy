@@ -255,4 +255,24 @@ uchar* FrameBuffer::GetRawFrameBuffer()
     u8 index = (activeBufferIndex_ == 0) ? frameBuffers_.size() - 1 : activeBufferIndex_ - 1;
     return reinterpret_cast<uchar*>(frameBuffers_.at(index).data());
 }
+
+void FrameBuffer::Reset()
+{
+    for (auto& pixelBuffer : scanline_)
+    {
+        pixelBuffer.clear();
+    }
+
+    WindowSettings allEnabled = {
+        {true, true, true, true},
+        true,
+        true
+    };
+
+    InitializeWindow(allEnabled);
+    ClearSpritePixels();
+
+    activeBufferIndex_ = (activeBufferIndex_ + 1) % frameBuffers_.size();
+    pixelIndex_ = 0;
+}
 }  // namespace graphics

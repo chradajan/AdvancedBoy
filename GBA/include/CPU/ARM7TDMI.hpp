@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <functional>
 #include <utility>
 #include <GBA/include/CPU/CpuTypes.hpp>
@@ -52,6 +53,18 @@ public:
     /// @brief Get the address of the next instruction that will be executed.
     /// @return Address of next instruction to execute.
     u32 GetNextAddrToExecute() const;
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Flush pipeline and prepare to start executing from IRQ handler.

@@ -1,4 +1,5 @@
 #include <GBA/include/CPU/ARM7TDMI.hpp>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
@@ -78,6 +79,20 @@ u32 ARM7TDMI::GetNextAddrToExecute() const
     }
 
     return pipeline_.PeakTail().PC;
+}
+
+void ARM7TDMI::Serialize(std::ofstream& saveState) const
+{
+    registers_.Serialize(saveState);
+    pipeline_.Serialize(saveState);
+    SerializeTrivialType(flushPipeline_);
+}
+
+void ARM7TDMI::Deserialize(std::ifstream& saveState)
+{
+    registers_.Deserialize(saveState);
+    pipeline_.Deserialize(saveState);
+    DeserializeTrivialType(flushPipeline_);
 }
 
 void ARM7TDMI::HandleIRQ()

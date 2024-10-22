@@ -1,10 +1,12 @@
 #include <GBA/include/System/EventScheduler.hpp>
 #include <algorithm>
 #include <functional>
+#include <fstream>
 #include <optional>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 bool Event::operator>(Event const& rhs)
@@ -42,7 +44,7 @@ void EventScheduler::ScheduleEvent(EventType event, int cycles)
 
     u64 cycleToExecute = totalCycles_ + cycles;
     queue_.push_back({event, totalCycles_, cycleToExecute});
-    std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
+    MakeMinHeap();
 }
 
 void EventScheduler::ScheduleEvent(EventType event, int offset, u32 length)
@@ -50,7 +52,7 @@ void EventScheduler::ScheduleEvent(EventType event, int offset, u32 length)
     u64 cycleQueued = totalCycles_ + offset;
     u64 cycleToExecute = cycleQueued + length;
     queue_.push_back({event, cycleQueued, cycleToExecute});
-    std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
+    MakeMinHeap();
 }
 
 void EventScheduler::Step(int cycles)
@@ -70,20 +72,6 @@ void EventScheduler::FireNextEvent()
     CheckEventQueue();
 }
 
-void EventScheduler::CheckEventQueue()
-{
-    Event nextEvent = queue_.front();
-
-    while (totalCycles_ >= nextEvent.cycleToExecute_)
-    {
-        std::pop_heap(queue_.begin(), queue_.end(), std::greater<>{});
-        queue_.pop_back();
-        auto& callback = callbacks_[nextEvent.eventType_];
-        callback(totalCycles_ - nextEvent.cycleToExecute_);
-        nextEvent = queue_.front();
-    }
-}
-
 std::optional<int> EventScheduler::UnscheduleEvent(EventType event)
 {
     std::optional<int> remainingCycles = {};
@@ -94,7 +82,7 @@ std::optional<int> EventScheduler::UnscheduleEvent(EventType event)
         {
             remainingCycles = it->cycleToExecute_ - totalCycles_;
             queue_.erase(it);
-            std::make_heap(queue_.begin(), queue_.end(), std::greater<>{});
+            MakeMinHeap();
             break;
         }
     }
@@ -113,4 +101,35 @@ std::optional<int> EventScheduler::ElapsedCycles(EventType event)
     }
 
     return {};
+}
+
+void EventScheduler::Serialize(std::ofstream& saveState) const
+{
+    size_t queueSize = queue_.size();
+    SerializeTrivialType(queueSize);
+    SerializeArray(queue_);
+    SerializeTrivialType(totalCycles_);
+}
+
+void EventScheduler::Deserialize(std::ifstream& saveState)
+{
+    size_t queueSize;
+    DeserializeTrivialType(queueSize);
+    queue_.resize(queueSize);
+    DeserializeArray(queue_);
+    DeserializeTrivialType(totalCycles_);
+}
+
+void EventScheduler::CheckEventQueue()
+{
+    Event nextEvent = queue_.front();
+
+    while (totalCycles_ >= nextEvent.cycleToExecute_)
+    {
+        std::pop_heap(queue_.begin(), queue_.end(), std::greater<>{});
+        queue_.pop_back();
+        auto& callback = callbacks_[nextEvent.eventType_];
+        callback(totalCycles_ - nextEvent.cycleToExecute_);
+        nextEvent = queue_.front();
+    }
 }

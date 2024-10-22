@@ -1,11 +1,13 @@
 #include <GBA/include/Timers/TimerManager.hpp>
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <stdexcept>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
 #include <GBA/include/Timers/Timer.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace timers
@@ -73,6 +75,22 @@ void TimerManager::TimerOverflow(u8 index, int extraCycles)
     if ((nextTimer != nullptr) && (nextTimer->CascadeMode()))
     {
         nextTimer->CascadeIncrement();
+    }
+}
+
+void TimerManager::Serialize(std::ofstream& saveState) const
+{
+    for (Timer const& timer : timers_)
+    {
+        timer.Serialize(saveState);
+    }
+}
+
+void TimerManager::Deserialize(std::ifstream& saveState)
+{
+    for (Timer& timer : timers_)
+    {
+        timer.Deserialize(saveState);
     }
 }
 }  // namespace timers

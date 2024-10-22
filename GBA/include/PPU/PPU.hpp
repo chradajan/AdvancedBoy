@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <vector>
 #include <GBA/include/PPU/FrameBuffer.hpp>
 #include <GBA/include/PPU/Registers.hpp>
@@ -114,6 +115,18 @@ public:
     /// @brief Get the current value of VCOUNT.
     /// @return Current scanline.
     u8 GetVCOUNT() const { return MemCpyInit<u8>(&registers_[VCOUNT::INDEX]); }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -320,8 +333,8 @@ private:
     i32 bg3RefY_;
 
     // Memory
-    std::array<std::byte,  PRAM_SIZE> PRAM_;
-    alignas(OamEntry) std::array<std::byte,  OAM_SIZE> OAM_;
+    std::array<std::byte, PRAM_SIZE> PRAM_;
+    alignas(OamEntry) std::array<std::byte, OAM_SIZE> OAM_;
     std::array<std::byte, VRAM_SIZE> VRAM_;
 
     // Registers

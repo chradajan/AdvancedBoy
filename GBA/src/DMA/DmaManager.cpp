@@ -1,6 +1,7 @@
 #include <GBA/include/DMA/DmaManager.hpp>
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <functional>
 #include <stdexcept>
 #include <utility>
@@ -8,6 +9,7 @@
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/System/SystemControl.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace dma
@@ -127,6 +129,36 @@ int DmaManager::WriteReg(u32 addr, u32 val, AccessSize length)
     }
 
     return 1;
+}
+
+void DmaManager::Serialize(std::ofstream& saveState) const
+{
+    for (DmaChannel const& dmaChannel : dmaChannels_)
+    {
+        dmaChannel.Serialize(saveState);
+    }
+
+    SerializeArray(vBlank_);
+    SerializeArray(hBlank_);
+    SerializeArray(fifoA_);
+    SerializeArray(fifoB_);
+    SerializeArray(videoCapture_);
+    SerializeTrivialType(active_);
+}
+
+void DmaManager::Deserialize(std::ifstream& saveState)
+{
+    for (DmaChannel& dmaChannel : dmaChannels_)
+    {
+        dmaChannel.Deserialize(saveState);
+    }
+
+    DeserializeArray(vBlank_);
+    DeserializeArray(hBlank_);
+    DeserializeArray(fifoA_);
+    DeserializeArray(fifoB_);
+    DeserializeArray(videoCapture_);
+    DeserializeTrivialType(active_);
 }
 
 void DmaManager::HandleDmaEvents(ExecuteResult result)

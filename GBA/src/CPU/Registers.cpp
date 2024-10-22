@@ -1,9 +1,11 @@
 #include <GBA/include/CPU/Registers.hpp>
 #include <bit>
 #include <format>
+#include <fstream>
 #include <stdexcept>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Debug/DebugTypes.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 
 namespace cpu
@@ -156,6 +158,28 @@ void Registers::LoadSPSR()
         default:
             break;
     }
+}
+
+void Registers::Serialize(std::ofstream& saveState) const
+{
+    SerializeTrivialType(cpsr_);
+    SerializeTrivialType(sysAndUserRegBank_);
+    SerializeTrivialType(fiqRegBank_);
+    SerializeTrivialType(supervisorRegBank_);
+    SerializeTrivialType(abortRegBank_);
+    SerializeTrivialType(irqRegBank_);
+    SerializeTrivialType(undefinedRegBank_);
+}
+
+void Registers::Deserialize(std::ifstream& saveState)
+{
+    DeserializeTrivialType(cpsr_);
+    DeserializeTrivialType(sysAndUserRegBank_);
+    DeserializeTrivialType(fiqRegBank_);
+    DeserializeTrivialType(supervisorRegBank_);
+    DeserializeTrivialType(abortRegBank_);
+    DeserializeTrivialType(irqRegBank_);
+    DeserializeTrivialType(undefinedRegBank_);
 }
 
 void Registers::SkipBIOS()

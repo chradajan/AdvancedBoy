@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <memory>
 #include <set>
@@ -16,6 +17,8 @@
 #include <QtWidgets/QMainWindow>
 #include <SDL2/SDL.h>
 
+class QAction;
+class QMenu;
 namespace fs = std::filesystem;
 
 namespace gui
@@ -144,6 +147,10 @@ private:
     /// @return Pointer to emulation menu.
     [[nodiscard]] QMenu* CreateEmulationMenu();
 
+    /// @brief Update text on save/load state actions.
+    /// @param savePath Path to save file for currently loaded ROM.
+    void UpdateSaveStateActions(fs::path savePath);
+
     /// @brief Create items under the Debug menu option.
     /// @return Pointer to debug menu.
     [[nodiscard]] QMenu* CreateDebugMenu();
@@ -170,6 +177,14 @@ private:
     /// @brief Action for clicking "Load ROM" menu item.
     void OpenLoadRomDialog();
 
+    /// @brief Generate a save state.
+    /// @param index Index of save state file to create [0-4].
+    void SaveState(u8 index);
+
+    /// @brief Load a save state.
+    /// @param index Index of save state file to load [0-4].
+    void LoadState(u8 index);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -195,6 +210,8 @@ private:
     // Menus
     QMenu* recentsMenu_;
     QAction* pauseButton_;
+    std::array<QAction*, 5> saveStateActions_;
+    std::array<QAction*, 5> loadStateActions_;
 
     // Debug menus
     std::unique_ptr<BackgroundViewerWindow> bgViewerWindow_;

@@ -65,27 +65,27 @@ GamePak::GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, 
     auto backupType = DetectBackupType();
     std::string saveFileName = title_;
     std::replace(saveFileName.begin(), saveFileName.end(), ' ', '_');
-    fs::path savePath = saveDir / saveFileName;
-    savePath += ".sav";
+    savePath_ = saveDir / saveFileName;
+    savePath_ += ".sav";
 
-    if (savePath.filename().empty())
+    if (savePath_.filename().empty())
     {
-        savePath.replace_filename(romPath.filename());
+        savePath_.replace_filename(romPath.filename());
     }
 
     switch (backupType)
     {
         case BackupType::SRAM:
-            backupMedia_ = std::make_unique<SRAM>(savePath, systemControl);
+            backupMedia_ = std::make_unique<SRAM>(savePath_, systemControl);
             break;
         case BackupType::FLASH_64:
-            backupMedia_ = std::make_unique<Flash>(savePath, false, systemControl);
+            backupMedia_ = std::make_unique<Flash>(savePath_, false, systemControl);
             break;
         case BackupType::FLASH_128:
-            backupMedia_ = std::make_unique<Flash>(savePath, true, systemControl);
+            backupMedia_ = std::make_unique<Flash>(savePath_, true, systemControl);
             break;
         case BackupType::EEPROM:
-            backupMedia_ = std::make_unique<EEPROM>(savePath, ROM_.size() > (16 * MiB), systemControl);
+            backupMedia_ = std::make_unique<EEPROM>(savePath_, ROM_.size() > (16 * MiB), systemControl);
             containsEeprom_ = true;
             break;
         default:
@@ -232,6 +232,30 @@ void GamePak::Save() const
     {
         backupMedia_->Save();
     }
+}
+
+void GamePak::Serialize(std::ofstream& saveState) const
+{
+    if (backupMedia_)
+    {
+        backupMedia_->Serialize(saveState);
+    }
+
+    SerializeTrivialType(nextSequentialAddr_);
+    SerializeTrivialType(lastReadCompletionCycle_);
+    SerializeTrivialType(prefetchedWaitStates_);
+}
+
+void GamePak::Deserialize(std::ifstream& saveState)
+{
+    if (backupMedia_)
+    {
+        backupMedia_->Deserialize(saveState);
+    }
+
+    DeserializeTrivialType(nextSequentialAddr_);
+    DeserializeTrivialType(lastReadCompletionCycle_);
+    DeserializeTrivialType(prefetchedWaitStates_);
 }
 
 BackupType GamePak::DetectBackupType() const

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <span>
 #include <string>
@@ -61,6 +62,10 @@ public:
     /// @return Current ROM title.
     std::string GetTitle() const { return title_; }
 
+    /// @brief Get the save path used for saving backup media and save states.
+    /// @return Save path.
+    fs::path GetSavePath() const { return savePath_; }
+
     /// @brief Check if a read/write is accessing memory in EEPROM.
     /// @param addr Address being accessed.
     /// @return True if accessing EEPROM.
@@ -86,6 +91,18 @@ public:
     /// @brief Save backup media to disk.
     void Save() const;
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
+
 private:
     /// @brief Determine the backup type used by a ROM.
     /// @return Backup type if one was detected.
@@ -94,6 +111,7 @@ private:
     std::vector<std::byte> ROM_;
     std::unique_ptr<BackupMedia> backupMedia_;
     std::string title_;
+    fs::path savePath_;
     bool gamePakLoaded_;
     bool containsEeprom_;
 

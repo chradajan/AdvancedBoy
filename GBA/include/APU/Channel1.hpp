@@ -2,6 +2,7 @@
 
 #include <array>
 #include <bit>
+#include <fstream>
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
@@ -46,6 +47,18 @@ public:
     /// @brief Check if Channel 1 has turned off due to its length timer expiring.
     /// @return True if length timer has expired.
     bool Expired() const { return lengthTimerExpired_; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Start Channel 1 processing.

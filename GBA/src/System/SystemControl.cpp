@@ -3,6 +3,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
@@ -125,6 +126,24 @@ int SystemControl::WaitStates(WaitStateRegion region, bool sequential, AccessSiz
     }
 
     return firstAccess + secondAccess;
+}
+
+void SystemControl::Serialize(std::ofstream& saveState) const
+{
+    SerializeTrivialType(irqPending_);
+    SerializeTrivialType(halted_);
+    SerializeArray(interruptAndWaitcntRegisters_);
+    SerializeArray(interruptAndWaitcntRegisters_);
+    SerializeArray(memoryControlRegisters_);
+}
+
+void SystemControl::Deserialize(std::ifstream& saveState)
+{
+    DeserializeTrivialType(irqPending_);
+    DeserializeTrivialType(halted_);
+    DeserializeArray(interruptAndWaitcntRegisters_);
+    DeserializeArray(interruptAndWaitcntRegisters_);
+    DeserializeArray(memoryControlRegisters_);
 }
 
 void SystemControl::CheckForInterrupt()

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <bit>
+#include <fstream>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Utilities/Types.hpp>
@@ -157,6 +158,18 @@ public:
 
     /// @brief Copy the SPSR value of the current operating mode into CPSR.
     void LoadSPSR();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Save States
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Write data to save state file.
+    /// @param saveState Save state stream to write to.
+    void Serialize(std::ofstream& saveState) const;
+
+    /// @brief Load data from save state file.
+    /// @param saveState Save state stream to read from.
+    void Deserialize(std::ifstream& saveState);
 
 private:
     /// @brief Setup registers to start executing from ROM.

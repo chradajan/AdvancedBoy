@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <span>
@@ -88,6 +89,50 @@ GameBoyAdvance::~GameBoyAdvance()
     {
         gamePak_->Save();
     }
+}
+
+void GameBoyAdvance::Serialize(std::ofstream& saveState) const
+{
+    scheduler_.Serialize(saveState);
+    systemControl_.Serialize(saveState);
+    apu_.Serialize(saveState);
+    biosMgr_.Serialize(saveState);
+    cpu_.Serialize(saveState);
+    dmaMgr_.Serialize(saveState);
+    keypad_.Serialize(saveState);
+    ppu_.Serialize(saveState);
+    timerMgr_.Serialize(saveState);
+
+    if (gamePak_)
+    {
+        gamePak_->Serialize(saveState);
+    }
+
+    SerializeArray(EWRAM_);
+    SerializeArray(IWRAM_);
+    SerializeTrivialType(lastSuccessfulFetch_);
+}
+
+void GameBoyAdvance::Deserialize(std::ifstream& saveState)
+{
+    scheduler_.Deserialize(saveState);
+    systemControl_.Deserialize(saveState);
+    apu_.Deserialize(saveState);
+    biosMgr_.Deserialize(saveState);
+    cpu_.Deserialize(saveState);
+    dmaMgr_.Deserialize(saveState);
+    keypad_.Deserialize(saveState);
+    ppu_.Deserialize(saveState);
+    timerMgr_.Deserialize(saveState);
+
+    if (gamePak_)
+    {
+        gamePak_->Deserialize(saveState);
+    }
+
+    DeserializeArray(EWRAM_);
+    DeserializeArray(IWRAM_);
+    DeserializeTrivialType(lastSuccessfulFetch_);
 }
 
 void GameBoyAdvance::Run()
