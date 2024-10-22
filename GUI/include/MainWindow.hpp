@@ -13,6 +13,7 @@
 #include <GUI/include/EmuThread.hpp>
 #include <GUI/include/LCD.hpp>
 #include <GUI/include/PersistentData.hpp>
+#include <GUI/include/Settings/OptionsWindow.hpp>
 #include <QtCore/QTimer>
 #include <QtWidgets/QMainWindow>
 #include <SDL2/SDL.h>
@@ -220,6 +221,7 @@ private:
     std::unique_ptr<RegisterViewerWindow> registerViewerWindow_;
 
     // Settings
+    std::unique_ptr<OptionsWindow> optionsWindow_;
     PersistentData settings_;
 };
 }  // namespace gui

@@ -9,14 +9,16 @@
 #include <set>
 #include <string>
 #include <utility>
-#include <vector>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
 #include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
 #include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
 #include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
+#include <GUI/include/EmuThread.hpp>
 #include <GUI/include/GBA.hpp>
+#include <GUI/include/LCD.hpp>
+#include <GUI/include/Settings/OptionsWindow.hpp>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMainWindow>
@@ -84,6 +86,9 @@ MainWindow::MainWindow(QWidget* parent) :
     spriteViewerWindow_ = std::make_unique<SpriteViewerWindow>();
     cpuDebuggerWindow_ = std::make_unique<CpuDebuggerWindow>();
     registerViewerWindow_ = std::make_unique<RegisterViewerWindow>();
+
+    // Settings
+    optionsWindow_ = std::make_unique<OptionsWindow>(settings_);
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
@@ -186,6 +191,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
     cpuDebuggerWindow_->close();
     registerViewerWindow_->close();
     spriteViewerWindow_->close();
+    optionsWindow_->close();
 
     event->accept();
 }
@@ -400,6 +406,10 @@ QMenu* MainWindow::CreateFileMenu()
     recentsMenu_ = new QMenu("Recent");
     PopulateRecentsMenu();
     fileMenu->addMenu(recentsMenu_);
+
+    QAction* optionsAction = new QAction("Options");
+    connect(optionsAction, &QAction::triggered, this, [=, this] () { this->optionsWindow_->show(); });
+    fileMenu->addAction(optionsAction);
 
     fileMenu->addSeparator();
     QAction* quitAction = new QAction("Exit");
