@@ -13,6 +13,12 @@ class PathSelector : public QWidget
     Q_OBJECT
 
 public:
+    PathSelector() = delete;
+    PathSelector(PathSelector const&) = delete;
+    PathSelector& operator=(PathSelector const&) = delete;
+    PathSelector(PathSelector&&) = delete;
+    PathSelector& operator=(PathSelector&&) = delete;
+
     /// @brief Create a path selector widget and set the path for it to display.
     /// @param path Path to initially display.
     PathSelector(fs::path path);

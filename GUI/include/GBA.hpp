@@ -57,6 +57,24 @@ void UpdateKeypad(KEYINPUT keyinput);
 void SetCpuClockSpeed(u32 clockSpeed);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
+/// Audio
+///---------------------------------------------------------------------------------------------------------------------------------
+
+/// @brief Adjust the GBA volume output level.
+/// @param mute Whether to mute audio output.
+/// @param volume If not muted, volume level of output [0, 100];
+void SetVolume(bool mute, int volume);
+
+/// @brief Set whether each APU channel is enabled.
+/// @param channel1 Whether channel 1 is enabled.
+/// @param channel2 Whether channel 2 is enabled.
+/// @param channel3 Whether channel 3 is enabled.
+/// @param channel4 Whether channel 4 is enabled.
+/// @param fifoA Whether FIFO A is enabled.
+/// @param fifoB Whether FIFO B is enabled.
+void SetAPUChannels(bool channel1, bool channel2, bool channel3, bool channel4, bool fifoA, bool fifoB);
+
+///---------------------------------------------------------------------------------------------------------------------------------
 /// Validity checks
 ///---------------------------------------------------------------------------------------------------------------------------------
 

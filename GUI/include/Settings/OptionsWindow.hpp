@@ -1,8 +1,7 @@
 #pragma once
 
+#include <GUI/include/PersistentData.hpp>
 #include <QtWidgets/QWidget>
-
-class PersistentData;
 
 namespace gui
 {
@@ -19,6 +18,10 @@ public:
 
     /// @brief Initialize the settings menu.
     OptionsWindow(PersistentData& settings);
+
+signals:
+    /// @brief Signal to emit when emulation audio output needs to be adjusted.
+    void UpdateAudioSignal(PersistentData::AudioSettings audioSettings);
 
 private slots:
     /// @brief Determine which tab is currently active and restore its default settings.

@@ -29,6 +29,10 @@ PersistentData::PersistentData()
     }
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Save Directory
+///---------------------------------------------------------------------------------------------------------------------------------
+
 void PersistentData::SetSaveDirectory(fs::path saveDir)
 {
     settingsPtr_->setValue("Paths/SaveDir", QString::fromStdString(saveDir.string()));
@@ -44,6 +48,10 @@ fs::path PersistentData::GetSaveDirectory() const
     return settingsPtr_->value("Paths/SaveDir").toString().toStdString();
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// BIOS Path
+///---------------------------------------------------------------------------------------------------------------------------------
+
 void PersistentData::SetBiosPath(fs::path biosPath)
 {
     settingsPtr_->setValue("Paths/BiosPath", QString::fromStdString(biosPath.string()));
@@ -58,6 +66,10 @@ fs::path PersistentData::GetBiosPath() const
 {
     return settingsPtr_->value("Paths/BiosPath").toString().toStdString();
 }
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// ROM Paths
+///---------------------------------------------------------------------------------------------------------------------------------
 
 void PersistentData::SetFileDialogPath(fs::path dialogDir)
 {
@@ -123,8 +135,110 @@ void PersistentData::ClearRecentRoms()
     settingsPtr_->endGroup();
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Audio
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void PersistentData::SetMuted(bool mute)
+{
+    settingsPtr_->setValue("Audio/Mute", mute);
+}
+
+bool PersistentData::GetMuted() const
+{
+    return settingsPtr_->value("Audio/Mute").toBool();
+}
+
+void PersistentData::SetVolume(int volume)
+{
+    if ((volume < 0) || (volume > 100))
+    {
+        return;
+    }
+
+    settingsPtr_->setValue("Audio/Volume", volume);
+}
+
+int PersistentData::GetVolume() const
+{
+    return settingsPtr_->value("Audio/Volume").toInt();
+}
+
+void PersistentData::SetChannelEnabled(Channel channel, bool enable)
+{
+    switch (channel)
+    {
+        case Channel::ONE:
+            settingsPtr_->setValue("Audio/Channel1", enable);
+            break;
+        case Channel::TWO:
+            settingsPtr_->setValue("Audio/Channel2", enable);
+            break;
+        case Channel::THREE:
+            settingsPtr_->setValue("Audio/Channel3", enable);
+            break;
+        case Channel::FOUR:
+            settingsPtr_->setValue("Audio/Channel4", enable);
+            break;
+        case Channel::FIFO_A:
+            settingsPtr_->setValue("Audio/FifoA", enable);
+            break;
+        case Channel::FIFO_B:
+            settingsPtr_->setValue("Audio/FifoB", enable);
+            break;
+    }
+}
+
+bool PersistentData::GetChannelEnabled(Channel channel) const
+{
+    switch (channel)
+    {
+        case Channel::ONE:
+            return settingsPtr_->value("Audio/Channel1").toBool();
+        case Channel::TWO:
+            return settingsPtr_->value("Audio/Channel2").toBool();
+        case Channel::THREE:
+            return settingsPtr_->value("Audio/Channel3").toBool();
+        case Channel::FOUR:
+            return settingsPtr_->value("Audio/Channel4").toBool();
+        case Channel::FIFO_A:
+            return settingsPtr_->value("Audio/FifoA").toBool();
+        case Channel::FIFO_B:
+            return settingsPtr_->value("Audio/FifoB").toBool();
+    }
+
+    return false;
+}
+
+PersistentData::AudioSettings PersistentData::GetAudioSettings() const
+{
+    return {
+        settingsPtr_->value("Audio/Mute").toBool(),
+        settingsPtr_->value("Audio/Volume").toInt(),
+        settingsPtr_->value("Audio/Channel1").toBool(),
+        settingsPtr_->value("Audio/Channel2").toBool(),
+        settingsPtr_->value("Audio/Channel3").toBool(),
+        settingsPtr_->value("Audio/Channel4").toBool(),
+        settingsPtr_->value("Audio/FifoA").toBool(),
+        settingsPtr_->value("Audio/FifoB").toBool()
+    };
+}
+
+void PersistentData::RestoreDefaultAudioSettings()
+{
+    settingsPtr_->setValue("Audio/Mute", false);
+    settingsPtr_->setValue("Audio/Volume", 100);
+    settingsPtr_->setValue("Audio/Channel1", true);
+    settingsPtr_->setValue("Audio/Channel2", true);
+    settingsPtr_->setValue("Audio/Channel3", true);
+    settingsPtr_->setValue("Audio/Channel4", true);
+    settingsPtr_->setValue("Audio/FifoA", true);
+    settingsPtr_->setValue("Audio/FifoB", true);
+}
+
 void PersistentData::WriteDefaultSettings()
 {
+    // Paths
     settingsPtr_->beginGroup("Paths");
     settingsPtr_->setValue("SaveDir", QString::fromStdString(GetDefaultSaveDirectory().string()));
     settingsPtr_->setValue("BiosPath", QString::fromStdString(GetDefaultBiosPath().string()));
@@ -138,5 +252,17 @@ void PersistentData::WriteDefaultSettings()
         settingsPtr_->setValue(key, "");
     }
 
+    settingsPtr_->endGroup();
+
+    // Audio
+    settingsPtr_->beginGroup("Audio");
+    settingsPtr_->setValue("Mute", false);
+    settingsPtr_->setValue("Volume", 100);
+    settingsPtr_->setValue("Channel1", true);
+    settingsPtr_->setValue("Channel2", true);
+    settingsPtr_->setValue("Channel3", true);
+    settingsPtr_->setValue("Channel4", true);
+    settingsPtr_->setValue("FifoA", true);
+    settingsPtr_->setValue("FifoB", true);
     settingsPtr_->endGroup();
 }

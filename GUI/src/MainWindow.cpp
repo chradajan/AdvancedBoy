@@ -90,6 +90,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
     // Settings
     optionsWindow_ = std::make_unique<OptionsWindow>(settings_);
+    connect(optionsWindow_.get(), &OptionsWindow::UpdateAudioSignal, this, &MainWindow::UpdateAudioSlot);
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
@@ -133,6 +134,17 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
             emuThread_.StartEmulator(StepType::FrameStep);
             break;
     }
+}
+
+void MainWindow::UpdateAudioSlot(PersistentData::AudioSettings audioSettings)
+{
+    gba_api::SetVolume(audioSettings.mute, audioSettings.volume);
+    gba_api::SetAPUChannels(audioSettings.channel1,
+                            audioSettings.channel2,
+                            audioSettings.channel3,
+                            audioSettings.channel4,
+                            audioSettings.fifoA,
+                            audioSettings.fifoB);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -301,6 +313,7 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
         PopulateRecentsMenu();
     }
 
+    UpdateAudioSlot(settings_.GetAudioSettings());
     UpdateSaveStateActions(gba_api::GetSavePath());
     emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);

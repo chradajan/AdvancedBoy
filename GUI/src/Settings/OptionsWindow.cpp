@@ -1,5 +1,6 @@
 #include <GUI/include/Settings/OptionsWindow.hpp>
 #include <GUI/include/PersistentData.hpp>
+#include <GUI/include/Settings/AudioTab.hpp>
 #include <GUI/include/Settings/PathsTab.hpp>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QMessageBox>
@@ -17,7 +18,13 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
     // Tabs
     QTabWidget* tabWidget = new QTabWidget;
     tabWidget->setObjectName("TabWidget");
+
     tabWidget->addTab(new PathsTab(settings), "Paths");
+
+    AudioTab* audioTab = new AudioTab(settings);
+    connect(audioTab, &AudioTab::UpdateAudioSignal, this, &OptionsWindow::UpdateAudioSignal);
+    tabWidget->addTab(audioTab, "Audio");
+
     layout->addWidget(tabWidget);
 
     // Buttons
@@ -56,6 +63,18 @@ void OptionsWindow::RestoreDefaultsSlot()
             if (confirmation == QMessageBox::Yes)
             {
                 static_cast<PathsTab*>(activeTabPtr)->RestoreDefaults();
+            }
+
+            break;
+        }
+        case 1:
+        {
+            confirmationBox.setText("Restore default audio settings?");
+            int confirmation = confirmationBox.exec();
+
+            if (confirmation == QMessageBox::Yes)
+            {
+                static_cast<AudioTab*>(activeTabPtr)->RestoreDefaults();
             }
 
             break;

@@ -34,10 +34,14 @@ public:
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
 
-public slots:
+private slots:
     /// @brief Slot to handle emulator control by the CPU Debugger Window.
     /// @param stepType Duration to run the emulator for.
     void CpuDebugStepSlot(StepType stepType);
+
+    /// @brief Update audio output.
+    /// @param audioSettings Current audio settings.
+    void UpdateAudioSlot(PersistentData::AudioSettings audioSettings);
 
 signals:
     /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
