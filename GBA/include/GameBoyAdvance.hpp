@@ -51,6 +51,18 @@ public:
     ~GameBoyAdvance();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Validity checks
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Check if the BIOS used to initialize the GBA was successfully loaded.
+    /// @return True if valid BIOS is loaded.
+    bool ValidBiosLoaded() const { return biosMgr_.BiosLoaded(); }
+
+    /// @brief Check if the ROM used to initialize the GBA was successfully loaded.
+    /// @return True if valid GamePak is loaded.
+    bool ValidGamePakLoaded() const { return gamePak_ != nullptr; }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Save States
     ///-----------------------------------------------------------------------------------------------------------------------------
 
@@ -63,7 +75,7 @@ public:
     void Deserialize(std::ifstream& saveState);
 
     /// @brief Get the path of the file where backup media will be saved to.
-/// @return Backup media save file path.
+    /// @return Backup media save file path.
     fs::path GetSavePath() const { return gamePak_ ? gamePak_->GetSavePath() : ""; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------

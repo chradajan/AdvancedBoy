@@ -22,6 +22,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMessageBox>
 #include <QtWidgets/QtWidgets>
 #include <SDL2/SDL.h>
 
@@ -260,18 +261,46 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
         return;
     }
 
+    fs::path biosPath = settings_.GetBiosPath();
+
+    if (!fs::exists(biosPath))
+    {
+        QMessageBox::critical(this, "BIOS Error", "No BIOS file. Please provide a BIOS file in the options.", QMessageBox::Close);
+        return;
+    }
+
     StopEmulationThreads();
     gba_api::PowerOff();
+
     gba_api::InitializeGBA(settings_.GetBiosPath(),
                            romPath,
                            settings_.GetSaveDirectory(),
                            std::bind(&MainWindow::VBlankCallback, this),
                            std::bind(&MainWindow::BreakpointCallback, this));
 
-    currentRomPath_ = romPath;
-    romTitle_ = gba_api::GetTitle();
-    settings_.AddRecentRom(romPath);
-    PopulateRecentsMenu();
+    if (!gba_api::ValidBiosLoaded())
+    {
+        QMessageBox::critical(this, "BIOS Error", "The provided BIOS file could not be loaded.", QMessageBox::Close);
+        gba_api::PowerOff();
+        currentRomPath_ = "";
+        romTitle_ = "Advanced Boy";
+        return;
+    }
+
+    if (!gba_api::ValidGamePakLoaded())
+    {
+        QMessageBox::warning(this, "GamePak Error", "The ROM you attempted to run could not be loaded", QMessageBox::Close);
+        currentRomPath_ = "";
+        romTitle_ = "Advanced Boy";
+    }
+    else
+    {
+        currentRomPath_ = romPath;
+        romTitle_ = gba_api::GetTitle();
+        settings_.AddRecentRom(romPath);
+        PopulateRecentsMenu();
+    }
+
     UpdateSaveStateActions(gba_api::GetSavePath());
     emit UpdateBackgroundViewSignal(true);
     emit UpdateSpriteViewerSignal(true);

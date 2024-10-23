@@ -61,6 +61,11 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
     VBlankCallback(vBlankCallback),
     BreakpointCallback(breakpointCallback)
 {
+    if (!biosMgr_.BiosLoaded())
+    {
+        return;
+    }
+
     if (!romPath.empty() && fs::exists(romPath))
     {
         gamePak_ = std::make_unique<cartridge::GamePak>(romPath, saveDir, scheduler_, systemControl_);

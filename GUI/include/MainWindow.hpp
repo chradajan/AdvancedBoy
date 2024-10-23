@@ -34,11 +34,6 @@ public:
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
 
-    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
-    /// @param romPath Path to GBA ROM.
-    /// @param ignoreCurrentPath If true, start emulation regardless of romPath is same as what's currently running.
-    void StartEmulation(fs::path romPath, bool ignoreCurrentPath = false);
-
 public slots:
     /// @brief Slot to handle emulator control by the CPU Debugger Window.
     /// @param stepType Duration to run the emulator for.
@@ -60,6 +55,11 @@ signals:
     void UpdateRegisterViewerSignal();
 
 private:
+    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
+    /// @param romPath Path to GBA ROM.
+    /// @param ignoreCurrentPath If true, start emulation regardless of romPath is same as what's currently running.
+    void StartEmulation(fs::path romPath, bool ignoreCurrentPath = false);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event handlers
     ///-----------------------------------------------------------------------------------------------------------------------------

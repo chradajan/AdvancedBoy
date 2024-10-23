@@ -57,6 +57,18 @@ void UpdateKeypad(KEYINPUT keyinput);
 void SetCpuClockSpeed(u32 clockSpeed);
 
 ///---------------------------------------------------------------------------------------------------------------------------------
+/// Validity checks
+///---------------------------------------------------------------------------------------------------------------------------------
+
+/// @brief Check if the BIOS used to initialize the GBA was successfully loaded.
+/// @return True if valid BIOS is loaded.
+bool ValidBiosLoaded();
+
+/// @brief Check if the ROM used to initialize the GBA was successfully loaded.
+/// @return True if valid GamePak is loaded.
+bool ValidGamePakLoaded();
+
+///---------------------------------------------------------------------------------------------------------------------------------
 /// Save states
 ///---------------------------------------------------------------------------------------------------------------------------------
 
