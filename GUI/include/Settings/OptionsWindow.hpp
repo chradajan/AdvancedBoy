@@ -20,6 +20,10 @@ public:
     /// @brief Initialize the settings menu.
     OptionsWindow(PersistentData& settings);
 
+private slots:
+    /// @brief Determine which tab is currently active and restore its default settings.
+    void RestoreDefaultsSlot();
+
 private:
     PersistentData& settings_;
 };

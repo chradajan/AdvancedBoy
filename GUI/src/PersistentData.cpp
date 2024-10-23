@@ -15,9 +15,9 @@ PersistentData::PersistentData()
         fs::create_directory(baseDir_);
     }
 
-    if (!fs::exists(baseDir_ / "Saves"))
+    if (!fs::exists(GetDefaultSaveDirectory()))
     {
-        fs::create_directory(baseDir_ / "Saves");
+        fs::create_directory(GetDefaultSaveDirectory());
     }
 
     fs::path configPath = baseDir_ / "config.ini";
@@ -34,6 +34,11 @@ void PersistentData::SetSaveDirectory(fs::path saveDir)
     settingsPtr_->setValue("Paths/SaveDir", QString::fromStdString(saveDir.string()));
 }
 
+fs::path PersistentData::GetDefaultSaveDirectory()
+{
+    return baseDir_ / "Saves";
+}
+
 fs::path PersistentData::GetSaveDirectory() const
 {
     return settingsPtr_->value("Paths/SaveDir").toString().toStdString();
@@ -42,6 +47,11 @@ fs::path PersistentData::GetSaveDirectory() const
 void PersistentData::SetBiosPath(fs::path biosPath)
 {
     settingsPtr_->setValue("Paths/BiosPath", QString::fromStdString(biosPath.string()));
+}
+
+fs::path PersistentData::GetDefaultBiosPath()
+{
+    return "";
 }
 
 fs::path PersistentData::GetBiosPath() const
@@ -116,8 +126,8 @@ void PersistentData::ClearRecentRoms()
 void PersistentData::WriteDefaultSettings()
 {
     settingsPtr_->beginGroup("Paths");
-    settingsPtr_->setValue("SaveDir", QString::fromStdString((baseDir_ / "Saves").string()));
-    settingsPtr_->setValue("BiosPath", "");
+    settingsPtr_->setValue("SaveDir", QString::fromStdString(GetDefaultSaveDirectory().string()));
+    settingsPtr_->setValue("BiosPath", QString::fromStdString(GetDefaultBiosPath().string()));
     settingsPtr_->setValue("FileDialogPath", "");
     settingsPtr_->endGroup();
 
