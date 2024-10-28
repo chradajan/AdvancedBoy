@@ -2,6 +2,7 @@
 #include <array>
 #include <chrono>
 #include <cstring>
+#include <exception>
 #include <filesystem>
 #include <format>
 #include <functional>
@@ -11,11 +12,13 @@
 #include <utility>
 #include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
+#include <GUI/include/Bindings.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
 #include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
 #include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
 #include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/EmuThread.hpp>
+#include <GUI/include/GamepadListener.hpp>
 #include <GUI/include/GBA.hpp>
 #include <GUI/include/LCD.hpp>
 #include <GUI/include/Settings/OptionsWindow.hpp>
@@ -28,7 +31,7 @@
 
 namespace
 {
-constexpr std::array<std::pair<std::string, u32>, 6> EMU_SPEEDS = {{
+static const std::array<std::pair<std::string, u32>, 6> EMU_SPEEDS = {{
     {"1/4x", 16'777'216 / 4},
     {"1/2x", 16'777'216 / 2},
     {"1x", 16'777'216},
@@ -51,11 +54,11 @@ namespace gui
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     currentRomPath_(""),
-    emuThread_(this),
     stepFrameMode_(false),
     screen_(this),
     fpsTimer_(this),
-    romTitle_("Advanced Boy")
+    romTitle_("Advanced Boy"),
+    gamepad_(nullptr)
 {
     // Initialize screen
     setCentralWidget(&screen_);
@@ -63,13 +66,21 @@ MainWindow::MainWindow(QWidget* parent) :
     // Initialize menus
     InitializeMenuBar();
 
+    // Create thread to run emulator
+    emuThread_ = new EmuThread(this);
+
     // Temporarily set scale to 4x manually
     int width = 240 * 4;
     int height = (160 * 4) + menuBar()->height();
     resize(width, height);
 
     // Initialize SDL
-    SDL_Init(SDL_INIT_AUDIO);
+    SDL_SetHint(SDL_HINT_JOYSTICK_RAWINPUT, "0");
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
+
+    // Setup audio callback
     SDL_AudioSpec audioSpec = {};
     audioSpec.freq = 32768;
     audioSpec.format = AUDIO_F32SYS;
@@ -88,9 +99,13 @@ MainWindow::MainWindow(QWidget* parent) :
     cpuDebuggerWindow_ = std::make_unique<CpuDebuggerWindow>();
     registerViewerWindow_ = std::make_unique<RegisterViewerWindow>();
 
-    // Settings
+    // Options window
     optionsWindow_ = std::make_unique<OptionsWindow>(settings_);
     connect(optionsWindow_.get(), &OptionsWindow::UpdateAudioSignal, this, &MainWindow::UpdateAudioSlot);
+    connect(optionsWindow_.get(), &OptionsWindow::SetGamepadSignal, this, &MainWindow::SetGamepadSlot);
+    connect(optionsWindow_.get(), &OptionsWindow::BindingsChangedSignal, this, &MainWindow::BindingsChangedSlot);
+    gamepad_ = optionsWindow_->GetGamepad();
+    gamepadMap_ = settings_.GetGamepadMap();
 
     // Connect signals
     connect(this, &MainWindow::UpdateBackgroundViewSignal,
@@ -107,6 +122,22 @@ MainWindow::MainWindow(QWidget* parent) :
 
     connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
              this, &MainWindow::CpuDebugStepSlot);
+
+    // Gamepad listener setup
+    gamepadListener_ = new GamepadListener(this);
+
+    // Gamepad related signals
+    connect(gamepadListener_, &GamepadListener::GamepadConnectedSignal,
+            optionsWindow_.get(), &OptionsWindow::UpdateGamepadTabSlot);
+    connect(gamepadListener_, &GamepadListener::GamepadDisconnectedSignal,
+            optionsWindow_.get(), &OptionsWindow::UpdateGamepadTabSlot);
+
+    connect(optionsWindow_.get(), &OptionsWindow::GetNewGamepadBindingSignal,
+            gamepadListener_, &GamepadListener::GetNewKeyBindingSlot);
+    connect(gamepadListener_, &GamepadListener::SetNewGamepadBindingSignal,
+            optionsWindow_.get(), &OptionsWindow::SetNewGamepadBindingSignal);
+
+    gamepadListener_->start();
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -131,7 +162,7 @@ void MainWindow::CpuDebugStepSlot(StepType stepType)
         case StepType::FrameStep:
             StopEmulationThreads();
             stepFrameMode_ = true;
-            emuThread_.StartEmulator(StepType::FrameStep);
+            emuThread_->StartEmulator(StepType::FrameStep);
             break;
     }
 }
@@ -197,8 +228,15 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    gamepad_ = nullptr;
     StopEmulationThreads();
     gba_api::PowerOff();
+
+    if (gamepadListener_->isRunning())
+    {
+        gamepadListener_->requestInterruption();
+        gamepadListener_->wait();
+    }
 
     bgViewerWindow_->close();
     cpuDebuggerWindow_->close();
@@ -337,32 +375,53 @@ void MainWindow::SendKeyPresses()
     // L        -> Q
     // R        -> E
 
-    KEYINPUT keyinput;
+    KEYINPUT keyInput;
     u16 defaultKeyInput = KEYINPUT::DEFAULT_KEYPAD_STATE;
-    std::memcpy(&keyinput, &defaultKeyInput, sizeof(KEYINPUT));
+    std::memcpy(&keyInput, &defaultKeyInput, sizeof(KEYINPUT));
 
-    if (pressedKeys_.contains(87)) keyinput.Up = 0;
-    if (pressedKeys_.contains(65)) keyinput.Left = 0;
-    if (pressedKeys_.contains(83)) keyinput.Down = 0;
-    if (pressedKeys_.contains(68)) keyinput.Right = 0;
+    if (gamepad_ != nullptr)
+    {
+        PollController(keyInput);
+    }
 
-    if (pressedKeys_.contains(16777220)) keyinput.Start = 0;
-    if (pressedKeys_.contains(16777219)) keyinput.Select = 0;
+    if (pressedKeys_.contains(87)) keyInput.Up = 0;
+    if (pressedKeys_.contains(65)) keyInput.Left = 0;
+    if (pressedKeys_.contains(83)) keyInput.Down = 0;
+    if (pressedKeys_.contains(68)) keyInput.Right = 0;
 
-    if (pressedKeys_.contains(76)) keyinput.A = 0;
-    if (pressedKeys_.contains(75)) keyinput.B = 0;
+    if (pressedKeys_.contains(81)) keyInput.L = 0;
+    if (pressedKeys_.contains(69)) keyInput.R = 0;
 
-    if (pressedKeys_.contains(81)) keyinput.L = 0;
-    if (pressedKeys_.contains(69)) keyinput.R = 0;
+    if (pressedKeys_.contains(76)) keyInput.A = 0;
+    if (pressedKeys_.contains(75)) keyInput.B = 0;
 
-    gba_api::UpdateKeypad(keyinput);
+    if (pressedKeys_.contains(16777220)) keyInput.Start = 0;
+    if (pressedKeys_.contains(16777219)) keyInput.Select = 0;
+
+    gba_api::UpdateKeypad(keyInput);
+}
+
+void MainWindow::PollController(KEYINPUT& keyInput)
+{
+    SDL_GameControllerUpdate();
+
+    if (gamepadMap_.up.first.Active(gamepad_)       ||      gamepadMap_.up.second.Active(gamepad_))      keyInput.Up = 0;
+    if (gamepadMap_.down.first.Active(gamepad_)     ||      gamepadMap_.down.second.Active(gamepad_))    keyInput.Down = 0;
+    if (gamepadMap_.left.first.Active(gamepad_)     ||      gamepadMap_.left.second.Active(gamepad_))    keyInput.Left = 0;
+    if (gamepadMap_.right.first.Active(gamepad_)    ||      gamepadMap_.right.second.Active(gamepad_))   keyInput.Right = 0;
+    if (gamepadMap_.l.first.Active(gamepad_)        ||      gamepadMap_.l.second.Active(gamepad_))       keyInput.L = 0;
+    if (gamepadMap_.r.first.Active(gamepad_)        ||      gamepadMap_.r.second.Active(gamepad_))       keyInput.R = 0;
+    if (gamepadMap_.a.first.Active(gamepad_)        ||      gamepadMap_.a.second.Active(gamepad_))       keyInput.A = 0;
+    if (gamepadMap_.b.first.Active(gamepad_)        ||      gamepadMap_.b.second.Active(gamepad_))       keyInput.B = 0;
+    if (gamepadMap_.start.first.Active(gamepad_)    ||      gamepadMap_.start.second.Active(gamepad_))   keyInput.Start = 0;
+    if (gamepadMap_.select.first.Active(gamepad_)   ||      gamepadMap_.select.second.Active(gamepad_))  keyInput.Select = 0;
 }
 
 void MainWindow::StartEmulationThreads()
 {
-    if (!emuThread_.isRunning())
+    if (!emuThread_->isRunning())
     {
-        emuThread_.StartEmulator(StepType::Run);
+        emuThread_->StartEmulator(StepType::Run);
         SDL_UnlockAudioDevice(audioDevice_);
         SDL_PauseAudioDevice(audioDevice_, 0);
     }
@@ -370,12 +429,12 @@ void MainWindow::StartEmulationThreads()
 
 void MainWindow::StopEmulationThreads()
 {
-    if (emuThread_.isRunning())
+    if (emuThread_->isRunning())
     {
         SDL_LockAudioDevice(audioDevice_);
         SDL_PauseAudioDevice(audioDevice_, 1);
-        emuThread_.requestInterruption();
-        emuThread_.wait();
+        emuThread_->requestInterruption();
+        emuThread_->wait();
     }
 }
 
@@ -427,9 +486,7 @@ void MainWindow::UpdateSaveStateActions(fs::path savePath)
         }
         else
         {
-            auto time = std::chrono::clock_cast<std::chrono::system_clock>(
-                            std::chrono::time_point_cast<std::chrono::seconds>(
-                                fs::last_write_time(savePath)));
+            auto time = std::chrono::time_point_cast<std::chrono::seconds>(fs::last_write_time(savePath));
             std::string timeStr = std::format("{0:%D} {0:%H}:{0:%M}:{0:%S}", time);
             saveStateActions_[i]->setText("Save to slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));
             loadStateActions_[i]->setText("Load from slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));

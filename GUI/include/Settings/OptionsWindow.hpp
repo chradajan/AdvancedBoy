@@ -1,7 +1,10 @@
 #pragma once
 
+#include <GUI/include/Bindings.hpp>
 #include <GUI/include/PersistentData.hpp>
+#include <QtGui/QCloseEvent>
 #include <QtWidgets/QWidget>
+#include <SDL2/SDL.h>
 
 namespace gui
 {
@@ -19,15 +22,45 @@ public:
     /// @brief Initialize the settings menu.
     OptionsWindow(PersistentData& settings);
 
+    /// @brief 
+    /// @return 
+    SDL_GameController* GetGamepad() const;
+
 signals:
     /// @brief Signal to emit when emulation audio output needs to be adjusted.
     void UpdateAudioSignal(PersistentData::AudioSettings audioSettings);
+
+    /// @brief Emit to signal to the gamepad listener thread to get the next axis/button event.
+    /// @param id Joystick ID of gamepad to listen to.
+    void GetNewGamepadBindingSignal(SDL_JoystickID id);
+
+    /// @brief Emit to signal the gamepad tab to update a binding.
+    /// @param newBinding New binding to save.
+    void SetNewGamepadBindingSignal(GamepadBinding newBinding);
+
+    /// @brief Emit to notify the main window which gamepad it should poll for user inputs.
+    /// @param gamepad Pointer to current gamepad.
+    void SetGamepadSignal(SDL_GameController* gamepad);
+
+    /// @brief Emit to notify the main window that it should get the latest gamepad bindings from persistent data.
+    void BindingsChangedSignal();
+
+public slots:
+    /// @brief Slot to handle gamepads being connected/disconnected.
+    void UpdateGamepadTabSlot();
 
 private slots:
     /// @brief Determine which tab is currently active and restore its default settings.
     void RestoreDefaultsSlot();
 
+    /// @brief Slot to handle the tab being changed.
+    void TabChangedSlot();
+
 private:
+    /// @brief Event handler for when the options window closes.
+    /// @param event Close event.
+    void closeEvent(QCloseEvent* event) override;
+
     PersistentData& settings_;
 };
 }

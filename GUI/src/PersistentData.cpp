@@ -1,10 +1,65 @@
 #include <GUI/include/PersistentData.hpp>
 #include <algorithm>
+#include <cstring>
 #include <filesystem>
+#include <span>
+#include <utility>
 #include <vector>
+#include <GUI/include/Bindings.hpp>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QString>
+#include <SDL2/SDL.h>
+
+namespace
+{
+/// @brief Get the config key for a GBA key.
+/// @param gbaKey GBA key to get config key for.
+/// @param primary Whether to get the primary or secondary key.
+/// @return Config key string.
+QString GetSettingsKeyFromGbaKey(gui::GBAKey gbaKey, bool primary)
+{
+    QString key = primary ? "_Primary" : "_Secondary";
+
+    switch (gbaKey)
+    {
+        case gui::GBAKey::UP:
+            key.prepend("Gamepad/Up");
+            break;
+        case gui::GBAKey::DOWN:
+            key.prepend("Gamepad/Down");
+            break;
+        case gui::GBAKey::LEFT:
+            key.prepend("Gamepad/Left");
+            break;
+        case gui::GBAKey::RIGHT:
+            key.prepend("Gamepad/Right");
+            break;
+        case gui::GBAKey::L:
+            key.prepend("Gamepad/L");
+            break;
+        case gui::GBAKey::R:
+            key.prepend("Gamepad/R");
+            break;
+        case gui::GBAKey::A:
+            key.prepend("Gamepad/A");
+            break;
+        case gui::GBAKey::B:
+            key.prepend("Gamepad/B");
+            break;
+        case gui::GBAKey::START:
+            key.prepend("Gamepad/Start");
+            break;
+        case gui::GBAKey::SELECT:
+            key.prepend("Gamepad/Select");
+            break;
+        default:
+            return QString();
+    }
+
+    return key;
+}
+}
 
 PersistentData::PersistentData()
 {
@@ -236,6 +291,123 @@ void PersistentData::RestoreDefaultAudioSettings()
     settingsPtr_->setValue("Audio/FifoB", true);
 }
 
+void PersistentData::SetGamepadBinding(gui::GBAKey gbaKey, gui::GamepadBinding const& binding, bool primary)
+{
+    QString key = GetSettingsKeyFromGbaKey(gbaKey, primary);
+
+    if (!key.isEmpty())
+    {
+        settingsPtr_->setValue(key, binding.ToList());
+    }
+}
+
+gui::GamepadBinding PersistentData::GetGamepadBinding(gui::GBAKey gbaKey, bool primary) const
+{
+    QString key = GetSettingsKeyFromGbaKey(gbaKey, primary);
+
+    if (!key.isEmpty())
+    {
+        return gui::GamepadBinding(settingsPtr_->value(key).toList(), GetDeadzone());
+    }
+
+    return gui::GamepadBinding();
+}
+
+void PersistentData::SetGUID(SDL_JoystickGUID guid)
+{
+    QVariantList guidList;
+    std::span guidSpan{guid.data};
+
+    for (auto val : guidSpan)
+    {
+        guidList.append(QVariant(val));
+    }
+
+    settingsPtr_->setValue("Gamepad/GUID", guidList);
+}
+
+SDL_JoystickGUID PersistentData::GetGUID() const
+{
+    QVariantList guidList = settingsPtr_->value("Gamepad/GUID").toList();
+    SDL_JoystickGUID guid;
+    std::span guidSpan{guid.data};
+    int guidListIndex = 0;
+
+    for (auto& val : guidSpan)
+    {
+        val = guidList[guidListIndex++].toInt();
+    }
+
+    return guid;
+}
+
+void PersistentData::SetDeadzone(int deadzone)
+{
+    settingsPtr_->setValue("Gamepad/Deadzone", deadzone);
+}
+
+int PersistentData::GetDeadzone() const
+{
+    return settingsPtr_->value("Gamepad/Deadzone").toInt();
+}
+
+gui::GamepadMap PersistentData::GetGamepadMap() const
+{
+    int deadzone = settingsPtr_->value("Gamepad/Deadzone").toInt();
+    gui::GamepadMap map;
+    map.up = GetGamepadBindingsForKey("Up", deadzone);
+    map.down = GetGamepadBindingsForKey("Down", deadzone);
+    map.left = GetGamepadBindingsForKey("Left", deadzone);
+    map.right = GetGamepadBindingsForKey("Right", deadzone);
+    map.l = GetGamepadBindingsForKey("L", deadzone);
+    map.r = GetGamepadBindingsForKey("R", deadzone);
+    map.a = GetGamepadBindingsForKey("A", deadzone);
+    map.b = GetGamepadBindingsForKey("B", deadzone);
+    map.start = GetGamepadBindingsForKey("Start", deadzone);
+    map.select = GetGamepadBindingsForKey("Select", deadzone);
+    return map;
+}
+
+void PersistentData::RestoreDefaultGamepadBindings(bool clearGUID)
+{
+    settingsPtr_->setValue("Gamepad/Deadzone", 5);
+
+    if (clearGUID)
+    {
+        SDL_JoystickGUID guid;
+        std::memset(&guid, 0, sizeof(guid));
+        SetGUID(guid);
+    }
+
+    settingsPtr_->setValue("Gamepad/Up_Primary",        gui::GamepadBinding(SDL_CONTROLLER_BUTTON_DPAD_UP).ToList());
+    settingsPtr_->setValue("Gamepad/Down_Primary",      gui::GamepadBinding(SDL_CONTROLLER_BUTTON_DPAD_DOWN).ToList());
+    settingsPtr_->setValue("Gamepad/Left_Primary",      gui::GamepadBinding(SDL_CONTROLLER_BUTTON_DPAD_LEFT).ToList());
+    settingsPtr_->setValue("Gamepad/Right_Primary",     gui::GamepadBinding(SDL_CONTROLLER_BUTTON_DPAD_RIGHT).ToList());
+    settingsPtr_->setValue("Gamepad/L_Primary",         gui::GamepadBinding(SDL_CONTROLLER_BUTTON_LEFTSHOULDER).ToList());
+    settingsPtr_->setValue("Gamepad/R_Primary",         gui::GamepadBinding(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER).ToList());
+    settingsPtr_->setValue("Gamepad/A_Primary",         gui::GamepadBinding(SDL_CONTROLLER_BUTTON_A).ToList());
+    settingsPtr_->setValue("Gamepad/B_Primary",         gui::GamepadBinding(SDL_CONTROLLER_BUTTON_B).ToList());
+    settingsPtr_->setValue("Gamepad/Start_Primary",     gui::GamepadBinding(SDL_CONTROLLER_BUTTON_START).ToList());
+    settingsPtr_->setValue("Gamepad/Select_Primary",    gui::GamepadBinding(SDL_CONTROLLER_BUTTON_BACK).ToList());
+
+    settingsPtr_->setValue("Gamepad/Up_Secondary",      gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/Down_Secondary",    gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/Left_Secondary",    gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/Right_Secondary",   gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/L_Secondary",       gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/R_Secondary",       gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/A_Secondary",       gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/B_Secondary",       gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/Start_Secondary",   gui::GamepadBinding().ToList());
+    settingsPtr_->setValue("Gamepad/Select_Secondary",  gui::GamepadBinding().ToList());
+}
+
+std::pair<gui::GamepadBinding, gui::GamepadBinding> PersistentData::GetGamepadBindingsForKey(QString const& key, int deadzone) const
+{
+    return {gui::GamepadBinding(settingsPtr_->value("Gamepad/" + key + "_Primary").toList(), deadzone),
+            gui::GamepadBinding(settingsPtr_->value("Gamepad/" + key + "_Secondary").toList(), deadzone)};
+}
+
 void PersistentData::WriteDefaultSettings()
 {
     // Paths
@@ -264,5 +436,12 @@ void PersistentData::WriteDefaultSettings()
     settingsPtr_->setValue("Channel4", true);
     settingsPtr_->setValue("FifoA", true);
     settingsPtr_->setValue("FifoB", true);
+    settingsPtr_->endGroup();
+
+    // Gamepad
+    RestoreDefaultGamepadBindings(true);
+
+    // Keyboard
+    settingsPtr_->beginGroup("Keyboard");
     settingsPtr_->endGroup();
 }

@@ -82,6 +82,7 @@ AudioTab::AudioTab(PersistentData& settings) : settings_(settings)
     QGroupBox* apuChannelsGroup = new QGroupBox("APU Channels");
     apuChannelsGroup->setLayout(apuChannelsLayout);
     mainLayout->addWidget(apuChannelsGroup);
+    mainLayout->addStretch();
 
     setLayout(mainLayout);
 }

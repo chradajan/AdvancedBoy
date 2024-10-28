@@ -1,7 +1,9 @@
 #include <GUI/include/Settings/OptionsWindow.hpp>
 #include <GUI/include/PersistentData.hpp>
 #include <GUI/include/Settings/AudioTab.hpp>
+#include <GUI/include/Settings/GamepadTab.hpp>
 #include <GUI/include/Settings/PathsTab.hpp>
+#include <QtGui/QCloseEvent>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QPushButton>
@@ -19,12 +21,24 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
     QTabWidget* tabWidget = new QTabWidget;
     tabWidget->setObjectName("TabWidget");
 
+    // Paths tab (index 0)
     tabWidget->addTab(new PathsTab(settings), "Paths");
 
+    // Audio tab (index 1)
     AudioTab* audioTab = new AudioTab(settings);
     connect(audioTab, &AudioTab::UpdateAudioSignal, this, &OptionsWindow::UpdateAudioSignal);
     tabWidget->addTab(audioTab, "Audio");
 
+    // Gamepad tab (index 2)
+    GamepadTab* gamepadTab = new GamepadTab(settings);
+    connect(gamepadTab, &GamepadTab::GetNewGamepadBindingSignal, this, &OptionsWindow::GetNewGamepadBindingSignal);
+    connect(gamepadTab, &GamepadTab::SetGamepadSignal, this, &OptionsWindow::SetGamepadSignal);
+    connect(gamepadTab, &GamepadTab::BindingsChangedSignal, this, &OptionsWindow::BindingsChangedSignal);
+    connect(this, &OptionsWindow::SetNewGamepadBindingSignal, gamepadTab, &GamepadTab::SetNewGamepadBindingSlot);
+
+    tabWidget->addTab(gamepadTab, "Gamepad");
+
+    connect(tabWidget, &QTabWidget::currentChanged, this, &OptionsWindow::TabChangedSlot);
     layout->addWidget(tabWidget);
 
     // Buttons
@@ -41,6 +55,16 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
 
     layout->addWidget(buttons);
     setLayout(layout);
+}
+
+SDL_GameController* OptionsWindow::GetGamepad() const
+{
+    return static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->GetGamepad();
+}
+
+void OptionsWindow::UpdateGamepadTabSlot()
+{
+    static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->UpdateGamepadList();
 }
 
 void OptionsWindow::RestoreDefaultsSlot()
@@ -79,8 +103,31 @@ void OptionsWindow::RestoreDefaultsSlot()
 
             break;
         }
+        case 2:
+        {
+            confirmationBox.setText("Restore default controller bindings?");
+            int confirmation = confirmationBox.exec();
+
+            if (confirmation == QMessageBox::Yes)
+            {
+                static_cast<GamepadTab*>(activeTabPtr)->RestoreDefaults();
+            }
+
+            break;
+        }
         default:
             break;
     }
+}
+
+void OptionsWindow::TabChangedSlot()
+{
+    static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->CancelRebind();
+}
+
+void OptionsWindow::closeEvent(QCloseEvent* event)
+{
+    static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->CancelRebind();
+    event->accept();
 }
 }

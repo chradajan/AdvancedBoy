@@ -56,6 +56,9 @@ constexpr u16 U16_MSB = 0x01 << (std::numeric_limits<u16>::digits - 1);
 constexpr u32 U32_MSB = 0x01 << (std::numeric_limits<u32>::digits - 1);
 constexpr u64 U64_MSB = u64{0x01} << (std::numeric_limits<u64>::digits - 1);
 
+constexpr i16 I16_MAX = std::numeric_limits<i16>::max();
+constexpr i16 I16_MIN = std::numeric_limits<i16>::min();
+
 // Step types
 
 enum class StepType

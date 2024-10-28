@@ -2,8 +2,11 @@
 
 #include <filesystem>
 #include <memory>
+#include <utility>
 #include <vector>
+#include <GUI/include/Bindings.hpp>
 #include <QtCore/QSettings>
+#include <SDL2/SDL.h>
 
 namespace fs = std::filesystem;
 
@@ -119,7 +122,53 @@ public:
     /// @brief Restore all audio settings to their default values.
     void RestoreDefaultAudioSettings();
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Key Bindings
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Save a gamepad binding.
+    /// @param gbaKey GBA key to set a binding for.
+    /// @param binding Gamepad binding to set for the specified GBA key.
+    /// @param primary Whether this is the GBA key's primary or secondary binding.
+    void SetGamepadBinding(gui::GBAKey gbaKey, gui::GamepadBinding const& binding, bool primary);
+
+    /// @brief Get a gamepad binding for a GBA key.
+    /// @param gbaKey GBA key to get a gamepad binding for.
+    /// @param primary Whether to get the primary or secondary binding.
+    /// @return Gamepad binding.
+    gui::GamepadBinding GetGamepadBinding(gui::GBAKey gbaKey, bool primary) const;
+
+    /// @brief Save the GUID for a gamepad. This gamepad is prioritized when selecting which gamepad to use.
+    /// @param guid 
+    void SetGUID(SDL_JoystickGUID guid);
+
+    /// @brief Get the saved GUID.
+    /// @return Saved GUID (all 0 if no GUID has been saved).
+    SDL_JoystickGUID GetGUID() const;
+
+    /// @brief Set the deadzone percentage to use for joysticks.
+    /// @param deadzone Deadzone percentage [0-100].
+    void SetDeadzone(int deadzone);
+
+    /// @brief Get the deadzone percentage to use for joysticks.
+    /// @return Deadzone percentage [0-100].
+    int GetDeadzone() const;
+
+    /// @brief Get all primary and secondary bindings for all GBA keys.
+    /// @return All gamepad bindings.
+    gui::GamepadMap GetGamepadMap() const;
+
+    /// @brief Restore all default gamepad bindings and deadzone.
+    /// @param clearGUID Whether to reset the saved GUID.
+    void RestoreDefaultGamepadBindings(bool clearGUID);
+
 private:
+    /// @brief Read the settings to get the primary and secondary binding from a config key.
+    /// @param key Key string in config file to get bindings for.
+    /// @param deadzone Deadzone value to initialize bindings with.
+    /// @return Primary and secondary bindings for specified config key.
+    std::pair<gui::GamepadBinding, gui::GamepadBinding> GetGamepadBindingsForKey(QString const& key, int deadzone) const;
+
     /// @brief If a config file does not exist, generate one with default settings.
     void WriteDefaultSettings();
 
