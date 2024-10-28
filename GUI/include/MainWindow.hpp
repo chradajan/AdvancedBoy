@@ -214,7 +214,7 @@ private:
     bool stepFrameMode_;
 
     // Screen control
-    LCD screen_;
+    LCD* screen_;
 
     // Audio control
     SDL_AudioDeviceID audioDevice_;

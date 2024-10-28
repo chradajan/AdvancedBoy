@@ -55,24 +55,22 @@ MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     currentRomPath_(""),
     stepFrameMode_(false),
-    screen_(this),
     fpsTimer_(this),
     romTitle_("Advanced Boy"),
     gamepad_(nullptr)
 {
-    // Initialize screen
-    setCentralWidget(&screen_);
+    // Initialize main window
+    screen_ = new LCD(this);
+    setCentralWidget(screen_);
 
-    // Initialize menus
     InitializeMenuBar();
 
-    // Create thread to run emulator
-    emuThread_ = new EmuThread(this);
-
-    // Temporarily set scale to 4x manually
     int width = 240 * 4;
     int height = (160 * 4) + menuBar()->height();
     resize(width, height);
+
+    connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
+    fpsTimer_.start(1000);
 
     // Initialize SDL
     SDL_SetHint(SDL_HINT_JOYSTICK_RAWINPUT, "0");
@@ -80,7 +78,6 @@ MainWindow::MainWindow(QWidget* parent) :
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
 
-    // Setup audio callback
     SDL_AudioSpec audioSpec = {};
     audioSpec.freq = 32768;
     audioSpec.format = AUDIO_F32SYS;
@@ -89,41 +86,35 @@ MainWindow::MainWindow(QWidget* parent) :
     audioSpec.callback = &AudioCallback;
     audioDevice_ = SDL_OpenAudioDevice(nullptr, 0, &audioSpec, nullptr, 0);
 
-    // Window title
-    connect(&fpsTimer_, &QTimer::timeout, this, &MainWindow::UpdateWindowTitle);
-    fpsTimer_.start(1000);
-
-    // Debug options
+    // Debug windows
     bgViewerWindow_ = std::make_unique<BackgroundViewerWindow>();
+    connect(this, &MainWindow::UpdateBackgroundViewSignal,
+            bgViewerWindow_.get(), &BackgroundViewerWindow::UpdateBackgroundViewSlot);
+
     spriteViewerWindow_ = std::make_unique<SpriteViewerWindow>();
+    connect(this, &MainWindow::UpdateSpriteViewerSignal,
+            spriteViewerWindow_.get(), &SpriteViewerWindow::UpdateSpriteViewerSlot);
+
     cpuDebuggerWindow_ = std::make_unique<CpuDebuggerWindow>();
+    connect(this, &MainWindow::UpdateCpuDebuggerSignal,
+            cpuDebuggerWindow_.get(), &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
+    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
+             this, &MainWindow::CpuDebugStepSlot);
+
     registerViewerWindow_ = std::make_unique<RegisterViewerWindow>();
+    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
+             this, &MainWindow::CpuDebugStepSlot);
 
     // Options window
     optionsWindow_ = std::make_unique<OptionsWindow>(settings_);
     connect(optionsWindow_.get(), &OptionsWindow::UpdateAudioSignal, this, &MainWindow::UpdateAudioSlot);
     connect(optionsWindow_.get(), &OptionsWindow::SetGamepadSignal, this, &MainWindow::SetGamepadSlot);
     connect(optionsWindow_.get(), &OptionsWindow::BindingsChangedSignal, this, &MainWindow::BindingsChangedSlot);
+
+
+    // Gamepad setup
     gamepad_ = optionsWindow_->GetGamepad();
     gamepadMap_ = settings_.GetGamepadMap();
-
-    // Connect signals
-    connect(this, &MainWindow::UpdateBackgroundViewSignal,
-            bgViewerWindow_.get(), &BackgroundViewerWindow::UpdateBackgroundViewSlot);
-
-    connect(this, &MainWindow::UpdateSpriteViewerSignal,
-            spriteViewerWindow_.get(), &SpriteViewerWindow::UpdateSpriteViewerSlot);
-
-    connect(this, &MainWindow::UpdateCpuDebuggerSignal,
-            cpuDebuggerWindow_.get(), &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
-
-    connect(this, &MainWindow::UpdateRegisterViewerSignal,
-            registerViewerWindow_.get(), &RegisterViewerWindow::UpdateRegisterViewSlot);
-
-    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
-             this, &MainWindow::CpuDebugStepSlot);
-
-    // Gamepad listener setup
     gamepadListener_ = new GamepadListener(this);
 
     // Gamepad related signals
@@ -138,6 +129,9 @@ MainWindow::MainWindow(QWidget* parent) :
             optionsWindow_.get(), &OptionsWindow::SetNewGamepadBindingSignal);
 
     gamepadListener_->start();
+
+    // Create emulation thread
+    emuThread_ = new EmuThread(this);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -253,7 +247,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::RefreshScreen()
 {
-    screen_.update();
+    screen_->update();
     SendKeyPresses();
 }
 
