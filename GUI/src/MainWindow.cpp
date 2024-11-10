@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <GBA/include/Keypad/Registers.hpp>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GBA/include/Utilities/Types.hpp>
 #include <GUI/include/Bindings.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
@@ -111,7 +112,6 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(optionsWindow_.get(), &OptionsWindow::SetGamepadSignal, this, &MainWindow::SetGamepadSlot);
     connect(optionsWindow_.get(), &OptionsWindow::BindingsChangedSignal, this, &MainWindow::BindingsChangedSlot);
 
-
     // Gamepad setup
     gamepad_ = optionsWindow_->GetGamepad();
     gamepadMap_ = settings_.GetGamepadMap();
@@ -206,18 +206,14 @@ void MainWindow::dropEvent(QDropEvent* event)
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if (event)
-    {
-        pressedKeys_.insert(event->key());
-    }
+    pressedKeys_.insert(event->key());
+    QMainWindow::keyPressEvent(event);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
 {
-    if (event)
-    {
-        pressedKeys_.erase(event->key());
-    }
+    pressedKeys_.erase(event->key());
+    QMainWindow::keyReleaseEvent(event);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
@@ -238,7 +234,8 @@ void MainWindow::closeEvent(QCloseEvent* event)
     spriteViewerWindow_->close();
     optionsWindow_->close();
 
-    event->accept();
+    // event->accept();
+    QMainWindow::closeEvent(event);
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -358,44 +355,38 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
     }
 }
 
-void MainWindow::SendKeyPresses()
+void MainWindow::SendKeyPresses() const
 {
-    // Hard code gamepad bindings for now
-    // WASD     -> Directions keys
-    // A        -> L
-    // B        -> K
-    // Start    -> Return
-    // Select   -> Backspace
-    // L        -> Q
-    // R        -> E
+    static u16 defaultKeyInput = KEYINPUT::DEFAULT_KEYPAD_STATE;
+    auto keyInput = MemCpyInit<KEYINPUT>(&defaultKeyInput);
 
-    KEYINPUT keyInput;
-    u16 defaultKeyInput = KEYINPUT::DEFAULT_KEYPAD_STATE;
-    std::memcpy(&keyInput, &defaultKeyInput, sizeof(KEYINPUT));
+    GetKeyboardInputs(keyInput);
 
     if (gamepad_ != nullptr)
     {
         PollController(keyInput);
     }
 
-    if (pressedKeys_.contains(87)) keyInput.Up = 0;
-    if (pressedKeys_.contains(65)) keyInput.Left = 0;
-    if (pressedKeys_.contains(83)) keyInput.Down = 0;
-    if (pressedKeys_.contains(68)) keyInput.Right = 0;
-
-    if (pressedKeys_.contains(81)) keyInput.L = 0;
-    if (pressedKeys_.contains(69)) keyInput.R = 0;
-
-    if (pressedKeys_.contains(76)) keyInput.A = 0;
-    if (pressedKeys_.contains(75)) keyInput.B = 0;
-
-    if (pressedKeys_.contains(16777220)) keyInput.Start = 0;
-    if (pressedKeys_.contains(16777219)) keyInput.Select = 0;
-
     gba_api::UpdateKeypad(keyInput);
 }
 
-void MainWindow::PollController(KEYINPUT& keyInput)
+void MainWindow::GetKeyboardInputs(KEYINPUT& keyInput) const
+{
+    KeyboardMap map = settings_.GetKeyboardMap();
+
+    if (pressedKeys_.contains(map.up.first)     ||      pressedKeys_.contains(map.up.second))       keyInput.Up = 0;
+    if (pressedKeys_.contains(map.down.first)   ||      pressedKeys_.contains(map.down.second))     keyInput.Down = 0;
+    if (pressedKeys_.contains(map.left.first)   ||      pressedKeys_.contains(map.left.second))     keyInput.Left = 0;
+    if (pressedKeys_.contains(map.right.first)  ||      pressedKeys_.contains(map.right.second))    keyInput.Right = 0;
+    if (pressedKeys_.contains(map.l.first)      ||      pressedKeys_.contains(map.l.second))        keyInput.L = 0;
+    if (pressedKeys_.contains(map.r.first)      ||      pressedKeys_.contains(map.r.second))        keyInput.R = 0;
+    if (pressedKeys_.contains(map.a.first)      ||      pressedKeys_.contains(map.a.second))        keyInput.A = 0;
+    if (pressedKeys_.contains(map.b.first)      ||      pressedKeys_.contains(map.b.second))        keyInput.B = 0;
+    if (pressedKeys_.contains(map.start.first)  ||      pressedKeys_.contains(map.start.second))    keyInput.Start = 0;
+    if (pressedKeys_.contains(map.select.first) ||      pressedKeys_.contains(map.select.second))   keyInput.Select = 0;
+}
+
+void MainWindow::PollController(KEYINPUT& keyInput) const
 {
     SDL_GameControllerUpdate();
 

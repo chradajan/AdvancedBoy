@@ -20,19 +20,6 @@
 
 namespace gui
 {
-static const std::array<std::pair<QString, GBAKey>, 10> buttonNames = {{
-    {"Up", GBAKey::UP},
-    {"Down", GBAKey::DOWN},
-    {"Left", GBAKey::LEFT},
-    {"Right", GBAKey::RIGHT},
-    {"L", GBAKey::L},
-    {"R", GBAKey::R},
-    {"A", GBAKey::A},
-    {"B", GBAKey::B},
-    {"Start", GBAKey::START},
-    {"Select", GBAKey::SELECT},
-}};
-
 ///---------------------------------------------------------------------------------------------------------------------------------
 /// Deadzone Slider
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -201,13 +188,19 @@ QGroupBox* GamepadTab::CreateBindingsBox()
 
     // Columns headers
     layout->addWidget(new QLabel("Button"), 0, 0);
-    layout->addWidget(new QLabel("Primary Binding"), 0, 1);
-    layout->addWidget(new QLabel("Secondary Binding"), 0, 2);
+
+    QLabel* binding1Label = new QLabel("Binding 1");
+    binding1Label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(binding1Label, 0, 1);
+
+    QLabel* binding2Label = new QLabel("Binding 2");
+    binding2Label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(binding2Label, 0, 2);
 
     // Button labels and QPushButtons
     int row = 1;
 
-    for (auto [buttonName, gbaKey] : buttonNames)
+    for (auto [buttonName, gbaKey] : BUTTON_NAMES)
     {
         layout->addWidget(new QLabel(buttonName), row, 0);
 
@@ -247,7 +240,7 @@ void GamepadTab::PrepareKeyBindingChange(QPushButton* button, GBAKey gbaKey, boo
 
 void GamepadTab::UpdateButtons()
 {
-    for (auto [buttonName, gbaKey] : buttonNames)
+    for (auto [buttonName, gbaKey] : BUTTON_NAMES)
     {
         QPushButton* primaryButton = findChild<QPushButton*>(buttonName + "Primary");
         primaryButton->setText(settings_.GetGamepadBinding(gbaKey, true).ToString(gamepad_));

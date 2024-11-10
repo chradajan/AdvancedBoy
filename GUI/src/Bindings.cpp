@@ -1,8 +1,11 @@
 #include <GUI/include/Bindings.hpp>
+#include <array>
+#include <utility>
 #include <GBA/include/Utilities/Types.hpp>
 #include <QtCore/QList>
 #include <QtCore/QString>
 #include <QtCore/QVariant>
+#include <QtGui/QKeySequence>
 #include <SDL2/SDL.h>
 
 namespace
@@ -255,6 +258,29 @@ QString GetXboxAxisName(SDL_GameControllerAxis axis, bool positive)
 namespace gui
 {
 static_assert(sizeof(Sint16) == sizeof(i16), "Internal i16 size does not match SDL Sint16 size");
+
+const std::array<std::pair<QString, GBAKey>, 10> BUTTON_NAMES = {{
+    {"Up", GBAKey::UP},
+    {"Down", GBAKey::DOWN},
+    {"Left", GBAKey::LEFT},
+    {"Right", GBAKey::RIGHT},
+    {"L", GBAKey::L},
+    {"R", GBAKey::R},
+    {"A", GBAKey::A},
+    {"B", GBAKey::B},
+    {"Start", GBAKey::START},
+    {"Select", GBAKey::SELECT},
+}};
+
+QString GetKeyboardBindingName(Qt::Key key)
+{
+    if (key == Qt::Key_unknown)
+    {
+        return "";
+    }
+
+    return QKeySequence(key).toString();
+}
 
 GamepadBinding::GamepadBinding(SDL_GameControllerAxis axis, bool positive, int deadzone) :
     valid_(true),

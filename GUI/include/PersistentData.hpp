@@ -123,7 +123,30 @@ public:
     void RestoreDefaultAudioSettings();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Key Bindings
+    /// Keyboard Bindings
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Save a keyboard binding.
+    /// @param gbaKey GBA key to set a binding for.
+    /// @param binding Keyboard binding to set for the specified GBA key.
+    /// @param primary Whether this is the GBA key's primary or secondary binding.
+    void SetKeyboardBinding(gui::GBAKey gbaKey, Qt::Key key, bool primary);
+
+    /// @brief Get a keyboard binding for a GBA key.
+    /// @param gbaKey GBA key to get a keyboard binding for.
+    /// @param primary Whether to get the primary or secondary binding.
+    /// @return Keyboard binding.
+    Qt::Key GetKeyboardBinding(gui::GBAKey gbaKey, bool primary) const;
+
+    /// @brief Get all primary and secondary keyboard bindings for all GBA keys.
+    /// @return All gamepad bindings.
+    gui::KeyboardMap GetKeyboardMap() const;
+
+    /// @brief Restore all default keyboard bindings.
+    void RestoreDefaultKeyboardBindings();
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Gamepad Bindings
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Save a gamepad binding.
@@ -154,7 +177,7 @@ public:
     /// @return Deadzone percentage [0-100].
     int GetDeadzone() const;
 
-    /// @brief Get all primary and secondary bindings for all GBA keys.
+    /// @brief Get all primary and secondary gamepad bindings for all GBA keys.
     /// @return All gamepad bindings.
     gui::GamepadMap GetGamepadMap() const;
 
@@ -163,11 +186,16 @@ public:
     void RestoreDefaultGamepadBindings(bool clearGUID);
 
 private:
-    /// @brief Read the settings to get the primary and secondary binding from a config key.
+    /// @brief Read the settings to get the primary and secondary gamepad bindings from a config key.
     /// @param key Key string in config file to get bindings for.
     /// @param deadzone Deadzone value to initialize bindings with.
     /// @return Primary and secondary bindings for specified config key.
     std::pair<gui::GamepadBinding, gui::GamepadBinding> GetGamepadBindingsForKey(QString const& key, int deadzone) const;
+
+    /// @brief Read the settings to get the primary and secondary keyboard bindings from a config key.
+    /// @param key Key string in config file to get bindings for.
+    /// @return Primary and secondary bindings for specified config key.
+    std::pair<Qt::Key, Qt::Key> GetKeyboardBindingsForKey(QString const& key) const;
 
     /// @brief If a config file does not exist, generate one with default settings.
     void WriteDefaultSettings();

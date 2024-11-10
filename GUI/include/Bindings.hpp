@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <utility>
 #include <GBA/include/Utilities/Types.hpp>
 #include <QtCore/QList>
@@ -13,6 +14,11 @@ enum class GBAKey
 {
     UP, DOWN, LEFT, RIGHT, L, R, A, B, START, SELECT, INVALID
 };
+
+/// @brief Get the human readable name of a keyboard binding.
+/// @param key Key enum value of keyboard key.
+/// @return Name of key.
+QString GetKeyboardBindingName(Qt::Key key);
 
 class GamepadBinding
 {
@@ -83,4 +89,20 @@ struct GamepadMap
     std::pair<GamepadBinding, GamepadBinding> start;
     std::pair<GamepadBinding, GamepadBinding> select;
 };
+
+struct KeyboardMap
+{
+    std::pair<Qt::Key, Qt::Key> up;
+    std::pair<Qt::Key, Qt::Key> down;
+    std::pair<Qt::Key, Qt::Key> left;
+    std::pair<Qt::Key, Qt::Key> right;
+    std::pair<Qt::Key, Qt::Key> l;
+    std::pair<Qt::Key, Qt::Key> r;
+    std::pair<Qt::Key, Qt::Key> a;
+    std::pair<Qt::Key, Qt::Key> b;
+    std::pair<Qt::Key, Qt::Key> start;
+    std::pair<Qt::Key, Qt::Key> select;
+};
+
+extern const std::array<std::pair<QString, GBAKey>, 10> BUTTON_NAMES;
 }

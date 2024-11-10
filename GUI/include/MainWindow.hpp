@@ -123,11 +123,15 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
-    void SendKeyPresses();
+    void SendKeyPresses() const;
+
+    /// @brief Check for user inputs from the keyboard.
+    /// @param keyInput Reference to KEYINPUT to update based on keyboard inputs.
+    void GetKeyboardInputs(KEYINPUT& keyInput) const;
 
     /// @brief Check for user inputs from the current gamepad.
     /// @param keyInput Reference to KEYINPUT to update based on gamepad inputs.
-    void PollController(KEYINPUT& keyInput);
+    void PollController(KEYINPUT& keyInput) const;
 
     /// @brief If the emulator thread isn't already running, start it and the audio callback thread.
     void StartEmulationThreads();

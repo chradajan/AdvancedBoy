@@ -52,7 +52,7 @@ public:
     GamepadTab(GamepadTab&&) = delete;
     GamepadTab& operator=(GamepadTab&&) = delete;
 
-    /// @brief Initialize the paths tab widget.
+    /// @brief Initialize the gamepad tab widget.
     /// @param settings Reference to settings.
     GamepadTab(PersistentData& settings);
 

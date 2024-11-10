@@ -15,47 +15,50 @@ namespace
 {
 /// @brief Get the config key for a GBA key.
 /// @param gbaKey GBA key to get config key for.
+/// @param group Name of group to get key from.
 /// @param primary Whether to get the primary or secondary key.
 /// @return Config key string.
-QString GetSettingsKeyFromGbaKey(gui::GBAKey gbaKey, bool primary)
+QString GetSettingsKeyFromGbaKey(gui::GBAKey gbaKey, QString group, bool primary)
 {
     QString key = primary ? "_Primary" : "_Secondary";
 
     switch (gbaKey)
     {
         case gui::GBAKey::UP:
-            key.prepend("Gamepad/Up");
+            key.prepend("/Up");
             break;
         case gui::GBAKey::DOWN:
-            key.prepend("Gamepad/Down");
+            key.prepend("/Down");
             break;
         case gui::GBAKey::LEFT:
-            key.prepend("Gamepad/Left");
+            key.prepend("/Left");
             break;
         case gui::GBAKey::RIGHT:
-            key.prepend("Gamepad/Right");
+            key.prepend("/Right");
             break;
         case gui::GBAKey::L:
-            key.prepend("Gamepad/L");
+            key.prepend("/L");
             break;
         case gui::GBAKey::R:
-            key.prepend("Gamepad/R");
+            key.prepend("/R");
             break;
         case gui::GBAKey::A:
-            key.prepend("Gamepad/A");
+            key.prepend("/A");
             break;
         case gui::GBAKey::B:
-            key.prepend("Gamepad/B");
+            key.prepend("/B");
             break;
         case gui::GBAKey::START:
-            key.prepend("Gamepad/Start");
+            key.prepend("/Start");
             break;
         case gui::GBAKey::SELECT:
-            key.prepend("Gamepad/Select");
+            key.prepend("/Select");
             break;
         default:
             return QString();
     }
+
+    key.prepend(group);
 
     return key;
 }
@@ -291,9 +294,82 @@ void PersistentData::RestoreDefaultAudioSettings()
     settingsPtr_->setValue("Audio/FifoB", true);
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Keyboard Bindings
+///---------------------------------------------------------------------------------------------------------------------------------
+
+void PersistentData::SetKeyboardBinding(gui::GBAKey gbaKey, Qt::Key key, bool primary)
+{
+    QString configKey = GetSettingsKeyFromGbaKey(gbaKey, "Keyboard", primary);
+
+    if (!configKey.isEmpty())
+    {
+        settingsPtr_->setValue(configKey, key);
+    }
+}
+
+Qt::Key PersistentData::GetKeyboardBinding(gui::GBAKey gbaKey, bool primary) const
+{
+    QString configKey = GetSettingsKeyFromGbaKey(gbaKey, "Keyboard", primary);
+
+    if (!configKey.isEmpty())
+    {
+        return static_cast<Qt::Key>(settingsPtr_->value(configKey).toInt());
+    }
+
+    return Qt::Key_unknown;
+}
+
+gui::KeyboardMap PersistentData::GetKeyboardMap() const
+{
+    gui::KeyboardMap map;
+    map.up = GetKeyboardBindingsForKey("Up");
+    map.down = GetKeyboardBindingsForKey("Down");
+    map.left = GetKeyboardBindingsForKey("Left");
+    map.right = GetKeyboardBindingsForKey("Right");
+    map.l = GetKeyboardBindingsForKey("L");
+    map.r = GetKeyboardBindingsForKey("R");
+    map.a = GetKeyboardBindingsForKey("A");
+    map.b = GetKeyboardBindingsForKey("B");
+    map.start = GetKeyboardBindingsForKey("Start");
+    map.select = GetKeyboardBindingsForKey("Select");
+    return map;
+}
+
+void PersistentData::RestoreDefaultKeyboardBindings()
+{
+    settingsPtr_->beginGroup("Keyboard");
+    settingsPtr_->setValue("Up_Primary",        Qt::Key::Key_W);
+    settingsPtr_->setValue("Down_Primary",      Qt::Key::Key_S);
+    settingsPtr_->setValue("Left_Primary",      Qt::Key::Key_A);
+    settingsPtr_->setValue("Right_Primary",     Qt::Key::Key_D);
+    settingsPtr_->setValue("L_Primary",         Qt::Key::Key_Q);
+    settingsPtr_->setValue("R_Primary",         Qt::Key::Key_E);
+    settingsPtr_->setValue("A_Primary",         Qt::Key::Key_L);
+    settingsPtr_->setValue("B_Primary",         Qt::Key::Key_K);
+    settingsPtr_->setValue("Start_Primary",     Qt::Key::Key_Return);
+    settingsPtr_->setValue("Select_Primary",    Qt::Key::Key_Backspace);
+
+    settingsPtr_->setValue("Up_Secondary",      Qt::Key::Key_unknown);
+    settingsPtr_->setValue("Down_Secondary",    Qt::Key::Key_unknown);
+    settingsPtr_->setValue("Left_Secondary",    Qt::Key::Key_unknown);
+    settingsPtr_->setValue("Right_Secondary",   Qt::Key::Key_unknown);
+    settingsPtr_->setValue("L_Secondary",       Qt::Key::Key_unknown);
+    settingsPtr_->setValue("R_Secondary",       Qt::Key::Key_unknown);
+    settingsPtr_->setValue("A_Secondary",       Qt::Key::Key_unknown);
+    settingsPtr_->setValue("B_Secondary",       Qt::Key::Key_unknown);
+    settingsPtr_->setValue("Start_Secondary",   Qt::Key::Key_unknown);
+    settingsPtr_->setValue("Select_Secondary",  Qt::Key::Key_unknown);
+    settingsPtr_->endGroup();
+}
+
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Gamepad Bindings
+///---------------------------------------------------------------------------------------------------------------------------------
+
 void PersistentData::SetGamepadBinding(gui::GBAKey gbaKey, gui::GamepadBinding const& binding, bool primary)
 {
-    QString key = GetSettingsKeyFromGbaKey(gbaKey, primary);
+    QString key = GetSettingsKeyFromGbaKey(gbaKey, "Gamepad", primary);
 
     if (!key.isEmpty())
     {
@@ -303,7 +379,7 @@ void PersistentData::SetGamepadBinding(gui::GBAKey gbaKey, gui::GamepadBinding c
 
 gui::GamepadBinding PersistentData::GetGamepadBinding(gui::GBAKey gbaKey, bool primary) const
 {
-    QString key = GetSettingsKeyFromGbaKey(gbaKey, primary);
+    QString key = GetSettingsKeyFromGbaKey(gbaKey, "Gamepad", primary);
 
     if (!key.isEmpty())
     {
@@ -408,6 +484,12 @@ std::pair<gui::GamepadBinding, gui::GamepadBinding> PersistentData::GetGamepadBi
             gui::GamepadBinding(settingsPtr_->value("Gamepad/" + key + "_Secondary").toList(), deadzone)};
 }
 
+std::pair<Qt::Key, Qt::Key> PersistentData::GetKeyboardBindingsForKey(QString const& key) const
+{
+    return {static_cast<Qt::Key>(settingsPtr_->value("Keyboard/" + key + "_Primary").toInt()),
+            static_cast<Qt::Key>(settingsPtr_->value("Keyboard/" + key + "_Secondary").toInt())};
+}
+
 void PersistentData::WriteDefaultSettings()
 {
     // Paths
@@ -438,10 +520,9 @@ void PersistentData::WriteDefaultSettings()
     settingsPtr_->setValue("FifoB", true);
     settingsPtr_->endGroup();
 
-    // Gamepad
-    RestoreDefaultGamepadBindings(true);
+    // Keyboard bindings
+    RestoreDefaultKeyboardBindings();
 
-    // Keyboard
-    settingsPtr_->beginGroup("Keyboard");
-    settingsPtr_->endGroup();
+    // Gamepad bindings
+    RestoreDefaultGamepadBindings(true);
 }

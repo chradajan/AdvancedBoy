@@ -22,8 +22,8 @@ public:
     /// @brief Initialize the settings menu.
     OptionsWindow(PersistentData& settings);
 
-    /// @brief 
-    /// @return 
+    /// @brief Get the currently selected gamepad.
+    /// @return Pointer to current gamepad to use for user input.
     SDL_GameController* GetGamepad() const;
 
 signals:
@@ -45,6 +45,10 @@ signals:
     /// @brief Emit to notify the main window that it should get the latest gamepad bindings from persistent data.
     void BindingsChangedSignal();
 
+    /// @brief Emit to notify the keyboard tab to update a binding.
+    /// @param key Most recently pressed keyboard key.
+    void SetNewKeyboardBindingSignal(Qt::Key key);
+
 public slots:
     /// @brief Slot to handle gamepads being connected/disconnected.
     void UpdateGamepadTabSlot();
@@ -56,11 +60,19 @@ private slots:
     /// @brief Slot to handle the tab being changed.
     void TabChangedSlot();
 
+    /// @brief Slot to handle changing a keyboard binding.
+    void GetNewKeyboardBindingSlot() { listenForKeyPress_ = true; }
+
 private:
     /// @brief Event handler for when the options window closes.
     /// @param event Close event.
     void closeEvent(QCloseEvent* event) override;
 
+    /// @brief When rebinding a key, listen for the next key press.
+    /// @param event Key press event.
+    void keyPressEvent(QKeyEvent* event) override;
+
     PersistentData& settings_;
+    bool listenForKeyPress_;
 };
 }

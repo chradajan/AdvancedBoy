@@ -2,6 +2,7 @@
 #include <GUI/include/PersistentData.hpp>
 #include <GUI/include/Settings/AudioTab.hpp>
 #include <GUI/include/Settings/GamepadTab.hpp>
+#include <GUI/include/Settings/KeyboardTab.hpp>
 #include <GUI/include/Settings/PathsTab.hpp>
 #include <QtGui/QCloseEvent>
 #include <QtWidgets/QDialogButtonBox>
@@ -12,13 +13,14 @@
 
 namespace gui
 {
-OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
+OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings), listenForKeyPress_(false)
 {
     setWindowTitle("Options");
     QVBoxLayout* layout = new QVBoxLayout;
 
     // Tabs
     QTabWidget* tabWidget = new QTabWidget;
+    tabWidget->setFocusPolicy(Qt::NoFocus);
     tabWidget->setObjectName("TabWidget");
 
     // Paths tab (index 0)
@@ -35,8 +37,13 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
     connect(gamepadTab, &GamepadTab::SetGamepadSignal, this, &OptionsWindow::SetGamepadSignal);
     connect(gamepadTab, &GamepadTab::BindingsChangedSignal, this, &OptionsWindow::BindingsChangedSignal);
     connect(this, &OptionsWindow::SetNewGamepadBindingSignal, gamepadTab, &GamepadTab::SetNewGamepadBindingSlot);
-
     tabWidget->addTab(gamepadTab, "Gamepad");
+
+    // Keyboard tab (index 3)
+    KeyboardTab* keyboardTab = new KeyboardTab(settings);
+    connect(keyboardTab, &KeyboardTab::GetNewKeyboardBindingSignal, this, &OptionsWindow::GetNewKeyboardBindingSlot);
+    connect(this, &OptionsWindow::SetNewKeyboardBindingSignal, keyboardTab, &KeyboardTab::SetNewKeyboardBindingSlot);
+    tabWidget->addTab(keyboardTab, "Keyboard");
 
     connect(tabWidget, &QTabWidget::currentChanged, this, &OptionsWindow::TabChangedSlot);
     layout->addWidget(tabWidget);
@@ -46,6 +53,7 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings)
                            QDialogButtonBox::StandardButton::Cancel |
                            QDialogButtonBox::StandardButton::RestoreDefaults;
     QDialogButtonBox* buttons = new QDialogButtonBox(standardButtons, Qt::Orientation::Horizontal);
+    buttons->setFocusPolicy(Qt::NoFocus);
     connect(buttons->button(QDialogButtonBox::StandardButton::Ok), &QPushButton::clicked,
             this, [=, this] () { this->close(); });
     connect(buttons->button(QDialogButtonBox::StandardButton::Cancel), &QPushButton::clicked,
@@ -115,6 +123,18 @@ void OptionsWindow::RestoreDefaultsSlot()
 
             break;
         }
+        case 3:
+        {
+            confirmationBox.setText("Restore default keyboard bindings?");
+            int confirmation = confirmationBox.exec();
+
+            if (confirmation == QMessageBox::Yes)
+            {
+                static_cast<KeyboardTab*>(activeTabPtr)->RestoreDefaults();
+            }
+
+            break;
+        }
         default:
             break;
     }
@@ -123,11 +143,22 @@ void OptionsWindow::RestoreDefaultsSlot()
 void OptionsWindow::TabChangedSlot()
 {
     static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->CancelRebind();
+    static_cast<KeyboardTab*>(findChild<QTabWidget*>("TabWidget")->widget(3))->CancelRebind();
 }
 
 void OptionsWindow::closeEvent(QCloseEvent* event)
 {
     static_cast<GamepadTab*>(findChild<QTabWidget*>("TabWidget")->widget(2))->CancelRebind();
+    static_cast<KeyboardTab*>(findChild<QTabWidget*>("TabWidget")->widget(3))->CancelRebind();
     event->accept();
+}
+
+void OptionsWindow::keyPressEvent(QKeyEvent* event)
+{
+    if (listenForKeyPress_)
+    {
+        listenForKeyPress_ = false;
+        emit SetNewKeyboardBindingSignal(static_cast<Qt::Key>(event->key()));
+    }
 }
 }
