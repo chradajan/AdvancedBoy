@@ -1,10 +1,7 @@
 #include <bit>
 #include <filesystem>
 #include <GUI/include/MainWindow.hpp>
-#include <QtCore/QtCore>
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QtWidgets>
-#include <SDL2/SDL.h>
 
 static_assert(std::endian::native == std::endian::little, "Host system must be little endian");
 namespace fs = std::filesystem;
@@ -15,11 +12,6 @@ int main(int argv, char** args)
     QCoreApplication::setApplicationName("AdvancedBoy");
     gui::MainWindow mainWindow;
     mainWindow.show();
-
-    if (app.arguments().size() > 12)
-    {
-        mainWindow.StartEmulation(app.arguments().at(1).toStdString());
-    }
 
     return app.exec();
 }

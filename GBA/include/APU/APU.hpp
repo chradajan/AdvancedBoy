@@ -82,6 +82,24 @@ public:
     /// @return Number of available samples. One sample means a single left or right sample.
     size_t AvailableSamples() const { return sampleBuffer_.GetAvailable(); }
 
+    ///---------------------------------------------------------------------------------------------------------------------------------
+    /// Output
+    ///---------------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Adjust the volume output level.
+    /// @param mute Whether to mute audio output.
+    /// @param volume If not muted, volume level of output [0, 100];
+    void SetVolume(bool mute, int volume);
+
+    /// @brief Set whether each channel is enabled.
+    /// @param channel1 Whether channel 1 is enabled.
+    /// @param channel2 Whether channel 2 is enabled.
+    /// @param channel3 Whether channel 3 is enabled.
+    /// @param channel4 Whether channel 4 is enabled.
+    /// @param fifoA Whether FIFO A is enabled.
+    /// @param fifoB Whether FIFO B is enabled.
+    void EnableChannels(bool channel1, bool channel2, bool channel3, bool channel4, bool fifoA, bool fifoB);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Save States
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -154,6 +172,15 @@ private:
     // Internal sample buffer
     RingBuffer<float, BUFFER_SIZE> sampleBuffer_;
     u32 sampleCounter_;
+
+    // Output level
+    float volumeMultiplier_;
+    bool channel1Enabled_;
+    bool channel2Enabled_;
+    bool channel3Enabled_;
+    bool channel4Enabled_;
+    bool fifoAEnabled_;
+    bool fifoBEnabled_;
 
     // External components
     ClockManager const& clockMgr_;

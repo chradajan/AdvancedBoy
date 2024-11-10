@@ -51,6 +51,39 @@ public:
     ~GameBoyAdvance();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Validity checks
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Check if the BIOS used to initialize the GBA was successfully loaded.
+    /// @return True if valid BIOS is loaded.
+    bool ValidBiosLoaded() const { return biosMgr_.BiosLoaded(); }
+
+    /// @brief Check if the ROM used to initialize the GBA was successfully loaded.
+    /// @return True if valid GamePak is loaded.
+    bool ValidGamePakLoaded() const { return gamePak_ != nullptr; }
+
+    ///---------------------------------------------------------------------------------------------------------------------------------
+    /// Audio
+    ///---------------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Adjust the GBA volume output level.
+    /// @param mute Whether to mute audio output.
+    /// @param volume If not muted, volume level of output [0, 100];
+    void SetVolume(bool mute, int volume) { apu_.SetVolume(mute, volume); }
+
+    /// @brief Set whether each APU channel is enabled.
+    /// @param channel1 Whether channel 1 is enabled.
+    /// @param channel2 Whether channel 2 is enabled.
+    /// @param channel3 Whether channel 3 is enabled.
+    /// @param channel4 Whether channel 4 is enabled.
+    /// @param fifoA Whether FIFO A is enabled.
+    /// @param fifoB Whether FIFO B is enabled.
+    void SetAPUChannels(bool channel1, bool channel2, bool channel3, bool channel4, bool fifoA, bool fifoB)
+    {
+        apu_.EnableChannels(channel1, channel2, channel3, channel4, fifoA, fifoB);
+    }
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
     /// Save States
     ///-----------------------------------------------------------------------------------------------------------------------------
 
@@ -63,7 +96,7 @@ public:
     void Deserialize(std::ifstream& saveState);
 
     /// @brief Get the path of the file where backup media will be saved to.
-/// @return Backup media save file path.
+    /// @return Backup media save file path.
     fs::path GetSavePath() const { return gamePak_ ? gamePak_->GetSavePath() : ""; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------

@@ -1,8 +1,10 @@
 project(AdvancedBoy)
 
 target_sources(${PROJECT_NAME} PRIVATE
+    Bindings.cpp
     EmuThread.cpp
     FlowLayout.cpp
+    GamepadListener.cpp
     GBA.cpp
     LCD.cpp
     main.cpp
@@ -11,3 +13,4 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 add_subdirectory(DebugWindows)
+add_subdirectory(Settings)

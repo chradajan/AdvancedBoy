@@ -5,14 +5,18 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <GBA/include/Keypad/Registers.hpp>
 #include <GBA/include/Utilities/Types.hpp>
+#include <GUI/include/Bindings.hpp>
 #include <GUI/include/DebugWindows/BackgroundViewerWindow.hpp>
 #include <GUI/include/DebugWindows/CpuDebuggerWindow.hpp>
 #include <GUI/include/DebugWindows/RegisterViewerWindow.hpp>
 #include <GUI/include/DebugWindows/SpriteViewerWindow.hpp>
 #include <GUI/include/EmuThread.hpp>
+#include <GUI/include/GamepadListener.hpp>
 #include <GUI/include/LCD.hpp>
 #include <GUI/include/PersistentData.hpp>
+#include <GUI/include/Settings/OptionsWindow.hpp>
 #include <QtCore/QTimer>
 #include <QtWidgets/QMainWindow>
 #include <SDL2/SDL.h>
@@ -33,16 +37,6 @@ public:
     /// @param parent Parent widget.
     MainWindow(QWidget* parent = nullptr);
 
-    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
-    /// @param romPath Path to GBA ROM.
-    /// @param ignoreCurrentPath If true, start emulation regardless of romPath is same as what's currently running.
-    void StartEmulation(fs::path romPath, bool ignoreCurrentPath = false);
-
-public slots:
-    /// @brief Slot to handle emulator control by the CPU Debugger Window.
-    /// @param stepType Duration to run the emulator for.
-    void CpuDebugStepSlot(StepType stepType);
-
 signals:
     /// @brief Emit this signal to notify the Background Viewer to update its displayed image/data.
     /// @param updateBg Whether to fetch the latest background data from the GBA.
@@ -58,7 +52,28 @@ signals:
     /// @brief Emit this signal to notify the Register Viewer to update its displayed data.
     void UpdateRegisterViewerSignal();
 
+private slots:
+    /// @brief Slot to handle emulator control by the CPU Debugger Window.
+    /// @param stepType Duration to run the emulator for.
+    void CpuDebugStepSlot(StepType stepType);
+
+    /// @brief Update audio output.
+    /// @param audioSettings Current audio settings.
+    void UpdateAudioSlot(PersistentData::AudioSettings audioSettings);
+
+    /// @brief Change which gamepad should be pulled for inputs.
+    /// @param gamepad Pointer to gamepad to get inputs from.
+    void SetGamepadSlot(SDL_GameController* gamepad) { gamepad_ = gamepad; }
+
+    /// @brief Get the latest gamepad bindings from persistent data.
+    void BindingsChangedSlot() { gamepadMap_ = settings_.GetGamepadMap(); }
+
 private:
+    /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
+    /// @param romPath Path to GBA ROM.
+    /// @param ignoreCurrentPath If true, start emulation regardless of romPath is same as what's currently running.
+    void StartEmulation(fs::path romPath, bool ignoreCurrentPath = false);
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Event handlers
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +123,15 @@ private:
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Update the GBA keypad based on which keys are currently pressed.
-    void SendKeyPresses();
+    void SendKeyPresses() const;
+
+    /// @brief Check for user inputs from the keyboard.
+    /// @param keyInput Reference to KEYINPUT to update based on keyboard inputs.
+    void GetKeyboardInputs(KEYINPUT& keyInput) const;
+
+    /// @brief Check for user inputs from the current gamepad.
+    /// @param keyInput Reference to KEYINPUT to update based on gamepad inputs.
+    void PollController(KEYINPUT& keyInput) const;
 
     /// @brief If the emulator thread isn't already running, start it and the audio callback thread.
     void StartEmulationThreads();
@@ -191,11 +214,11 @@ private:
 
     // Emulation control
     fs::path currentRomPath_;
-    EmuThread emuThread_;
+    EmuThread* emuThread_;
     bool stepFrameMode_;
 
     // Screen control
-    LCD screen_;
+    LCD* screen_;
 
     // Audio control
     SDL_AudioDeviceID audioDevice_;
@@ -204,8 +227,11 @@ private:
     QTimer fpsTimer_;
     std::string romTitle_;
 
-    // Keypad
+    // Inputs
     std::set<int> pressedKeys_;
+    GamepadListener* gamepadListener_;
+    SDL_GameController* gamepad_;
+    GamepadMap gamepadMap_;
 
     // Menus
     QMenu* recentsMenu_;
@@ -220,6 +246,7 @@ private:
     std::unique_ptr<RegisterViewerWindow> registerViewerWindow_;
 
     // Settings
+    std::unique_ptr<OptionsWindow> optionsWindow_;
     PersistentData settings_;
 };
 }  // namespace gui

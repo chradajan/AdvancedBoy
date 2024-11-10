@@ -129,6 +129,28 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
     return 1;
 }
 
+void APU::SetVolume(bool mute, int volume)
+{
+    if (mute)
+    {
+        volumeMultiplier_ = 0.0f;
+    }
+    else
+    {
+        volumeMultiplier_ = static_cast<float>(volume) / 100.0f;
+    }
+}
+
+void APU::EnableChannels(bool channel1, bool channel2, bool channel3, bool channel4, bool fifoA, bool fifoB)
+{
+    channel1Enabled_ = channel1;
+    channel2Enabled_ = channel2;
+    channel3Enabled_ = channel3;
+    channel4Enabled_ = channel4;
+    fifoAEnabled_ = fifoA;
+    fifoBEnabled_ = fifoB;
+}
+
 void APU::Serialize(std::ofstream& saveState) const
 {
     SerializeArray(unimplementedRegisters_);
@@ -215,7 +237,7 @@ void APU::Sample(int extraCycles)
         u16 psgRightSample = 0;
 
         // Channel 1
-        u8 channel1Sample = channel1_.Sample();
+        u8 channel1Sample = channel1Enabled_ ? channel1_.Sample() : 0;
 
         if (soundCnt_L.chan1EnableLeft)
         {
@@ -228,7 +250,7 @@ void APU::Sample(int extraCycles)
         }
 
         // Channel 2
-        u8 channel2Sample = channel2_.Sample();
+        u8 channel2Sample = channel2Enabled_ ? channel2_.Sample() : 0;
 
         if (soundCnt_L.chan2EnableLeft)
         {
@@ -254,7 +276,7 @@ void APU::Sample(int extraCycles)
         }
 
         // Channel 4
-        u8 channel4Sample = channel4_.Sample();
+        u8 channel4Sample = channel4Enabled_ ? channel4_.Sample() : 0;
 
         if (soundCnt_L.chan4EnableLeft)
         {
@@ -287,6 +309,16 @@ void APU::Sample(int extraCycles)
         // DMA samples
         auto [fifoASample, fifoBSample] = dmaFifos_.Sample(soundCnt_H);
 
+        if (!fifoAEnabled_)
+        {
+            fifoASample = 0;
+        }
+
+        if (!fifoBEnabled_)
+        {
+            fifoBSample = 0;
+        }
+
         if (soundCnt_H.dmaEnableLeftA)
         {
             leftSample += fifoASample;
@@ -318,7 +350,7 @@ void APU::Sample(int extraCycles)
     float leftOutput = (leftSample - 512) / 512.0;
     float rightOutput = (rightSample - 512) / 512.0;
 
-    float sample[2] = {leftOutput, rightOutput};
+    float sample[2] = {leftOutput * volumeMultiplier_, rightOutput * volumeMultiplier_};
     sampleBuffer_.Write(sample, 2);
     ++sampleCounter_;
 }

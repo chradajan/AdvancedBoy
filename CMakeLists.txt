@@ -10,7 +10,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 find_package(Qt6 REQUIRED COMPONENTS Core OpenGL OpenGLWidgets Widgets)
 find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
 
 qt_standard_project_setup()
 qt_add_executable(${PROJECT_NAME})
@@ -29,7 +28,6 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    SDL2::SDL2main
     SDL2::SDL2
     Qt6::Core
     Qt6::Gui
