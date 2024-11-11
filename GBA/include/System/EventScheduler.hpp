@@ -28,6 +28,9 @@ enum class EventType
     Channel2Envelope,
     Channel2LengthTimer,
 
+    Channel3Clock,
+    Channel3LengthTimer,
+
     Channel4Clock,
     Channel4Envelope,
     Channel4LengthTimer,

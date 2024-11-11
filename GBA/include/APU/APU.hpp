@@ -7,6 +7,7 @@
 #include <utility>
 #include <GBA/include/APU/Channel1.hpp>
 #include <GBA/include/APU/Channel2.hpp>
+#include <GBA/include/APU/Channel3.hpp>
 #include <GBA/include/APU/Channel4.hpp>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/DmaAudio.hpp>
@@ -155,6 +156,7 @@ private:
 
     Channel1 channel1_;
     Channel2 channel2_;
+    Channel3 channel3_;
     Channel4 channel4_;
     DmaAudio dmaFifos_;
 
@@ -162,7 +164,6 @@ private:
     /// Register data
     ///-----------------------------------------------------------------------------------------------------------------------------
 
-    std::array<std::byte, 0x48> unimplementedRegisters_;
     std::array<std::byte, 12> registers_;
 
     ///-----------------------------------------------------------------------------------------------------------------------------

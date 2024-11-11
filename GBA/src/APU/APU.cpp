@@ -23,11 +23,11 @@ namespace audio
 APU::APU(ClockManager const& clockMgr, EventScheduler& scheduler) :
     channel1_(clockMgr, scheduler),
     channel2_(clockMgr, scheduler),
+    channel3_(clockMgr, scheduler),
     channel4_(clockMgr, scheduler),
     clockMgr_(clockMgr),
     scheduler_(scheduler)
 {
-    unimplementedRegisters_.fill(std::byte{0});
     registers_.fill(std::byte{0});
 
     scheduler_.RegisterEvent(EventType::SampleAPU, std::bind(&APU::Sample, this, std::placeholders::_1));
@@ -48,8 +48,7 @@ MemReadData APU::ReadReg(u32 addr, AccessSize length)
             std::tie(val, openBus) = channel2_.ReadReg(addr, length);
             break;
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
-            val = ReadMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, length);
-            openBus = false;
+            std::tie(val, openBus) = channel3_.ReadReg(addr, length);
             break;
         case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
             std::tie(val, openBus) = channel4_.ReadReg(addr, length);
@@ -58,8 +57,7 @@ MemReadData APU::ReadReg(u32 addr, AccessSize length)
             std::tie(val, openBus) = ReadCntRegisters(addr, length);
             break;
         case WAVE_RAM_ADDR_MIN ... WAVE_RAM_ADDR_MAX:
-            val = ReadMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, length);
-            openBus = false;
+            std::tie(val, openBus) = channel3_.ReadWaveRAM(addr, length);
             break;
         case DMA_AUDIO_ADDR_MIN ... DMA_AUDIO_ADDR_MAX:
             std::tie(val, openBus) = dmaFifos_.ReadReg(addr, length);
@@ -100,8 +98,16 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
             break;
         }
         case CHANNEL_3_ADDR_MIN ... CHANNEL_3_ADDR_MAX:
-            WriteMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, val, length);
+        {
+            if (channel3_.WriteReg(addr, val, length))
+            {
+                auto soundCnt_X = GetSOUNDCNT_X();
+                soundCnt_X.chan3On = 1;
+                SetSOUNDCNT_X(soundCnt_X);
+            }
+
             break;
+        }
         case CHANNEL_4_ADDR_MIN ... CHANNEL_4_ADDR_MAX:
         {
             if (channel4_.WriteReg(addr, val, length))
@@ -117,7 +123,7 @@ int APU::WriteReg(u32 addr, u32 val, AccessSize length)
             WriteCntRegisters(addr, val, length);
             break;
         case WAVE_RAM_ADDR_MIN ... WAVE_RAM_ADDR_MAX:
-            WriteMemoryBlock(unimplementedRegisters_, addr, SOUND_IO_ADDR_MIN, val, length);
+            channel3_.WriteWaveRAM(addr, val, length);
             break;
         case DMA_AUDIO_ADDR_MIN ... DMA_AUDIO_ADDR_MAX:
             dmaFifos_.WriteReg(addr, val, length);
@@ -153,20 +159,20 @@ void APU::EnableChannels(bool channel1, bool channel2, bool channel3, bool chann
 
 void APU::Serialize(std::ofstream& saveState) const
 {
-    SerializeArray(unimplementedRegisters_);
     SerializeArray(registers_);
     channel1_.Serialize(saveState);
     channel2_.Serialize(saveState);
+    channel3_.Serialize(saveState);
     channel4_.Serialize(saveState);
     dmaFifos_.Serialize(saveState);
 }
 
 void APU::Deserialize(std::ifstream& saveState)
 {
-    DeserializeArray(unimplementedRegisters_);
     DeserializeArray(registers_);
     channel1_.Deserialize(saveState);
     channel2_.Deserialize(saveState);
+    channel3_.Deserialize(saveState);
     channel4_.Deserialize(saveState);
     dmaFifos_.Deserialize(saveState);
 }
@@ -183,6 +189,11 @@ std::pair<u32, bool> APU::ReadCntRegisters(u32 addr, AccessSize length)
     if (channel2_.Expired())
     {
         soundCnt_X.chan2On = 0;
+    }
+
+    if (channel3_.Expired())
+    {
+        soundCnt_X.chan3On = 0;
     }
 
     if (channel4_.Expired())
@@ -263,7 +274,7 @@ void APU::Sample(int extraCycles)
         }
 
         // Channel 3
-        u8 channel3Sample = 0;  // TODO
+        u8 channel3Sample = channel3Enabled_ ? channel3_.Sample() : 0;
 
         if (soundCnt_L.chan3EnableLeft)
         {
