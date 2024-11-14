@@ -60,13 +60,15 @@ void PowerOff()
 
 void FillAudioBuffer(u8* stream, size_t len)
 {
+    float* buffer = reinterpret_cast<float*>(stream);
+    size_t cnt = len / sizeof(float);
+
     if (!GBA)
     {
+        std::memset(buffer, 0, cnt * sizeof(float));
         return;
     }
 
-    float* buffer = reinterpret_cast<float*>(stream);
-    size_t cnt = len / sizeof(float);
     size_t availableSamples = GBA->AvailableSamples();
 
     if (cnt > availableSamples)

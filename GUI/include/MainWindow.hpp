@@ -208,6 +208,9 @@ private:
     /// @param index Index of save state file to load [0-4].
     void LoadState(u8 index);
 
+    /// @brief Action for clicking "Power Down" menu item.
+    void PowerDown();
+
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Data
     ///-----------------------------------------------------------------------------------------------------------------------------
@@ -236,6 +239,8 @@ private:
     // Menus
     QMenu* recentsMenu_;
     QAction* pauseButton_;
+    QAction* restartButton_;
+    QAction* powerDownButton_;
     std::array<QAction*, 5> saveStateActions_;
     std::array<QAction*, 5> loadStateActions_;
 

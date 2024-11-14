@@ -234,7 +234,6 @@ void MainWindow::closeEvent(QCloseEvent* event)
     spriteViewerWindow_->close();
     optionsWindow_->close();
 
-    // event->accept();
     QMainWindow::closeEvent(event);
 }
 
@@ -325,6 +324,11 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
         gba_api::PowerOff();
         currentRomPath_ = "";
         romTitle_ = "Advanced Boy";
+        UpdateSaveStateActions("");
+        emit UpdateBackgroundViewSignal(true);
+        emit UpdateSpriteViewerSignal(true);
+        emit UpdateCpuDebuggerSignal();
+        emit UpdateRegisterViewerSignal();
         return;
     }
 
@@ -353,6 +357,9 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
     {
         StartEmulationThreads();
     }
+
+    restartButton_->setEnabled(true);
+    powerDownButton_->setEnabled(true);
 }
 
 void MainWindow::SendKeyPresses() const
@@ -455,11 +462,6 @@ void MainWindow::InitializeMenuBar()
 
 void MainWindow::UpdateSaveStateActions(fs::path savePath)
 {
-    if (savePath.empty())
-    {
-        return;
-    }
-
     for (u8 i = 0; i < 5; ++i)
     {
         savePath.replace_extension(".s" + std::to_string(i));
@@ -575,6 +577,19 @@ QMenu* MainWindow::CreateEmulationMenu()
 
     emulationMenu->addMenu(saveStateMenu);
     emulationMenu->addMenu(loadStateMenu);
+    emulationMenu->addSeparator();
+
+    // Restart
+    restartButton_ = new QAction("Restart");
+    restartButton_->setEnabled(false);
+    connect(restartButton_, &QAction::triggered, this, [=, this] () { this->StartEmulation(this->currentRomPath_, true); });
+    emulationMenu->addAction(restartButton_);
+
+    // Power off
+    powerDownButton_ = new QAction("Power Down");
+    powerDownButton_->setEnabled(false);
+    connect(powerDownButton_, &QAction::triggered, this, &MainWindow::PowerDown);
+    emulationMenu->addAction(powerDownButton_);
 
     return emulationMenu;
 }
@@ -706,5 +721,23 @@ void MainWindow::LoadState(u8 index)
     StopEmulationThreads();
     gba_api::LoadSaveState(saveState);
     StartEmulationThreads();
+}
+
+void MainWindow::PowerDown()
+{
+    restartButton_->setEnabled(false);
+    powerDownButton_->setEnabled(false);
+    StopEmulationThreads();
+    gba_api::PowerOff();
+
+    currentRomPath_ = "";
+    romTitle_ = "Advanced Boy";
+    UpdateSaveStateActions("");
+
+    RefreshScreen();
+    emit UpdateBackgroundViewSignal(true);
+    emit UpdateSpriteViewerSignal(true);
+    emit UpdateCpuDebuggerSignal();
+    emit UpdateRegisterViewerSignal();
 }
 }  // namespace gui
