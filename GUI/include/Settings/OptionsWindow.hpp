@@ -49,6 +49,9 @@ signals:
     /// @param key Most recently pressed keyboard key.
     void SetNewKeyboardBindingSignal(Qt::Key key);
 
+    /// @brief Emit when any time related setting has changed.
+    void TimeFormatChangedSignal();
+
 public slots:
     /// @brief Slot to handle gamepads being connected/disconnected.
     void UpdateGamepadTabSlot();

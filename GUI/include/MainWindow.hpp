@@ -68,6 +68,9 @@ private slots:
     /// @brief Get the latest gamepad bindings from persistent data.
     void BindingsChangedSlot() { gamepadMap_ = settings_.GetGamepadMap(); }
 
+    /// @brief Slot to handle changes to timezone/time display format.
+    void TimeFormatChangedSlot();
+
 private:
     /// @brief Stop the currently running GBA if one exists, create a new GBA, and start the main emulation loop.
     /// @param romPath Path to GBA ROM.

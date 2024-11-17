@@ -2,8 +2,8 @@
 #include <GUI/include/PersistentData.hpp>
 #include <GUI/include/Settings/AudioTab.hpp>
 #include <GUI/include/Settings/GamepadTab.hpp>
+#include <GUI/include/Settings/GeneralTab.hpp>
 #include <GUI/include/Settings/KeyboardTab.hpp>
-#include <GUI/include/Settings/PathsTab.hpp>
 #include <QtGui/QCloseEvent>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QMessageBox>
@@ -23,8 +23,10 @@ OptionsWindow::OptionsWindow(PersistentData& settings) : settings_(settings), li
     tabWidget->setFocusPolicy(Qt::NoFocus);
     tabWidget->setObjectName("TabWidget");
 
-    // Paths tab (index 0)
-    tabWidget->addTab(new PathsTab(settings), "Paths");
+    // General tab (index 0)
+    GeneralTab* generalTab = new GeneralTab(settings);
+    connect(generalTab, &GeneralTab::TimeFormatChangedSignal, this, &OptionsWindow::TimeFormatChangedSignal);
+    tabWidget->addTab(generalTab, "General");
 
     // Audio tab (index 1)
     AudioTab* audioTab = new AudioTab(settings);
@@ -89,12 +91,12 @@ void OptionsWindow::RestoreDefaultsSlot()
     {
         case 0:
         {
-            confirmationBox.setText("Restore default paths?");
+            confirmationBox.setText("Restore default general options?");
             int confirmation = confirmationBox.exec();
 
             if (confirmation == QMessageBox::Yes)
             {
-                static_cast<PathsTab*>(activeTabPtr)->RestoreDefaults();
+                static_cast<GeneralTab*>(activeTabPtr)->RestoreDefaults();
             }
 
             break;

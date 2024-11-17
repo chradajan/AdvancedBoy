@@ -111,6 +111,7 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(optionsWindow_.get(), &OptionsWindow::UpdateAudioSignal, this, &MainWindow::UpdateAudioSlot);
     connect(optionsWindow_.get(), &OptionsWindow::SetGamepadSignal, this, &MainWindow::SetGamepadSlot);
     connect(optionsWindow_.get(), &OptionsWindow::BindingsChangedSignal, this, &MainWindow::BindingsChangedSlot);
+    connect(optionsWindow_.get(), &OptionsWindow::TimeFormatChangedSignal, this, &MainWindow::TimeFormatChangedSlot);
 
     // Gamepad setup
     gamepad_ = optionsWindow_->GetGamepad();
@@ -170,6 +171,11 @@ void MainWindow::UpdateAudioSlot(PersistentData::AudioSettings audioSettings)
                             audioSettings.channel4,
                             audioSettings.fifoA,
                             audioSettings.fifoB);
+}
+
+void MainWindow::TimeFormatChangedSlot()
+{
+    UpdateSaveStateActions(gba_api::GetSavePath());
 }
 
 ///---------------------------------------------------------------------------------------------------------------------------------
@@ -462,6 +468,9 @@ void MainWindow::InitializeMenuBar()
 
 void MainWindow::UpdateSaveStateActions(fs::path savePath)
 {
+    auto& timezone = settings_.GetTimezone();
+    bool is12H = settings_.Is12HourClock();
+
     for (u8 i = 0; i < 5; ++i)
     {
         savePath.replace_extension(".s" + std::to_string(i));
@@ -473,8 +482,12 @@ void MainWindow::UpdateSaveStateActions(fs::path savePath)
         }
         else
         {
-            auto time = std::chrono::time_point_cast<std::chrono::seconds>(fs::last_write_time(savePath));
-            std::string timeStr = std::format("{0:%D} {0:%H}:{0:%M}:{0:%S}", time);
+            auto fileTime = std::chrono::time_point_cast<std::chrono::seconds>(fs::last_write_time(savePath));
+            auto sysTime = std::chrono::clock_cast<std::chrono::system_clock>(fileTime);
+            auto zonedTime = std::chrono::zoned_time{&timezone, sysTime};
+
+            // std::string timeStr = std::format("{0:%D} {0:%H}:{0:%M}:{0:%S}", zonedTime);
+            std::string timeStr = is12H ? std::format("{0:%D} {0:%r}", zonedTime) : std::format("{0:%D} {0:%T}", zonedTime);
             saveStateActions_[i]->setText("Save to slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));
             loadStateActions_[i]->setText("Load from slot " + QString::number(i + 1) + " - " + QString::fromStdString(timeStr));
         }

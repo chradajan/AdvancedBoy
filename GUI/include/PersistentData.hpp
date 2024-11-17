@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <filesystem>
 #include <memory>
 #include <utility>
@@ -184,6 +185,29 @@ public:
     /// @brief Restore all default gamepad bindings and deadzone.
     /// @param clearGUID Whether to reset the saved GUID.
     void RestoreDefaultGamepadBindings(bool clearGUID);
+
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// Time
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Get the currently saved timezone.
+    /// @return Current timezone.
+    std::chrono::time_zone const& GetTimezone() const;
+
+    /// @brief Set the timezone to use for converting time points to zoned time.
+    /// @param timezone Timezone to save.
+    void SetTimezone(std::chrono::time_zone const& timezone);
+
+    /// @brief Check how to display time values.
+    /// @return True to display times in 12H format, false for 24H format.
+    bool Is12HourClock() const;
+
+    /// @brief Set how to display time values.
+    /// @param is12H Whether to display times in 12H format (true) or 24H format (false).
+    void Set12HourClock(bool is12H);
+
+    /// @brief Restore default time related values.
+    void RestoreDefaultTimeSettings();
 
 private:
     /// @brief Read the settings to get the primary and secondary gamepad bindings from a config key.

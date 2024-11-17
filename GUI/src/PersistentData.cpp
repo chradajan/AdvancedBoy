@@ -490,6 +490,47 @@ std::pair<Qt::Key, Qt::Key> PersistentData::GetKeyboardBindingsForKey(QString co
             static_cast<Qt::Key>(settingsPtr_->value("Keyboard/" + key + "_Secondary").toInt())};
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// Timezone
+///---------------------------------------------------------------------------------------------------------------------------------
+
+std::chrono::time_zone const& PersistentData::GetTimezone() const
+{
+    auto tzName = settingsPtr_->value("Time/Timezone").toString().toStdString();
+    auto& defaultTz = std::chrono::get_tzdb().zones[0];
+
+    for (auto& tz : std::chrono::get_tzdb().zones)
+    {
+        if (tz.name() == tzName)
+        {
+            return tz;
+        }
+    }
+
+    return defaultTz;
+}
+
+void PersistentData::SetTimezone(std::chrono::time_zone const& timezone)
+{
+    settingsPtr_->setValue("Time/Timezone", QString::fromStdString(std::string{timezone.name()}));
+}
+
+bool PersistentData::Is12HourClock() const
+{
+    return settingsPtr_->value("Time/12H").toBool();
+}
+
+void PersistentData::Set12HourClock(bool is12H)
+{
+    settingsPtr_->setValue("Time/12H", is12H);
+}
+
+void PersistentData::RestoreDefaultTimeSettings()
+{
+    settingsPtr_->setValue("Time/Timezone", "Etc/UTC");
+    settingsPtr_->setValue("Time/12H", true);
+}
+
 void PersistentData::WriteDefaultSettings()
 {
     // Paths
@@ -525,4 +566,7 @@ void PersistentData::WriteDefaultSettings()
 
     // Gamepad bindings
     RestoreDefaultGamepadBindings(true);
+
+    // Timezone
+    RestoreDefaultTimeSettings();
 }
