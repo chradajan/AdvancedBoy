@@ -26,7 +26,7 @@ void BackgroundCharBlockView::GetCharBlock(CharBlockEntry4& block, u16 index)
 
     if (adjustedIndex >= charBlocks_.size())
     {
-        std::memset(&block, 0, sizeof(CharBlockEntry4));
+        ZeroObject(block);
     }
     else
     {
@@ -40,7 +40,7 @@ void BackgroundCharBlockView::GetCharBlock(CharBlockEntry8& block, u16 index)
 
     if (adjustedIndex >= charBlocks_.size())
     {
-        std::memset(&block, 0, sizeof(CharBlockEntry8));
+        ZeroObject(block);
     }
     else
     {

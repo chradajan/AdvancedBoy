@@ -1,10 +1,10 @@
 #include <GUI/include/PersistentData.hpp>
 #include <algorithm>
-#include <cstring>
 #include <filesystem>
 #include <span>
 #include <utility>
 #include <vector>
+#include <GBA/include/Utilities/CommonUtils.hpp>
 #include <GUI/include/Bindings.hpp>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
@@ -451,7 +451,7 @@ void PersistentData::RestoreDefaultGamepadBindings(bool clearGUID)
     if (clearGUID)
     {
         SDL_JoystickGUID guid;
-        std::memset(&guid, 0, sizeof(guid));
+        ZeroObject(guid);
         SetGUID(guid);
     }
 
