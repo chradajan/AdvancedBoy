@@ -25,14 +25,15 @@ void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
                    fs::path saveDir,
                    std::function<void()> vBlankCallback,
-                   std::function<void()> breakpointCallback)
+                   std::function<void()> breakpointCallback,
+                   bool skipBiosIntro)
 {
     if (GBA)
     {
         return;
     }
 
-    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, saveDir, vBlankCallback, breakpointCallback);
+    GBA = std::make_unique<GameBoyAdvance>(biosPath, romPath, saveDir, vBlankCallback, breakpointCallback, skipBiosIntro);
     GBA->SetCpuClockSpeed(ClockSpeed);
     GBADebugger = std::make_unique<debug::GameBoyAdvanceDebugger>(*GBA);
 }

@@ -72,6 +72,10 @@ private slots:
     /// @param state State of clock format box (checked == 12H).
     void ClockFormatChangedSlot(Qt::CheckState state);
 
+    /// @brief Slot to handle selecting whether to skip BIOS intro.
+    /// @param state State of skip intro checkbox.
+    void UpdateSkipBiosSlot(Qt::CheckState state);
+
 private:
     /// @brief Create group box of miscellaneous emulation options.
     /// @return Options group box.

@@ -209,6 +209,21 @@ public:
     /// @brief Restore default time related values.
     void RestoreDefaultTimeSettings();
 
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// General
+    ///-----------------------------------------------------------------------------------------------------------------------------
+
+    /// @brief Check whether to skip BIOS intro.
+    /// @return True if intro should be skipped.
+    bool SkipBiosIntro() const;
+
+    /// @brief Set whether to skip BIOS intro when launching a game.
+    /// @param skip True to skip intro, false to play intro.
+    void SetSkipBiosIntro(bool skip);
+
+    /// @brief Restore default general settings.
+    void RestoreDefaultGeneralSettings();
+
 private:
     /// @brief Read the settings to get the primary and secondary gamepad bindings from a config key.
     /// @param key Key string in config file to get bindings for.

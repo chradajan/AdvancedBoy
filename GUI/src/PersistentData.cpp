@@ -531,6 +531,25 @@ void PersistentData::RestoreDefaultTimeSettings()
     settingsPtr_->setValue("Time/12H", true);
 }
 
+///---------------------------------------------------------------------------------------------------------------------------------
+/// General
+///---------------------------------------------------------------------------------------------------------------------------------
+
+bool PersistentData::SkipBiosIntro() const
+{
+    return settingsPtr_->value("General/SkipBiosIntro").toBool();
+}
+
+void PersistentData::SetSkipBiosIntro(bool skip)
+{
+    settingsPtr_->setValue("General/SkipBiosIntro", skip);
+}
+
+void PersistentData::RestoreDefaultGeneralSettings()
+{
+    settingsPtr_->setValue("General/SkipBiosIntro", false);
+}
+
 void PersistentData::WriteDefaultSettings()
 {
     // Paths
@@ -569,4 +588,7 @@ void PersistentData::WriteDefaultSettings()
 
     // Timezone
     RestoreDefaultTimeSettings();
+
+    // General
+    RestoreDefaultGeneralSettings();
 }

@@ -72,6 +72,12 @@ void GeneralTab::RestoreDefaults()
     settings_.RestoreDefaultTimeSettings();
     UpdateTimeWidgets(findChild<QComboBox*>("TimezonesDropdown"), findChild<QCheckBox*>("ClockFormatBox"));
     emit TimeFormatChangedSignal();
+
+    settings_.RestoreDefaultGeneralSettings();
+    QCheckBox* skipBiosBox = findChild<QCheckBox*>("SkipBiosBox");
+    skipBiosBox->blockSignals(true);
+    skipBiosBox->setChecked(settings_.SkipBiosIntro());
+    skipBiosBox->blockSignals(false);
 }
 
 void GeneralTab::OpenBiosFileDialog()
@@ -126,9 +132,24 @@ void GeneralTab::ClockFormatChangedSlot(Qt::CheckState state)
     emit TimeFormatChangedSignal();
 }
 
+void GeneralTab::UpdateSkipBiosSlot(Qt::CheckState state)
+{
+    settings_.SetSkipBiosIntro(state == Qt::CheckState::Checked);
+}
+
 QGroupBox* GeneralTab::CreateOptionsGroup() const
 {
+    QFormLayout* layout = new QFormLayout;
+
+    // Skip bios
+    QCheckBox* skipBiosBox = new QCheckBox;
+    skipBiosBox->setObjectName("SkipBiosBox");
+    skipBiosBox->setChecked(settings_.SkipBiosIntro());
+    connect(skipBiosBox, &QCheckBox::checkStateChanged, this, &GeneralTab::UpdateSkipBiosSlot);
+    layout->addRow("Skip BIOS Intro", skipBiosBox);
+
     QGroupBox* optionsGroup = new QGroupBox("Options");
+    optionsGroup->setLayout(layout);
     return optionsGroup;
 }
 

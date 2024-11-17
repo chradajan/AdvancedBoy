@@ -19,11 +19,13 @@ namespace gba_api
 /// @param saveDir Path to directory to store save files and save states.
 /// @param vBlankCallback Function to be called whenever the GBA enters VBlank.
 /// @param breakpointCallback Function to be called whenever the GBA encounters a breakpoint set in the CPU debugger.
+/// @param skipBiosIntro Whether to skip BIOS intro animation and skip straight to executing from cartridge.
 void InitializeGBA(fs::path biosPath,
                    fs::path romPath,
                    fs::path saveDir,
                    std::function<void()> vBlankCallback,
-                   std::function<void()> breakpointCallback);
+                   std::function<void()> breakpointCallback,
+                   bool skipBiosIntro);
 
 /// @brief Delete the current GBA instance if it exists.
 void PowerOff();

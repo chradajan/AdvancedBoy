@@ -15,13 +15,15 @@ namespace cpu
 class Registers
 {
 public:
+    Registers() = delete;
     Registers(Registers const&) = delete;
     Registers& operator=(Registers const&) = delete;
     Registers(Registers&&) = delete;
     Registers& operator=(Registers&&) = delete;
 
-    /// @brief Zero initialize all registers.
-    Registers();
+    /// @brief Initialize ARM7TDMI registers.
+    /// @param skipBiosIntro Whether to initialize registers to their post-BIOS state.
+    explicit Registers(bool skipBiosIntro);
 
     /// @brief Read a general purpose register using the current operating mode according to CPSR.
     /// @param index Index of register to read.

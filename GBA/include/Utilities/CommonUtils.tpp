@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GBA/include/Utilities/CommonUtils.hpp>
+#include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -27,4 +28,11 @@ T SignExtend(T input)
     }
 
     return output;
+}
+
+template <typename T>
+void ZeroObject(T& obj)
+{
+    static_assert(std::is_standard_layout_v<T>, "ZeroObject can only be used on standard-layout types");
+    std::memset(&obj, 0, sizeof(T));
 }

@@ -19,9 +19,11 @@ namespace cpu
 {
 ARM7TDMI::ARM7TDMI(ReadMemCallback readMem,
                    WriteMemCallback writeMem,
-                   EventScheduler& scheduler) :
+                   EventScheduler& scheduler,
+                   bool skipBiosIntro) :
     ReadMemory(readMem),
     WriteMemory(writeMem),
+    registers_(skipBiosIntro),
     flushPipeline_(false),
     scheduler_(scheduler)
 {

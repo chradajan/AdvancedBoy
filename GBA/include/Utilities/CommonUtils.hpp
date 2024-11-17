@@ -55,6 +55,12 @@ u32 Read8BitBus(u8 byte, AccessSize length);
 /// @return Rotated value to actually write.
 u8 Write8BitBus(u32 addr, u32 val);
 
+/// @brief Memset an object with 0.
+/// @tparam T Object type (should be inferred).
+/// @param obj Reference to object to memset.
+template <typename T>
+void ZeroObject(T& obj);
+
 // Save state macros
 
 #define SerializeArray(arr) saveState.write(reinterpret_cast<const char*>(arr.data()), sizeof(arr[0]) * arr.size())

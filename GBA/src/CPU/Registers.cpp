@@ -10,21 +10,26 @@
 
 namespace cpu
 {
-Registers::Registers()
+Registers::Registers(bool skipBiosIntro)
 {
-    cpsr_ = {};
-    sysAndUserRegBank_ = {};
-    fiqRegBank_ = {};
-    supervisorRegBank_ = {};
-    abortRegBank_ = {};
-    irqRegBank_ = {};
-    undefinedRegBank_ = {};
+    ZeroObject(cpsr_);
+    ZeroObject(sysAndUserRegBank_);
+    ZeroObject(fiqRegBank_);
+    ZeroObject(supervisorRegBank_);
+    ZeroObject(abortRegBank_);
+    ZeroObject(irqRegBank_);
+    ZeroObject(undefinedRegBank_);
 
     SetOperatingMode(OperatingMode::Supervisor);
     SetOperatingState(OperatingState::ARM);
     SetIrqDisabled(true);
     SetFiqDisabled(true);
     SetPC(RESET_VECTOR);
+
+    if (skipBiosIntro)
+    {
+        SkipBIOS();
+    }
 }
 
 u32 Registers::ReadRegister(u8 index) const

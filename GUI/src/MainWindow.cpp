@@ -322,7 +322,8 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
                            romPath,
                            settings_.GetSaveDirectory(),
                            std::bind(&MainWindow::VBlankCallback, this),
-                           std::bind(&MainWindow::BreakpointCallback, this));
+                           std::bind(&MainWindow::BreakpointCallback, this),
+                           settings_.SkipBiosIntro());
 
     if (!gba_api::ValidBiosLoaded())
     {

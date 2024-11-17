@@ -32,9 +32,11 @@ public:
     /// @param readMem Callback function to access bus read functionality.
     /// @param writeMem Callback function to access bus write functionality.
     /// @param scheduler Reference to event scheduler that will be advanced as instructions execute.
+    /// @param skipBiosIntro Whether to skip BIOS intro animation and skip straight to executing from cartridge.
     explicit ARM7TDMI(ReadMemCallback readMem,
                       WriteMemCallback writeMem,
-                      EventScheduler& scheduler);
+                      EventScheduler& scheduler,
+                      bool skipBiosIntro);
 
     /// @brief Advance the pipeline by one stage and execute an instruction if one is ready to be executed. Advances the scheduler
     ///        after each memory read/write and internal cycle.
