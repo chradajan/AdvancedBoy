@@ -28,13 +28,13 @@ GamePak::GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, 
     nextSequentialAddr_ = U32_MAX;
     lastReadCompletionCycle_ = 0;
     prefetchedWaitStates_ = 0;
+    size_t fileSizeInBytes = fs::file_size(romPath);
 
-    if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath))
+    if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath) || (fileSizeInBytes > (32 * MiB)))
     {
         return;
     }
 
-    size_t fileSizeInBytes = fs::file_size(romPath);
     ROM_.resize(fileSizeInBytes);
     std::ifstream rom(romPath, std::ios::binary);
 
@@ -44,6 +44,11 @@ GamePak::GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, 
     }
 
     rom.read(reinterpret_cast<char*>(ROM_.data()), fileSizeInBytes);
+
+    if (!ValidHeader())
+    {
+        return;
+    }
 
     std::stringstream titleStream;
 
@@ -256,6 +261,25 @@ void GamePak::Deserialize(std::ifstream& saveState)
     DeserializeTrivialType(nextSequentialAddr_);
     DeserializeTrivialType(lastReadCompletionCycle_);
     DeserializeTrivialType(prefetchedWaitStates_);
+}
+
+bool GamePak::ValidHeader() const
+{
+    if (ROM_.size() < 192)
+    {
+        return false;
+    }
+
+    // Sum up the first 152 bytes of the compressed bitmap of the Nintendo logo in the header since these must always be the same
+    // for any valid GBA ROM.
+    u16 headerSum = 0;
+
+    for (u8 i = 0x04; i < 0x9C; ++i)
+    {
+        headerSum += static_cast<u8>(ROM_[i]);
+    }
+
+    return headerSum == 0x4927;
 }
 
 BackupType GamePak::DetectBackupType() const

@@ -104,6 +104,10 @@ public:
     void Deserialize(std::ifstream& saveState);
 
 private:
+    /// @brief Verify that the file being used to initialize this has a valid GamePak header.
+    /// @return Whether this is being initialized from a valid GBA ROM.
+    bool ValidHeader() const;
+
     /// @brief Determine the backup type used by a ROM.
     /// @return Backup type if one was detected.
     BackupType DetectBackupType() const;
