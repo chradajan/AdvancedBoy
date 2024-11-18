@@ -81,12 +81,12 @@ GameBoyAdvance::GameBoyAdvance(fs::path biosPath,
     EWRAM_.fill(std::byte{0});
     IWRAM_.fill(std::byte{0});
 
-    scheduler_.RegisterEvent(EventType::HBlank, std::bind(&GameBoyAdvance::HBlank, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::VBlank, std::bind(&GameBoyAdvance::VBlank, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Timer0Overflow, std::bind(&GameBoyAdvance::Timer0Overflow, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Timer1Overflow, std::bind(&GameBoyAdvance::Timer1Overflow, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Timer2Overflow, std::bind(&GameBoyAdvance::Timer2Overflow, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Timer3Overflow, std::bind(&GameBoyAdvance::Timer3Overflow, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::VBlank, [this](int extraCycles){ this->VBlank(extraCycles); });
+    scheduler_.RegisterEvent(EventType::HBlank, [this](int extraCycles){ this->HBlank(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Timer0Overflow, [this](int extraCycles){ this->Timer0Overflow(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Timer1Overflow, [this](int extraCycles){ this->Timer1Overflow(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Timer2Overflow, [this](int extraCycles){ this->Timer2Overflow(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Timer3Overflow, [this](int extraCycles){ this->Timer3Overflow(extraCycles); });
 }
 
 GameBoyAdvance::~GameBoyAdvance()

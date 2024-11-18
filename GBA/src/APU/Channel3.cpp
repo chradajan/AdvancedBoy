@@ -3,7 +3,6 @@
 #include <bit>
 #include <cstring>
 #include <fstream>
-#include <functional>
 #include <utility>
 #include <GBA/include/APU/Registers.hpp>
 #include <GBA/include/Memory/MemoryMap.hpp>
@@ -22,8 +21,8 @@ Channel3::Channel3(ClockManager const& clockMgr, EventScheduler& scheduler) : cl
     playbackMask_ = 0xF0;
     playbackBank_ = 0;
 
-    scheduler_.RegisterEvent(EventType::Channel3Clock, std::bind(&Channel3::Clock, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel3LengthTimer, std::bind(&Channel3::LengthTimer, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Channel3Clock, [this](int extraCycles){ this->Clock(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Channel3LengthTimer, [this](int extraCycles){ this->LengthTimer(extraCycles); });
 }
 
 std::pair<u32, bool> Channel3::ReadReg(u32 addr, AccessSize length)

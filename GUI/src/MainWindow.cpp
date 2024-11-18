@@ -5,7 +5,6 @@
 #include <exception>
 #include <filesystem>
 #include <format>
-#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -321,8 +320,8 @@ void MainWindow::StartEmulation(fs::path romPath, bool ignoreCurrentPath)
     gba_api::InitializeGBA(settings_.GetBiosPath(),
                            romPath,
                            settings_.GetSaveDirectory(),
-                           std::bind(&MainWindow::VBlankCallback, this),
-                           std::bind(&MainWindow::BreakpointCallback, this),
+                           [this](){ this->VBlankCallback(); },
+                           [this](){ this->BreakpointCallback(); },
                            settings_.SkipBiosIntro());
 
     if (!gba_api::ValidBiosLoaded())

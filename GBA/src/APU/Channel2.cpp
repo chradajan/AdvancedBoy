@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <functional>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Registers.hpp>
@@ -23,9 +22,9 @@ Channel2::Channel2(ClockManager const& clockMgr, EventScheduler& scheduler) : cl
     dutyCycleIndex_ = 0;
     lengthTimerExpired_ = false;
 
-    scheduler_.RegisterEvent(EventType::Channel2Clock, std::bind(&Channel2::Clock, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel2Envelope, std::bind(&Channel2::Envelope, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel2LengthTimer, std::bind(&Channel2::LengthTimer, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Channel2Clock, [this](int extraCycles){ this->Clock(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Channel2Envelope, [this](int extraCycles){ this->Envelope(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Channel2LengthTimer, [this](int extraCycles){ this->LengthTimer(extraCycles); });
 }
 
 std::pair<u32, bool> Channel2::ReadReg(u32 addr, AccessSize length)

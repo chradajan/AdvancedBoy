@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <functional>
 #include <fstream>
 #include <utility>
 #include <GBA/include/APU/Channel1.hpp>
@@ -30,7 +29,7 @@ APU::APU(ClockManager const& clockMgr, EventScheduler& scheduler) :
 {
     registers_.fill(std::byte{0});
 
-    scheduler_.RegisterEvent(EventType::SampleAPU, std::bind(&APU::Sample, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::SampleAPU, [this](int extraCycles){ this->Sample(extraCycles); });
     scheduler.ScheduleEvent(EventType::SampleAPU, clockMgr_.GetCpuCyclesPerSample());
 }
 

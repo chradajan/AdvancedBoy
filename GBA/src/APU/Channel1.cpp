@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <functional>
 #include <utility>
 #include <GBA/include/APU/Constants.hpp>
 #include <GBA/include/APU/Registers.hpp>
@@ -24,10 +23,10 @@ Channel1::Channel1(ClockManager const& clockMgr, EventScheduler& scheduler) : cl
     lengthTimerExpired_ = false;
     frequencyOverflow_ = false;
 
-    scheduler_.RegisterEvent(EventType::Channel1Clock, std::bind(&Channel1::Clock, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel1Envelope, std::bind(&Channel1::Envelope, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel1LengthTimer, std::bind(&Channel1::LengthTimer, this, std::placeholders::_1));
-    scheduler_.RegisterEvent(EventType::Channel1FrequencySweep, std::bind(&Channel1::FrequencySweep, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::Channel1Clock, [this](int c){ this->Clock(c); });
+    scheduler_.RegisterEvent(EventType::Channel1Envelope, [this](int extraCycles){ this->Envelope(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Channel1LengthTimer, [this](int extraCycles){ this->LengthTimer(extraCycles); });
+    scheduler_.RegisterEvent(EventType::Channel1FrequencySweep, [this](int extraCycles){ this->FrequencySweep(extraCycles); });
 }
 
 std::pair<u32, bool> Channel1::ReadReg(u32 addr, AccessSize length)

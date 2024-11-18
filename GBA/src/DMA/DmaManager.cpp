@@ -2,7 +2,6 @@
 #include <array>
 #include <cstddef>
 #include <fstream>
-#include <functional>
 #include <stdexcept>
 #include <utility>
 #include <GBA/include/Cartridge/GamePak.hpp>
@@ -34,7 +33,7 @@ DmaManager::DmaManager(ReadMemCallback readMem,
     videoCapture_.fill(false);
     active_ = false;
 
-    scheduler_.RegisterEvent(EventType::DmaComplete, std::bind(&DmaManager::EndDma, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::DmaComplete, [this](int extraCycles){ this->EndDma(extraCycles); });
 }
 
 void DmaManager::ConnectGamePak(cartridge::GamePak* gamePakPtr)

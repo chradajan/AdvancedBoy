@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstring>
 #include <fstream>
-#include <functional>
 #include <GBA/include/Memory/MemoryMap.hpp>
 #include <GBA/include/System/EventScheduler.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
@@ -22,7 +21,7 @@ SystemControl::SystemControl(EventScheduler& scheduler) : scheduler_(scheduler)
     postFlgAndHaltcntRegisters_.fill(std::byte{0});
     memoryControlRegisters_.fill(std::byte{0});
 
-    scheduler_.RegisterEvent(EventType::SetIRQ, std::bind(&SystemControl::SetIRQLine, this, std::placeholders::_1));
+    scheduler_.RegisterEvent(EventType::SetIRQ, [this](int extraCycles){ this->SetIRQLine(extraCycles); });
 }
 
 MemReadData SystemControl::ReadReg(u32 addr, AccessSize length)
