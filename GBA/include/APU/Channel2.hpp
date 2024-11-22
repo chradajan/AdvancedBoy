@@ -40,6 +40,9 @@ public:
     /// @return Whether this write triggered this channel to start/restart.
     bool WriteReg(u32 addr, u32 val, AccessSize length);
 
+    /// @brief Clear all registers when SOUNDCNT_X master enable is cleared.
+    void MasterDisable();
+
     /// @brief Sample Channel 2's current output.
     /// @return Channel 2 output value.
     u8 Sample() const;

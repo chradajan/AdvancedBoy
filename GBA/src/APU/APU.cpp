@@ -211,11 +211,23 @@ void APU::WriteCntRegisters(u32 addr, u32 val, AccessSize length)
     WriteMemoryBlock(registers_, addr, APU_CONTROL_ADDR_MIN, val, length);
     auto currSoundCnt_X = GetSOUNDCNT_X();
 
-    // Restore SOUNDCNT_X read only bits
-    currSoundCnt_X.chan1On = prevSoundCnt_X.chan1On;
-    currSoundCnt_X.chan2On = prevSoundCnt_X.chan2On;
-    currSoundCnt_X.chan3On = prevSoundCnt_X.chan3On;
-    currSoundCnt_X.chan4On = prevSoundCnt_X.chan4On;
+    if (prevSoundCnt_X.masterEnable && !currSoundCnt_X.masterEnable)
+    {
+        ZeroObject(currSoundCnt_X);
+        channel1_.MasterDisable();
+        channel2_.MasterDisable();
+        channel3_.MasterDisable();
+        channel4_.MasterDisable();
+    }
+    else
+    {
+        // Restore SOUNDCNT_X read only bits
+        currSoundCnt_X.chan1On = prevSoundCnt_X.chan1On;
+        currSoundCnt_X.chan2On = prevSoundCnt_X.chan2On;
+        currSoundCnt_X.chan3On = prevSoundCnt_X.chan3On;
+        currSoundCnt_X.chan4On = prevSoundCnt_X.chan4On;
+    }
+
     SetSOUNDCNT_X(currSoundCnt_X);
 
     // Reset FIFOs if needed
@@ -355,13 +367,19 @@ void APU::Sample(int extraCycles)
 
         leftSample = std::clamp(leftSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
         rightSample = std::clamp(rightSample, MIN_OUTPUT_LEVEL, MAX_OUTPUT_LEVEL);
+
+        float leftOutput = (leftSample - 512) / 512.0;
+        float rightOutput = (rightSample - 512) / 512.0;
+
+        float sample[2] = {leftOutput * volumeMultiplier_, rightOutput * volumeMultiplier_};
+        sampleBuffer_.Write(sample, 2);
+    }
+    else
+    {
+        float sample[2] = {0.0f, 0.0f};
+        sampleBuffer_.Write(sample, 2);
     }
 
-    float leftOutput = (leftSample - 512) / 512.0;
-    float rightOutput = (rightSample - 512) / 512.0;
-
-    float sample[2] = {leftOutput * volumeMultiplier_, rightOutput * volumeMultiplier_};
-    sampleBuffer_.Write(sample, 2);
     ++sampleCounter_;
 }
 }  // namespace audio

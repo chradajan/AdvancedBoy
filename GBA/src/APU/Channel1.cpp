@@ -52,6 +52,15 @@ bool Channel1::WriteReg(u32 addr, u32 val, AccessSize length)
     return triggered;
 }
 
+void Channel1::MasterDisable()
+{
+    registers_.fill(std::byte{0});
+    scheduler_.UnscheduleEvent(EventType::Channel1Clock);
+    scheduler_.UnscheduleEvent(EventType::Channel1Envelope);
+    scheduler_.UnscheduleEvent(EventType::Channel1LengthTimer);
+    scheduler_.UnscheduleEvent(EventType::Channel1FrequencySweep);
+}
+
 u8 Channel1::Sample() const
 {
     if (lengthTimerExpired_ || frequencyOverflow_)

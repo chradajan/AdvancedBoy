@@ -53,6 +53,13 @@ bool Channel3::WriteReg(u32 addr, u32 val, AccessSize length)
     return triggered;
 }
 
+void Channel3::MasterDisable()
+{
+    registers_.fill(std::byte{0});
+    scheduler_.UnscheduleEvent(EventType::Channel3Clock);
+    scheduler_.UnscheduleEvent(EventType::Channel3LengthTimer);
+}
+
 std::pair<u32, bool> Channel3::ReadWaveRAM(u32 addr, AccessSize length)
 {
     u8 bank = (GetSOUND3CNT().bankNum == 0) ? 1 : 0;

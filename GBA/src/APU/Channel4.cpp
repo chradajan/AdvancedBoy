@@ -51,6 +51,14 @@ bool Channel4::WriteReg(u32 addr, u32 val, AccessSize length)
     return triggered;
 }
 
+void Channel4::MasterDisable()
+{
+    registers_.fill(std::byte{0});
+    scheduler_.UnscheduleEvent(EventType::Channel4Clock);
+    scheduler_.UnscheduleEvent(EventType::Channel4Envelope);
+    scheduler_.UnscheduleEvent(EventType::Channel4LengthTimer);
+}
+
 u8 Channel4::Sample() const
 {
     if (lengthTimerExpired_)
