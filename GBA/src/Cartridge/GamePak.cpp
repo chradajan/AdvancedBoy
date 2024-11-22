@@ -28,9 +28,15 @@ GamePak::GamePak(fs::path romPath, fs::path saveDir, EventScheduler& scheduler, 
     nextSequentialAddr_ = U32_MAX;
     lastReadCompletionCycle_ = 0;
     prefetchedWaitStates_ = 0;
+
+    if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath))
+    {
+        return;
+    }
+
     size_t fileSizeInBytes = fs::file_size(romPath);
 
-    if (romPath.empty() || !fs::exists(romPath) || !fs::is_regular_file(romPath) || (fileSizeInBytes > (32 * MiB)))
+    if (fileSizeInBytes > (32 * MiB))
     {
         return;
     }
