@@ -28,7 +28,7 @@ public:
     /// @brief Read a general purpose register using the current operating mode according to CPSR.
     /// @param index Index of register to read.
     /// @return Current register value.
-    u32 ReadRegister(u8 index) const;
+    u32 ReadRegister(u8 index) const { return gpRegisters_[index]; }
 
     /// @brief Read a general purpose register corresponding to the register bank of the specified operating mode.
     /// @param index Index of register to read.
@@ -53,14 +53,14 @@ public:
 
     /// @brief Get the current value of the program counter.
     /// @return Current PC value.
-    u32 GetPC() const { return sysAndUserRegBank_.r15; }
+    u32 GetPC() const { return gpRegisters_[PC_INDEX]; }
 
     /// @brief Set the value of the program counter. Should be accompanied by a pipeline flush.
     /// @param val Value to set PC to.
     void SetPC(u32 val) { WriteRegister(PC_INDEX, val); }
 
     /// @brief Increment the PC by either 2 or 4 depending on the current operating state.
-    void AdvancePC() { sysAndUserRegBank_.r15 += InArmState() ? 4 : 2; }
+    void AdvancePC() { gpRegisters_[PC_INDEX] += InArmState() ? 4 : 2; }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// CPSR flags access
@@ -72,7 +72,7 @@ public:
 
     /// @brief Set the CPU's operating mode.
     /// @param mode New operating mode.
-    void SetOperatingMode(OperatingMode mode) { cpsr_.Mode = static_cast<u32>(mode); }
+    void SetOperatingMode(OperatingMode mode);
 
     /// @brief Check the current operating state of the CPU.
     /// @return Current operating state.
@@ -148,18 +148,18 @@ public:
 
     /// @brief Set the value of the CPSR register.
     /// @param val Raw value to set CPSR to.
-    void SetCPSR(u32 val) { cpsr_ = std::bit_cast<CPSR>(val); }
+    void SetCPSR(u32 val);
 
     /// @brief Get the raw value of the SPSR register.
     /// @return Current SPSR value of the current operating mode.
-    u32 GetSPSR() const;
+    u32 GetSPSR() const { return std::bit_cast<u32>(spsr_); }
 
-    /// @brief Set teh value of the SPSR register of the current operating mode.
+    /// @brief Set the value of the SPSR register of the current operating mode.
     /// @param val Raw value to set SPSR to.
-    void SetSPSR(u32 val);
+    void SetSPSR(u32 val) { spsr_ = std::bit_cast<CPSR>(val); }
 
     /// @brief Copy the SPSR value of the current operating mode into CPSR.
-    void LoadSPSR();
+    void LoadSPSR() { SetCPSR(std::bit_cast<u32>(spsr_)); }
 
     ///-----------------------------------------------------------------------------------------------------------------------------
     /// Save States
@@ -178,7 +178,7 @@ private:
     void SkipBIOS();
 
     ///-----------------------------------------------------------------------------------------------------------------------------
-    /// Register banks and lookup tables
+    /// Program status registers
     ///-----------------------------------------------------------------------------------------------------------------------------
 
     /// @brief Bitfield of fields in CPSR and SPSR.
@@ -198,180 +198,18 @@ private:
     static_assert(sizeof(CPSR) == sizeof(u32), "CPSR must be 4 bytes");
 
     CPSR cpsr_;
+    CPSR spsr_;
 
-    struct
-    {
-        u32 r0;
-        u32 r1;
-        u32 r2;
-        u32 r3;
-        u32 r4;
-        u32 r5;
-        u32 r6;
-        u32 r7;
-        u32 r8;
-        u32 r9;
-        u32 r10;
-        u32 r11;
-        u32 r12;
-        u32 r13;
-        u32 r14;
-        u32 r15;
-    } sysAndUserRegBank_;
+    ///-----------------------------------------------------------------------------------------------------------------------------
+    /// General purpose registers
+    ///-----------------------------------------------------------------------------------------------------------------------------
 
-    struct
-    {
-        u32 r8;
-        u32 r9;
-        u32 r10;
-        u32 r11;
-        u32 r12;
-        u32 r13;
-        u32 r14;
-        CPSR spsr;
-    } fiqRegBank_;
-
-    struct
-    {
-        u32 r13;
-        u32 r14;
-        CPSR spsr;
-    } supervisorRegBank_;
-
-    struct
-    {
-        u32 r13;
-        u32 r14;
-        CPSR spsr;
-    } abortRegBank_;
-
-    struct
-    {
-        u32 r13;
-        u32 r14;
-        CPSR spsr;
-    } irqRegBank_;
-
-    struct
-    {
-        u32 r13;
-        u32 r14;
-        CPSR spsr;
-    } undefinedRegBank_;
-
-    std::array<u32* const, 16> const sysAndUserRegLUT_ = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &sysAndUserRegBank_.r8,
-        &sysAndUserRegBank_.r9,
-        &sysAndUserRegBank_.r10,
-        &sysAndUserRegBank_.r11,
-        &sysAndUserRegBank_.r12,
-        &sysAndUserRegBank_.r13,
-        &sysAndUserRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
-
-    std::array<u32* const, 16> const fiqRegLUT_ = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &fiqRegBank_.r8,
-        &fiqRegBank_.r9,
-        &fiqRegBank_.r10,
-        &fiqRegBank_.r11,
-        &fiqRegBank_.r12,
-        &fiqRegBank_.r13,
-        &fiqRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
-
-    std::array<u32* const, 16> const supervisorRegLUT_ = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &sysAndUserRegBank_.r8,
-        &sysAndUserRegBank_.r9,
-        &sysAndUserRegBank_.r10,
-        &sysAndUserRegBank_.r11,
-        &sysAndUserRegBank_.r12,
-        &supervisorRegBank_.r13,
-        &supervisorRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
-
-    std::array<u32* const, 16> const abortRegLUT_ = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &sysAndUserRegBank_.r8,
-        &sysAndUserRegBank_.r9,
-        &sysAndUserRegBank_.r10,
-        &sysAndUserRegBank_.r11,
-        &sysAndUserRegBank_.r12,
-        &abortRegBank_.r13,
-        &abortRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
-
-    std::array<u32* const, 16> const irqRegLUT_ = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &sysAndUserRegBank_.r8,
-        &sysAndUserRegBank_.r9,
-        &sysAndUserRegBank_.r10,
-        &sysAndUserRegBank_.r11,
-        &sysAndUserRegBank_.r12,
-        &irqRegBank_.r13,
-        &irqRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
-
-    std::array<u32* const, 16> const undefinedRegLUT = {
-        &sysAndUserRegBank_.r0,
-        &sysAndUserRegBank_.r1,
-        &sysAndUserRegBank_.r2,
-        &sysAndUserRegBank_.r3,
-        &sysAndUserRegBank_.r4,
-        &sysAndUserRegBank_.r5,
-        &sysAndUserRegBank_.r6,
-        &sysAndUserRegBank_.r7,
-        &sysAndUserRegBank_.r8,
-        &sysAndUserRegBank_.r9,
-        &sysAndUserRegBank_.r10,
-        &sysAndUserRegBank_.r11,
-        &sysAndUserRegBank_.r12,
-        &undefinedRegBank_.r13,
-        &undefinedRegBank_.r14,
-        &sysAndUserRegBank_.r15
-    };
+    std::array<u32, 16> gpRegisters_;
+    std::array<u32, 8> fiqRegisters_;  // R8_fiq - R14_fiq, SPSR_fiq
+    std::array<u32, 3> svcRegisters_;  // R13_svc - R14_svc, SPSR_svc
+    std::array<u32, 3> abtRegisters_;  // R13_abt - R14_abt, SPSR_abt
+    std::array<u32, 3> irqRegisters_;  // R13_irq - R14_irq, SPSR_irq
+    std::array<u32, 3> undRegisters_;  // R13_und - R14_und, SPSR_und
 
     // Debug
     friend class debug::CPUDebugger;

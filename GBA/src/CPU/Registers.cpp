@@ -3,6 +3,7 @@
 #include <format>
 #include <fstream>
 #include <stdexcept>
+#include <utility>
 #include <GBA/include/CPU/CpuTypes.hpp>
 #include <GBA/include/Debug/DebugTypes.hpp>
 #include <GBA/include/Utilities/CommonUtils.hpp>
@@ -13,14 +14,15 @@ namespace cpu
 Registers::Registers(bool skipBiosIntro)
 {
     ZeroObject(cpsr_);
-    ZeroObject(sysAndUserRegBank_);
-    ZeroObject(fiqRegBank_);
-    ZeroObject(supervisorRegBank_);
-    ZeroObject(abortRegBank_);
-    ZeroObject(irqRegBank_);
-    ZeroObject(undefinedRegBank_);
+    ZeroObject(spsr_);
+    gpRegisters_.fill(0);
+    fiqRegisters_.fill(0);
+    svcRegisters_.fill(0);
+    abtRegisters_.fill(0);
+    irqRegisters_.fill(0);
+    undRegisters_.fill(0);
 
-    SetOperatingMode(OperatingMode::Supervisor);
+    cpsr_.Mode = static_cast<u32>(OperatingMode::Supervisor);
     SetOperatingState(OperatingState::ARM);
     SetIrqDisabled(true);
     SetFiqDisabled(true);
@@ -32,28 +34,55 @@ Registers::Registers(bool skipBiosIntro)
     }
 }
 
-u32 Registers::ReadRegister(u8 index) const
-{
-    return ReadRegister(index, GetOperatingMode());
-}
-
 u32 Registers::ReadRegister(u8 index, OperatingMode mode) const
 {
+    auto const currMode = GetOperatingMode();
+
+    if ((currMode == mode) || (index == PC_INDEX) || (index < 8))
+    {
+        return gpRegisters_[index];
+    }
+
     switch (mode)
     {
         case OperatingMode::User:
         case OperatingMode::System:
-            return *sysAndUserRegLUT_.at(index);
+        {
+            if ((currMode == OperatingMode::User) || (currMode == OperatingMode::System))
+            {
+                return gpRegisters_[index];
+            }
+            else if (currMode == OperatingMode::FIQ)
+            {
+                return fiqRegisters_[index - 8];
+            }
+            else if (currMode == OperatingMode::Supervisor)
+            {
+                return (index < 13) ? gpRegisters_[index] : svcRegisters_[index - 13];
+            }
+            else if (currMode == OperatingMode::Abort)
+            {
+                return (index < 13) ? gpRegisters_[index] : abtRegisters_[index - 13];
+            }
+            else if (currMode == OperatingMode::IRQ)
+            {
+                return (index < 13) ? gpRegisters_[index] : irqRegisters_[index - 13];
+            }
+            else
+            {
+                return (index < 13) ? gpRegisters_[index] : undRegisters_[index - 13];
+            }
+        }
         case OperatingMode::FIQ:
-            return *fiqRegLUT_.at(index);
-        case OperatingMode::IRQ:
-            return *irqRegLUT_.at(index);
+            return fiqRegisters_[index - 8];
         case OperatingMode::Supervisor:
-            return *supervisorRegLUT_.at(index);
+            return ((index == 13) || (index == 14)) ? svcRegisters_[index - 13] : gpRegisters_[index];
         case OperatingMode::Abort:
-            return *abortRegLUT_.at(index);
+            return ((index == 13) || (index == 14)) ? abtRegisters_[index - 13] : gpRegisters_[index];
+        case OperatingMode::IRQ:
+            return ((index == 13) || (index == 14)) ? irqRegisters_[index - 13] : gpRegisters_[index];
         case OperatingMode::Undefined:
-            return *undefinedRegLUT.at(index);
+            return ((index == 13) || (index == 14)) ? undRegisters_[index - 13] : gpRegisters_[index];
         default:
             throw std::logic_error("Read invalid CPU register index");
     }
@@ -61,7 +90,13 @@ u32 Registers::ReadRegister(u8 index, OperatingMode mode) const
 
 void Registers::WriteRegister(u8 index, u32 val)
 {
-    WriteRegister(index, val, GetOperatingMode());
+    if (index == PC_INDEX)
+    {
+        u32 mask = InArmState() ? 0xFFFF'FFFC : 0xFFFF'FFFE;
+        val &= mask;
+    }
+
+    gpRegisters_[index] = val;
 }
 
 void Registers::WriteRegister(u8 index, u32 val, OperatingMode mode)
@@ -72,124 +107,254 @@ void Registers::WriteRegister(u8 index, u32 val, OperatingMode mode)
         val &= mask;
     }
 
+    auto currMode = GetOperatingMode();
+
+    if ((currMode == mode) || (index == PC_INDEX) || (index < 8))
+    {
+        gpRegisters_[index] = val;
+        return;
+    }
+
     switch (mode)
     {
         case OperatingMode::User:
         case OperatingMode::System:
-            *sysAndUserRegLUT_.at(index) = val;
+        {
+            if ((currMode == OperatingMode::User) || (currMode == OperatingMode::System))
+            {
+                gpRegisters_[index] = val;
+            }
+            else if (currMode == OperatingMode::FIQ)
+            {
+                fiqRegisters_[index - 8] = val;
+            }
+            else if (currMode == OperatingMode::Supervisor)
+            {
+                if (index < 13)
+                    gpRegisters_[index] = val;
+                else
+                    svcRegisters_[index - 13] = val;
+            }
+            else if (currMode == OperatingMode::Abort)
+            {
+                if (index < 13)
+                    gpRegisters_[index] = val;
+                else
+                    abtRegisters_[index - 13] = val;
+            }
+            else if (currMode == OperatingMode::IRQ)
+            {
+                if (index < 13)
+                    gpRegisters_[index] = val;
+                else
+                    irqRegisters_[index - 13] = val;
+            }
+            else
+            {
+                if (index < 13)
+                    gpRegisters_[index] = val;
+                else
+                    undRegisters_[index - 13] = val;
+            }
+
             break;
+        }
         case OperatingMode::FIQ:
-            *fiqRegLUT_.at(index) = val;
-            break;
-        case OperatingMode::IRQ:
-            *irqRegLUT_.at(index) = val;
+            fiqRegisters_[index - 8] = val;
             break;
         case OperatingMode::Supervisor:
-            *supervisorRegLUT_.at(index) = val;
+        {
+            if ((index == 13) || (index == 14))
+                svcRegisters_[index - 13] = val;
+            else
+                gpRegisters_[index] = val;
+
             break;
+        }
         case OperatingMode::Abort:
-            *abortRegLUT_.at(index) = val;
+        {
+            if ((index == 13) || (index == 14))
+                abtRegisters_[index - 13] = val;
+            else
+                gpRegisters_[index] = val;
+
             break;
+        }
+        case OperatingMode::IRQ:
+        {
+            if ((index == 13) || (index == 14))
+                irqRegisters_[index - 13] = val;
+            else
+                gpRegisters_[index] = val;
+
+            break;
+        }
         case OperatingMode::Undefined:
-            *undefinedRegLUT.at(index) = val;
+        {
+            if ((index == 13) || (index == 14))
+                undRegisters_[index - 13] = val;
+            else
+                gpRegisters_[index] = val;
+
             break;
+        }
         default:
             throw std::logic_error("Wrote invalid CPU register index");
     }
 }
 
-u32 Registers::GetSPSR() const
+void Registers::SetOperatingMode(OperatingMode mode)
 {
-    switch (GetOperatingMode())
+    auto const currMode = GetOperatingMode();
+
+    if (currMode == mode)
+    {
+        return;
+    }
+
+    // If currently in an operating mode with banked registers, swap them out of the general purpose register array and back into
+    // their respective array of banked registers. Also swap out the current value of SPSR.
+
+    u32* gpRegPtr = nullptr;
+    u32* bankRegPtr = nullptr;
+    u8 swapCount = 0;
+
+    switch (currMode)
     {
         case OperatingMode::FIQ:
-            return std::bit_cast<u32>(fiqRegBank_.spsr);
-        case OperatingMode::IRQ:
-            return std::bit_cast<u32>(irqRegBank_.spsr);
+            gpRegPtr = &gpRegisters_[8];
+            bankRegPtr = &fiqRegisters_[0];
+            fiqRegisters_[7] = std::bit_cast<u32>(spsr_);
+            swapCount = 7;
+            break;
         case OperatingMode::Supervisor:
-            return std::bit_cast<u32>(supervisorRegBank_.spsr);
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &svcRegisters_[0];
+            svcRegisters_[2] = std::bit_cast<u32>(spsr_);
+            swapCount = 2;
+            break;
         case OperatingMode::Abort:
-            return std::bit_cast<u32>(abortRegBank_.spsr);
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &abtRegisters_[0];
+            abtRegisters_[2] = std::bit_cast<u32>(spsr_);
+            swapCount = 2;
+            break;
+        case OperatingMode::IRQ:
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &irqRegisters_[0];
+            irqRegisters_[2] = std::bit_cast<u32>(spsr_);
+            swapCount = 2;
+            break;
         case OperatingMode::Undefined:
-            return std::bit_cast<u32>(undefinedRegBank_.spsr);
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &undRegisters_[0];
+            undRegisters_[2] = std::bit_cast<u32>(spsr_);
+            swapCount = 2;
+            break;
         default:
-            return std::bit_cast<u32>(cpsr_);
+            break;
     }
+
+    if (swapCount > 0)
+    {
+        for (u8 i = 0; i < swapCount; ++i)
+        {
+            std::swap(gpRegPtr[i], bankRegPtr[i]);
+        }
+    }
+
+    spsr_ = cpsr_;
+
+    // Registers have now been swapped mirroring their setup in System/User mode. Swap again based on the new operating mode.
+
+    gpRegPtr = nullptr;
+    bankRegPtr = nullptr;
+    swapCount = 0;
+
+    switch (mode)
+    {
+        case OperatingMode::FIQ:
+            gpRegPtr = &gpRegisters_[8];
+            bankRegPtr = &fiqRegisters_[0];
+            spsr_ = std::bit_cast<CPSR>(fiqRegisters_[7]);
+            swapCount = 7;
+            break;
+        case OperatingMode::Supervisor:
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &svcRegisters_[0];
+            spsr_ = std::bit_cast<CPSR>(svcRegisters_[2]);
+            swapCount = 2;
+            break;
+        case OperatingMode::Abort:
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &abtRegisters_[0];
+            spsr_ = std::bit_cast<CPSR>(abtRegisters_[2]);
+            swapCount = 2;
+            break;
+        case OperatingMode::IRQ:
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &irqRegisters_[0];
+            spsr_ = std::bit_cast<CPSR>(irqRegisters_[2]);
+            swapCount = 2;
+            break;
+        case OperatingMode::Undefined:
+            gpRegPtr = &gpRegisters_[13];
+            bankRegPtr = &undRegisters_[0];
+            spsr_ = std::bit_cast<CPSR>(undRegisters_[2]);
+            swapCount = 2;
+            break;
+        default:
+            break;
+    }
+
+    for (u8 i = 0; i < swapCount; ++i)
+    {
+        std::swap(gpRegPtr[i], bankRegPtr[i]);
+    }
+
+    cpsr_.Mode = static_cast<u32>(mode);
 }
 
-void Registers::SetSPSR(u32 val)
+void Registers::SetCPSR(u32 val)
 {
-    switch (GetOperatingMode())
-    {
-        case OperatingMode::FIQ:
-            fiqRegBank_.spsr = std::bit_cast<CPSR>(val);
-            break;
-        case OperatingMode::IRQ:
-            irqRegBank_.spsr = std::bit_cast<CPSR>(val);
-            break;
-        case OperatingMode::Supervisor:
-            supervisorRegBank_.spsr = std::bit_cast<CPSR>(val);
-            break;
-        case OperatingMode::Abort:
-            abortRegBank_.spsr = std::bit_cast<CPSR>(val);
-            break;
-        case OperatingMode::Undefined:
-            undefinedRegBank_.spsr = std::bit_cast<CPSR>(val);
-            break;
-        default:
-            break;
-    }
-}
+    auto newCpsr = std::bit_cast<CPSR>(val);
 
-void Registers::LoadSPSR()
-{
-    switch (GetOperatingMode())
+    if (newCpsr.Mode != cpsr_.Mode)
     {
-        case OperatingMode::FIQ:
-            cpsr_ = fiqRegBank_.spsr;
-            break;
-        case OperatingMode::IRQ:
-            cpsr_ = irqRegBank_.spsr;
-            break;
-        case OperatingMode::Supervisor:
-            cpsr_ = supervisorRegBank_.spsr;
-            break;
-        case OperatingMode::Abort:
-            cpsr_ = abortRegBank_.spsr;
-            break;
-        case OperatingMode::Undefined:
-            cpsr_ = undefinedRegBank_.spsr;
-            break;
-        default:
-            break;
+        SetOperatingMode(OperatingMode{newCpsr.Mode});
     }
+
+    cpsr_ = newCpsr;
 }
 
 void Registers::Serialize(std::ofstream& saveState) const
 {
     SerializeTrivialType(cpsr_);
-    SerializeTrivialType(sysAndUserRegBank_);
-    SerializeTrivialType(fiqRegBank_);
-    SerializeTrivialType(supervisorRegBank_);
-    SerializeTrivialType(abortRegBank_);
-    SerializeTrivialType(irqRegBank_);
-    SerializeTrivialType(undefinedRegBank_);
+    SerializeTrivialType(spsr_);
+    SerializeArray(gpRegisters_);
+    SerializeArray(fiqRegisters_);
+    SerializeArray(svcRegisters_);
+    SerializeArray(abtRegisters_);
+    SerializeArray(irqRegisters_);
+    SerializeArray(undRegisters_);
 }
 
 void Registers::Deserialize(std::ifstream& saveState)
 {
     DeserializeTrivialType(cpsr_);
-    DeserializeTrivialType(sysAndUserRegBank_);
-    DeserializeTrivialType(fiqRegBank_);
-    DeserializeTrivialType(supervisorRegBank_);
-    DeserializeTrivialType(abortRegBank_);
-    DeserializeTrivialType(irqRegBank_);
-    DeserializeTrivialType(undefinedRegBank_);
+    DeserializeTrivialType(spsr_);
+    DeserializeArray(gpRegisters_);
+    DeserializeArray(fiqRegisters_);
+    DeserializeArray(svcRegisters_);
+    DeserializeArray(abtRegisters_);
+    DeserializeArray(irqRegisters_);
+    DeserializeArray(undRegisters_);
 }
 
 void Registers::SkipBIOS()
 {
-    SetOperatingMode(OperatingMode::System);
+    cpsr_.Mode = std::bit_cast<u32>(OperatingMode::System);
+    spsr_ = cpsr_;
     SetPC(0x0800'0000);
     WriteRegister(SP_INDEX, 0x0300'7F00, OperatingMode::System);
     WriteRegister(SP_INDEX, 0x0300'7FA0, OperatingMode::IRQ);
