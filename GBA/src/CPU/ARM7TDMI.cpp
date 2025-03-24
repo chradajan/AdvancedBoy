@@ -31,7 +31,7 @@ ARM7TDMI::ARM7TDMI(ReadMemCallback readMem,
 
 bool ARM7TDMI::Step(bool irq)
 {
-    if (irq && !registers_.IsIrqDisabled())
+    if (irq && !registers_.IsIrqDisabled() && (pipeline_.Size() == 2))
     {
         HandleIRQ();
     }
@@ -100,7 +100,7 @@ void ARM7TDMI::Deserialize(std::ifstream& saveState)
 void ARM7TDMI::HandleIRQ()
 {
     u32 cpsr = registers_.GetCPSR();
-    u32 lr = pipeline_.Empty() ? registers_.GetPC() : pipeline_.PeakTail().PC;
+    u32 lr = pipeline_.PeakTail().PC;
     lr += 4;
 
     registers_.SetOperatingMode(OperatingMode::IRQ);

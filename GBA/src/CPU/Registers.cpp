@@ -255,12 +255,9 @@ void Registers::SetOperatingMode(OperatingMode mode)
             break;
     }
 
-    if (swapCount > 0)
+    for (u8 i = 0; i < swapCount; ++i)
     {
-        for (u8 i = 0; i < swapCount; ++i)
-        {
-            std::swap(gpRegPtr[i], bankRegPtr[i]);
-        }
+        std::swap(gpRegPtr[i], bankRegPtr[i]);
     }
 
     spsr_ = cpsr_;
