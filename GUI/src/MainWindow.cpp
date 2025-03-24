@@ -98,12 +98,12 @@ MainWindow::MainWindow(QWidget* parent) :
     cpuDebuggerWindow_ = std::make_unique<CpuDebuggerWindow>();
     connect(this, &MainWindow::UpdateCpuDebuggerSignal,
             cpuDebuggerWindow_.get(), &CpuDebuggerWindow::UpdateCpuDebuggerSlot);
-    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
-             this, &MainWindow::CpuDebugStepSlot);
+    connect(cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
+            this, &MainWindow::CpuDebugStepSlot);
 
     registerViewerWindow_ = std::make_unique<RegisterViewerWindow>();
-    connect (cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
-             this, &MainWindow::CpuDebugStepSlot);
+    connect(cpuDebuggerWindow_.get(), &CpuDebuggerWindow::CpuDebugStepSignal,
+            this, &MainWindow::CpuDebugStepSlot);
 
     // Options window
     optionsWindow_ = std::make_unique<OptionsWindow>(settings_);

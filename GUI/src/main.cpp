@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 int main(int argv, char** args)
 {
     QApplication app(argv, args);
-    QCoreApplication::setApplicationName("AdvancedBoy");
+    QCoreApplication::setApplicationName("Advanced Boy");
     gui::MainWindow mainWindow;
     mainWindow.show();
 
